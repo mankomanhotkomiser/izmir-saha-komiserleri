@@ -23,18 +23,14 @@ export default function Home() {
   const [acikHaftalar, setAcikHaftalar] = useState<number[]>([])
   const [tebellugEdildi, setTebellugEdildi] = useState(false) 
 
-  // ==========================================
-  // AKILLI MAZERET STATE MAKİNESİ (MANTIKSAL DEVRE)
-  // ==========================================
   const [kompleYokum, setKompleYokum] = useState(false)
   
   const [haftaIciYokum, setHaftaIciYokum] = useState(false)
   const [haftaIciMusait, setHaftaIciMusait] = useState(false)
   
   const [haftaSonuYokum, setHaftaSonuYokum] = useState(false)
-  const [haftaSonuMusait, setHaftaSonuMusait] = useState(false) // DEFAULT FALSE (Seçili değil)
+  const [haftaSonuMusait, setHaftaSonuMusait] = useState(false) 
 
-  // Çifte iptal kontrolörü
   useEffect(() => {
     if (haftaIciYokum && haftaSonuYokum) {
       setKompleYokum(true);
@@ -46,7 +42,6 @@ export default function Home() {
   const handleKompleYokum = (val: boolean) => {
     setKompleYokum(val)
     if (val) {
-      // Komple yoka geçilirse her şey sıfırlanır
       setHaftaIciYokum(false)
       setHaftaIciMusait(false)
       setHaftaSonuYokum(false)
@@ -72,7 +67,6 @@ export default function Home() {
     if (val) setHaftaSonuYokum(false)
   }
 
-  // DEFAULT GÜNLERİN HİÇBİRİ SEÇİLİ DEĞİL (active: false)
   const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: true, baslangic: '09:00', bitis: '22:00' }
   
   const [gunler, setGunler] = useState<Record<string, any>>({
@@ -370,22 +364,32 @@ export default function Home() {
     )
   }
 
+  // ==========================================
+  // AKILLI HEADER (ÇIKIŞ vs GERİ DÖN MANTIĞI)
+  // ==========================================
   const OrtakHeader = ({ geriButonuGoster = false }) => (
     <header className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          {geriButonuGoster && (
-            <button onClick={() => setAktifEkran('dashboard')} className="bg-blue-800 hover:bg-blue-700 p-2 rounded-lg transition-colors" title="Ana Ekrana Dön">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
-            </button>
-          )}
           <div>
             <h1 className="font-bold text-sm md:text-base leading-tight">İzmir Futbol Saha</h1>
             <h1 className="font-bold text-sm md:text-base leading-tight text-blue-200">Komiserleri Derneği</h1>
-            <p className="text-blue-300 text-[10px] mt-0.5 font-mono">Aktif Hafta: {globalAktifHaftaNo}</p>
+            <p className="text-blue-300 text-[10px] mt-0.5 font-mono">{globalAktifHaftaNo}. Program Haftası</p>
           </div>
         </div>
-        <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
+        
+        {/* Eğer alt ekrandaysak SADECE Geri Dön butonu çıkar */}
+        {geriButonuGoster ? (
+          <button onClick={() => setAktifEkran('dashboard')} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Geri
+          </button>
+        ) : (
+          /* Eğer Dashboard (Ana) ekrandaysak SADECE Çıkış butonu çıkar */
+          <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
+        )}
       </div>
     </header>
   )
@@ -571,9 +575,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // EKRAN 4: MAZERET EKRANI
-  // ==========================================
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
@@ -608,11 +609,9 @@ export default function Home() {
                 </label>
               </div>
 
-              {/* KOMPLE YOKUM SEÇİLİ DEĞİLSE HAFTA İÇİ VE SONU ALANLARI GÖRÜNÜR */}
               {!kompleYokum && (
                 <div className="space-y-6 animate-fade-in-down">
                   
-                  {/* HAFTA İÇİ BÖLÜMÜ */}
                   <div>
                     <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta İçi (Cum-Per)</h3>
                     <div className="flex flex-col gap-3 mb-3">
@@ -627,7 +626,6 @@ export default function Home() {
                         <span className={`font-bold text-lg ${haftaIciYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta İçi Müsait Değilim</span>
                       </label>
                       
-                      {/* Hafta içi müsait değilim seçiliyse bu buton komple KAYBOLUR */}
                       {!haftaIciYokum && (
                         <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciMusait ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
                           <input 
@@ -652,7 +650,6 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* HAFTA SONU BÖLÜMÜ */}
                   <div>
                     <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta Sonu</h3>
                     <div className="flex flex-col gap-3 mb-3">
@@ -667,7 +664,6 @@ export default function Home() {
                         <span className={`font-bold text-lg ${haftaSonuYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta Sonu Müsait Değilim</span>
                       </label>
                       
-                      {/* Hafta sonu müsait değilim seçiliyse bu buton komple KAYBOLUR */}
                       {!haftaSonuYokum && (
                         <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuMusait ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
                           <input 
