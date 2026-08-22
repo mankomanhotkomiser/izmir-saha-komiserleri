@@ -23,14 +23,36 @@ export default function Home() {
   const [acikHaftalar, setAcikHaftalar] = useState<number[]>([])
   const [tebellugEdildi, setTebellugEdildi] = useState(false) 
 
-  // MAZERET DURUM YÖNETİMİ
+  // ==========================================
+  // AKILLI MAZERET STATE MAKİNESİ (MANTIKSAL DEVRE)
+  // ==========================================
   const [kompleYokum, setKompleYokum] = useState(false)
   
   const [haftaIciYokum, setHaftaIciYokum] = useState(false)
   const [haftaIciMusait, setHaftaIciMusait] = useState(false)
   
   const [haftaSonuYokum, setHaftaSonuYokum] = useState(false)
-  const [haftaSonuMusait, setHaftaSonuMusait] = useState(true)
+  const [haftaSonuMusait, setHaftaSonuMusait] = useState(false) // DEFAULT FALSE (Seçili değil)
+
+  // Çifte iptal kontrolörü
+  useEffect(() => {
+    if (haftaIciYokum && haftaSonuYokum) {
+      setKompleYokum(true);
+      setHaftaIciYokum(false);
+      setHaftaSonuYokum(false);
+    }
+  }, [haftaIciYokum, haftaSonuYokum])
+
+  const handleKompleYokum = (val: boolean) => {
+    setKompleYokum(val)
+    if (val) {
+      // Komple yoka geçilirse her şey sıfırlanır
+      setHaftaIciYokum(false)
+      setHaftaIciMusait(false)
+      setHaftaSonuYokum(false)
+      setHaftaSonuMusait(false)
+    }
+  }
 
   const handleHaftaIciYokum = (val: boolean) => {
     setHaftaIciYokum(val)
@@ -50,16 +72,17 @@ export default function Home() {
     if (val) setHaftaSonuYokum(false)
   }
 
+  // DEFAULT GÜNLERİN HİÇBİRİ SEÇİLİ DEĞİL (active: false)
   const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: true, baslangic: '09:00', bitis: '22:00' }
   
   const [gunler, setGunler] = useState<Record<string, any>>({
-    cuma: { ...defaultGunDurumu, active: true },
+    cuma: { ...defaultGunDurumu },
     pazartesi: { ...defaultGunDurumu },
     sali: { ...defaultGunDurumu },
     carsamba: { ...defaultGunDurumu },
     persembe: { ...defaultGunDurumu },
-    cumartesi: { ...defaultGunDurumu, active: true },
-    pazar: { ...defaultGunDurumu, active: true }
+    cumartesi: { ...defaultGunDurumu },
+    pazar: { ...defaultGunDurumu }
   })
 
   const updateGun = (key: string, field: string, val: any) => {
@@ -304,9 +327,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // EKRAN 1: GİRİŞ EKRANI 
-  // ==========================================
   if (aktifEkran === 'giris') {
     return (
       <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
@@ -370,9 +390,6 @@ export default function Home() {
     </header>
   )
 
-  // ==========================================
-  // EKRAN 2: KÖK DİZİN (DASHBOARD)
-  // ==========================================
   if (aktifEkran === 'dashboard') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -456,9 +473,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // EKRAN 3: GÖREV KARTLARI 
-  // ==========================================
   if (aktifEkran === 'gorevKartlari') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -580,17 +594,17 @@ export default function Home() {
 
             <div className="p-6 space-y-8">
               
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-4 transition-colors hover:bg-red-100">
+              <div className={`border rounded-xl p-4 flex items-start gap-4 transition-colors hover:bg-red-50 ${kompleYokum ? 'bg-red-50 border-red-500 ring-2 ring-red-200' : 'bg-white border-slate-200'}`}>
                 <input 
                   type="checkbox" 
                   id="kompleYokum"
                   checked={kompleYokum}
-                  onChange={(e) => setKompleYokum(e.target.checked)}
+                  onChange={(e) => handleKompleYokum(e.target.checked)}
                   className="mt-1 w-6 h-6 text-red-600 rounded focus:ring-red-500 cursor-pointer"
                 />
                 <label htmlFor="kompleYokum" className="cursor-pointer">
-                  <span className="block font-bold text-red-700 text-lg">Bu hafta görev alamayacağım.</span>
-                  <span className="block text-red-500 text-sm mt-1">İşaretlerseniz detaylı gün ve saat seçimleri tamamen gizlenir.</span>
+                  <span className={`block font-bold text-lg ${kompleYokum ? 'text-red-700' : 'text-slate-700'}`}>Bu hafta görev alamayacağım.</span>
+                  <span className={`block text-sm mt-1 ${kompleYokum ? 'text-red-500' : 'text-slate-500'}`}>İşaretlerseniz detaylı gün ve saat seçimleri tamamen gizlenir.</span>
                 </label>
               </div>
 
@@ -602,7 +616,8 @@ export default function Home() {
                   <div>
                     <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta İçi (Cum-Per)</h3>
                     <div className="flex flex-col gap-3 mb-3">
-                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciYokum ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                      
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciYokum ? 'bg-red-50 border-red-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
                         <input 
                           type="checkbox" 
                           checked={haftaIciYokum}
@@ -612,15 +627,18 @@ export default function Home() {
                         <span className={`font-bold text-lg ${haftaIciYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta İçi Müsait Değilim</span>
                       </label>
                       
-                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciMusait ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
-                        <input 
-                          type="checkbox" 
-                          checked={haftaIciMusait}
-                          onChange={(e) => handleHaftaIciMusait(e.target.checked)}
-                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className={`font-bold text-lg ${haftaIciMusait ? 'text-blue-800' : 'text-slate-800'}`}>Hafta İçi Müsaitim</span>
-                      </label>
+                      {/* Hafta içi müsait değilim seçiliyse bu buton komple KAYBOLUR */}
+                      {!haftaIciYokum && (
+                        <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciMusait ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                          <input 
+                            type="checkbox" 
+                            checked={haftaIciMusait}
+                            onChange={(e) => handleHaftaIciMusait(e.target.checked)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className={`font-bold text-lg ${haftaIciMusait ? 'text-blue-800' : 'text-slate-700'}`}>Hafta İçi Müsaitim</span>
+                        </label>
+                      )}
                     </div>
 
                     {haftaIciMusait && (
@@ -638,7 +656,8 @@ export default function Home() {
                   <div>
                     <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta Sonu</h3>
                     <div className="flex flex-col gap-3 mb-3">
-                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuYokum ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                      
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuYokum ? 'bg-red-50 border-red-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
                         <input 
                           type="checkbox" 
                           checked={haftaSonuYokum}
@@ -648,15 +667,18 @@ export default function Home() {
                         <span className={`font-bold text-lg ${haftaSonuYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta Sonu Müsait Değilim</span>
                       </label>
                       
-                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuMusait ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
-                        <input 
-                          type="checkbox" 
-                          checked={haftaSonuMusait}
-                          onChange={(e) => handleHaftaSonuMusait(e.target.checked)}
-                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className={`font-bold text-lg ${haftaSonuMusait ? 'text-blue-800' : 'text-slate-800'}`}>Hafta Sonu Müsaitim</span>
-                      </label>
+                      {/* Hafta sonu müsait değilim seçiliyse bu buton komple KAYBOLUR */}
+                      {!haftaSonuYokum && (
+                        <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuMusait ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                          <input 
+                            type="checkbox" 
+                            checked={haftaSonuMusait}
+                            onChange={(e) => handleHaftaSonuMusait(e.target.checked)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className={`font-bold text-lg ${haftaSonuMusait ? 'text-blue-800' : 'text-slate-700'}`}>Hafta Sonu Müsaitim</span>
+                        </label>
+                      )}
                     </div>
 
                     {haftaSonuMusait && (
