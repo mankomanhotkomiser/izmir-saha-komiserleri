@@ -12,10 +12,22 @@ export default function AdminPanel() {
   const [mazeretler, setMazeretler] = useState<any[]>([])
   const [yukleniyor, setYukleniyor] = useState(false)
   
-  // Akordiyon (Açılır-Kapanır Liste) State'i
+  const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [acikKomiserId, setAcikKomiserId] = useState<string | null>(null)
 
   const ADMIN_SIFRE = "1923"
+
+  const cumaBul = (tarihMetni: string) => {
+    if (!tarihMetni) return 0
+    const parcalar = tarihMetni.split('-')
+    if (parcalar.length !== 3) return 0
+    const d = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]))
+    const gun = d.getDay()
+    const fark = gun >= 5 ? gun - 5 : gun + 2
+    d.setDate(d.getDate() - fark)
+    d.setHours(0, 0, 0, 0)
+    return d.getTime()
+  }
 
   const girisYap = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,16 +43,29 @@ export default function AdminPanel() {
   const veriCek = async () => {
     setYukleniyor(true)
     
-    // 1. Maçları Çek (Bu haftanın aktif maçları - sınır 1000'e çıkarıldı ki eksik kalmasın)
+    // 1. Tüm Maçları Çek
     const { data: macData } = await supabase
       .from('musabakalar')
       .select('*')
       .order('tarih', { ascending: false })
       .limit(1000)
 
-    if (macData) setMaclar(macData)
+    if (macData && macData.length > 0) {
+      // Hangi haftada olduğumuzu bul (Ana ekrandaki mantık)
+      const cumalar = macData.map(mac => cumaBul(mac.tarih)).filter(t => t > 0)
+      const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
+      
+      const aktifHaftaIndex = essizCumalar.length
+      const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
+      
+      setGlobalAktifHaftaNo(aktifHaftaIndex)
 
-    // 2. Komiserlerin İsimlerini ve ID'lerini Çek (Maçları isimle eşleştirmek için)
+      // SADECE AKTİF HAFTANIN MAÇLARINI FİLTRELE! (Geçmiş haftaları çöpe at)
+      const sadeceBuHaftaninMaclari = macData.filter(mac => cumaBul(mac.tarih) === aktifCumaTarihi)
+      setMaclar(sadeceBuHaftaninMaclari)
+    }
+
+    // 2. Komiserleri Çek
     const { data: komiserData } = await supabase
       .from('komiserler')
       .select('*')
@@ -62,23 +87,19 @@ export default function AdminPanel() {
   // RADAR MANTIĞI: MAÇLARI KİŞİLERE GÖRE GRUPLA
   // =======================================================
   
-  // Önce hangi komiserlerin o hafta maçı olduğunu bulalım
+  // Sadece bu hafta maçı olan komiserlerin ID'leri
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m.komiser_id).filter(Boolean)));
   
   const bekleyenKomiserler: any[] = [];
   const onayliKomiserler: any[] = [];
 
   gorevliKomiserIdleri.forEach(id => {
-    // Bu komiserin tüm maçlarını filtrele
     const komiserinMaclari = maclar.filter(m => m.komiser_id === id);
-    
-    // Komiserin ismini bul (bulamazsa ID'sini göster)
     const komiserBilgisi = komiserler.find(k => k.komiser_id === id);
     const komiserIsmi = komiserBilgisi ? komiserBilgisi.ad_soyad : `Komiser (${id})`;
-    const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş"; // İleride eklenecek
+    const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş";
     
-    // Eğer komiserin maçlarından BİR TANESİ BİLE tebellüğ edilmemişse (false veya null ise), "Bekleyen" dir.
-    // Sadece HEPSİ tebellüğ edilmişse (true ise) "Onaylı" dır.
+    // Eğer bir tane bile false (veya null) varsa "bekliyor" demektir.
     const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m.tebellug_edildi === true);
 
     const komiserObjesi = {
@@ -146,7 +167,10 @@ export default function AdminPanel() {
               <span className="bg-red-600 text-white px-3 py-1 rounded-lg text-xl shadow-red-500/50 shadow-lg">RADAR</span>
               Operasyon Merkezi
             </h1>
-            <p className="text-slate-400 mt-1">İzmir Saha Komiserleri Canlı Takip Ekranı</p>
+            <p className="text-slate-400 mt-1 flex items-center gap-2">
+              İzmir Saha Komiserleri Canlı Takip Ekranı 
+              <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-bold border border-slate-600">Aktif Hafta: {globalAktifHaftaNo}</span>
+            </p>
           </div>
           <button onClick={veriCek} className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105">
             {yukleniyor ? (
@@ -173,7 +197,7 @@ export default function AdminPanel() {
               </div>
               <div className="p-4 max-h-[600px] overflow-y-auto space-y-3">
                 {bekleyenKomiserler.length === 0 ? (
-                  <p className="text-slate-500 text-center py-4 italic">Tüm görevler tebellüğ edildi.</p>
+                  <p className="text-slate-500 text-center py-4 italic">Tüm görevler tebellüğ edildi veya bu hafta atanan maç yok.</p>
                 ) : (
                   bekleyenKomiserler.map(komiser => (
                     <div key={komiser.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden shadow-sm">
@@ -195,9 +219,10 @@ export default function AdminPanel() {
                       {acikKomiserId === komiser.id && (
                         <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4">
                           {komiser.maclar.map((mac: any) => (
-                            <div key={mac.id} className="bg-slate-900 border-l-4 border-red-500 shadow-sm rounded-r-xl p-4 opacity-95 relative">
+                            <div key={mac.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative ${mac.tebellug_edildi ? 'border-green-500' : 'border-red-500'}`}>
                               <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
                                 <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac.misafir_takim}</span>
+                                {mac.tebellug_edildi && <span className="text-[10px] bg-green-900/50 text-green-400 px-2 py-1 rounded font-bold">ONAYLI</span>}
                               </div>
                               <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
                                 <div className="flex flex-col">
@@ -234,29 +259,33 @@ export default function AdminPanel() {
                 <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">{onayliKomiserler.length} Kişi</span>
               </div>
               <div className="p-4 max-h-[400px] overflow-y-auto space-y-3">
-                {onayliKomiserler.map(komiser => (
-                  <div key={komiser.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-                    <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-3 hover:bg-slate-800 transition-colors flex justify-between items-center">
-                      <div>
-                        <h3 className="text-slate-300 font-bold text-md">{komiser.isim}</h3>
-                        <span className="text-green-500 font-mono text-[10px] mt-1 block">ID: {komiser.id} | Maç: {komiser.maclar.length}</span>
-                      </div>
-                      <span className="text-slate-500 text-lg">{acikKomiserId === komiser.id ? '▲' : '▼'}</span>
-                    </button>
-                    
-                    {/* ONAYLANANLARIN KARTLARI */}
-                    {acikKomiserId === komiser.id && (
-                      <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
-                        {komiser.maclar.map((mac: any) => (
-                           <div key={mac.id} className="bg-slate-900 border-l-2 border-green-500 rounded p-3 relative">
-                              <p className="font-bold text-slate-300 text-sm mb-2">{mac.ev_sahibi} vs {mac.misafir_takim}</p>
-                              <p className="text-xs text-slate-400">{mac.saha} | {new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</p>
-                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {onayliKomiserler.length === 0 ? (
+                  <p className="text-slate-500 text-center py-4 italic">Henüz tebellüğ eden komiser yok.</p>
+                ) : (
+                  onayliKomiserler.map(komiser => (
+                    <div key={komiser.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                      <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-3 hover:bg-slate-800 transition-colors flex justify-between items-center">
+                        <div>
+                          <h3 className="text-slate-300 font-bold text-md">{komiser.isim}</h3>
+                          <span className="text-green-500 font-mono text-[10px] mt-1 block">ID: {komiser.id} | Maç: {komiser.maclar.length}</span>
+                        </div>
+                        <span className="text-slate-500 text-lg">{acikKomiserId === komiser.id ? '▲' : '▼'}</span>
+                      </button>
+                      
+                      {/* ONAYLANANLARIN KARTLARI */}
+                      {acikKomiserId === komiser.id && (
+                        <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
+                          {komiser.maclar.map((mac: any) => (
+                             <div key={mac.id} className="bg-slate-900 border-l-2 border-green-500 rounded p-3 relative">
+                                <p className="font-bold text-slate-300 text-sm mb-2">{mac.ev_sahibi} vs {mac.misafir_takim}</p>
+                                <p className="text-xs text-slate-400">{mac.saha} | {new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</p>
+                             </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
