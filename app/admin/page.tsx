@@ -17,15 +17,11 @@ export default function AdminPanel() {
 
   const ADMIN_SIFRE = "1923"
 
-  // ==========================================
-  // F5 (SAYFA YENİLEME) KORUMASI (LOCALSTORAGE)
-  // ==========================================
   useEffect(() => {
-    // Sayfa ilk açıldığında tarayıcı hafızasına bak
     const kayitliYetki = localStorage.getItem('izmirAdminYetki')
     if (kayitliYetki === 'true') {
       setYetkili(true)
-      veriCek(false) // Hafızada yetki varsa direkt verileri çek
+      veriCek(false) 
     }
   }, [])
 
@@ -45,7 +41,6 @@ export default function AdminPanel() {
     e.preventDefault()
     if (sifre === ADMIN_SIFRE) {
       setYetkili(true)
-      // Şifre doğruysa tarayıcı hafızasına kaydet (Artık F5 atınca silinmez)
       localStorage.setItem('izmirAdminYetki', 'true')
       veriCek(false)
     } else {
@@ -97,12 +92,8 @@ export default function AdminPanel() {
     if (!sessiz) setYukleniyor(false)
   }
 
-  // =======================================================
-  // GERÇEK ZAMANLI (REALTIME) SUPABASE ABONELİĞİ
-  // =======================================================
   useEffect(() => {
     if (yetkili) {
-      // 1. Müsabakalar Tablosunu Dinle
       const musabakaDinleyici = supabase
         .channel('musabakalar-canli')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'musabakalar' }, (payload) => {
@@ -110,7 +101,6 @@ export default function AdminPanel() {
         })
         .subscribe()
 
-      // 2. Mazeretler Tablosunu Dinle
       const mazeretDinleyici = supabase
         .channel('mazeretler-canli')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mazeretler' }, (payload) => {
@@ -124,7 +114,6 @@ export default function AdminPanel() {
       }
     }
   }, [yetkili])
-  // =======================================================
 
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m.komiser_id).filter(Boolean)));
   const bekleyenKomiserler: any[] = [];
@@ -136,8 +125,6 @@ export default function AdminPanel() {
     const komiserIsmi = komiserBilgisi ? komiserBilgisi.ad_soyad : `Komiser (${id})`;
     const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş";
     
-    // YENİ MANTIK: Gelen mac verisinin tebellug_edildi sütununu açıkça kontrol et. 
-    // false veya null ise bekliyor demektir.
     const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m.tebellug_edildi === true);
 
     const komiserObjesi = {
@@ -378,10 +365,10 @@ export default function AdminPanel() {
                         </div>
                       )}
 
-                      {mazeret.not && (
+                      {mazeret.aciklama && (
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3">
                           <p className="text-slate-500 text-[10px] uppercase font-bold mb-2">Açıklama / Not:</p>
-                          <p className="text-slate-300 text-sm italic">"{mazeret.not}"</p>
+                          <p className="text-slate-300 text-sm italic">"{mazeret.aciklama}"</p>
                         </div>
                       )}
                       
