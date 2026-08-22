@@ -23,9 +23,32 @@ export default function Home() {
   const [acikHaftalar, setAcikHaftalar] = useState<number[]>([])
   const [tebellugEdildi, setTebellugEdildi] = useState(false) 
 
+  // MAZERET DURUM YÖNETİMİ
   const [kompleYokum, setKompleYokum] = useState(false)
+  
+  const [haftaIciYokum, setHaftaIciYokum] = useState(false)
   const [haftaIciMusait, setHaftaIciMusait] = useState(false)
+  
+  const [haftaSonuYokum, setHaftaSonuYokum] = useState(false)
   const [haftaSonuMusait, setHaftaSonuMusait] = useState(true)
+
+  const handleHaftaIciYokum = (val: boolean) => {
+    setHaftaIciYokum(val)
+    if (val) setHaftaIciMusait(false)
+  }
+  const handleHaftaIciMusait = (val: boolean) => {
+    setHaftaIciMusait(val)
+    if (val) setHaftaIciYokum(false)
+  }
+  
+  const handleHaftaSonuYokum = (val: boolean) => {
+    setHaftaSonuYokum(val)
+    if (val) setHaftaSonuMusait(false)
+  }
+  const handleHaftaSonuMusait = (val: boolean) => {
+    setHaftaSonuMusait(val)
+    if (val) setHaftaSonuYokum(false)
+  }
 
   const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: true, baslangic: '09:00', bitis: '22:00' }
   
@@ -105,29 +128,7 @@ export default function Home() {
     return () => { aktif = false; }
   }, [])
 
-  // ==========================================
-  // ZAMAN AYARLI MAZERET KAPISI MANTIĞI
-  // ==========================================
-  const mazeretKapisiAcikMi = () => {
-    /* 
-    ORİJİNAL KURAL (İleride devreye alınacak):
-    const suAn = new Date();
-    const gun = suAn.getDay(); // 0: Pazar, 1: Pzt, 2: Salı vb.
-    const saat = suAn.getHours();
-    
-    // Pazar saat 22:00 ve sonrası
-    if (gun === 0 && saat >= 22) return true;
-    // Pazartesi tüm gün
-    if (gun === 1) return true;
-    // Salı saat 08:00'den önce (00:00 - 07:59 arası)
-    if (gun === 2 && saat < 8) return true;
-    return false; 
-    */
-
-    // ŞİMDİLİK TEST İÇİN SÜREKLİ AÇIK:
-    return true; 
-  }
-
+  const mazeretKapisiAcikMi = () => true; 
   const mazeretAcik = mazeretKapisiAcikMi();
 
   const girisYap = async (e?: React.FormEvent) => {
@@ -378,7 +379,6 @@ export default function Home() {
         <OrtakHeader />
         <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6">
           
-          {/* PROFİL KARTI VE FOTOĞRAF ALANI */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 flex flex-col md:flex-row items-center gap-6 border-t-4 border-blue-900">
             <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-blue-100 shadow-inner overflow-hidden relative">
               <img 
@@ -400,7 +400,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* GÖREV KARTLARI VE SKOR RAPORU (ÜSTE ALINDI) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-blue-200 transition-all transform hover:scale-105">
               <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
@@ -419,7 +418,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* MAZERET BUTONU HER ZAMAN EN ALTTA OLACAK */}
           {mazeretAcik ? (
             <div className="mt-2">
               <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md transition-all transform hover:scale-[1.01] bg-white border-2 border-red-200 hover:border-red-500 hover:shadow-red-200">
@@ -592,60 +590,87 @@ export default function Home() {
                 />
                 <label htmlFor="kompleYokum" className="cursor-pointer">
                   <span className="block font-bold text-red-700 text-lg">Bu hafta görev alamayacağım.</span>
-                  <span className="block text-red-500 text-sm mt-1">İşaretlerseniz detaylı gün ve saat seçimleri pasif hale gelir.</span>
+                  <span className="block text-red-500 text-sm mt-1">İşaretlerseniz detaylı gün ve saat seçimleri tamamen gizlenir.</span>
                 </label>
               </div>
 
-              <div className={`transition-opacity duration-300 space-y-6 ${kompleYokum ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
-                
-                <div>
-                  <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta İçi (Cum-Per)</h3>
+              {/* KOMPLE YOKUM SEÇİLİ DEĞİLSE HAFTA İÇİ VE SONU ALANLARI GÖRÜNÜR */}
+              {!kompleYokum && (
+                <div className="space-y-6 animate-fade-in-down">
                   
-                  <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors mb-3">
-                    <input 
-                      type="checkbox" 
-                      checked={haftaIciMusait}
-                      onChange={(e) => setHaftaIciMusait(e.target.checked)}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                    <span className="font-bold text-lg text-slate-800">Hafta İçi Müsaitim</span>
-                  </label>
-
-                  {haftaIciMusait && (
-                    <div className="pl-4 ml-2 border-l-2 border-blue-300 space-y-4 animate-fade-in-down mt-4">
-                      {renderGunSatiri('cuma', 'Cuma', 'Haftanın Başlangıcı')}
-                      {renderGunSatiri('pazartesi', 'Pazartesi')}
-                      {renderGunSatiri('sali', 'Salı')}
-                      {renderGunSatiri('carsamba', 'Çarşamba')}
-                      {renderGunSatiri('persembe', 'Perşembe')}
+                  {/* HAFTA İÇİ BÖLÜMÜ */}
+                  <div>
+                    <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta İçi (Cum-Per)</h3>
+                    <div className="flex flex-col gap-3 mb-3">
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciYokum ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={haftaIciYokum}
+                          onChange={(e) => handleHaftaIciYokum(e.target.checked)}
+                          className="w-5 h-5 text-red-600 rounded focus:ring-red-500 cursor-pointer"
+                        />
+                        <span className={`font-bold text-lg ${haftaIciYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta İçi Müsait Değilim</span>
+                      </label>
+                      
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaIciMusait ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={haftaIciMusait}
+                          onChange={(e) => handleHaftaIciMusait(e.target.checked)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span className={`font-bold text-lg ${haftaIciMusait ? 'text-blue-800' : 'text-slate-800'}`}>Hafta İçi Müsaitim</span>
+                      </label>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta Sonu</h3>
-                  
-                  <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors mb-3">
-                    <input 
-                      type="checkbox" 
-                      checked={haftaSonuMusait}
-                      onChange={(e) => setHaftaSonuMusait(e.target.checked)}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                    <span className="font-bold text-lg text-slate-800">Hafta Sonu Müsaitim</span>
-                  </label>
+                    {haftaIciMusait && (
+                      <div className="pl-4 ml-2 border-l-2 border-blue-300 space-y-4 animate-fade-in-down mt-4">
+                        {renderGunSatiri('cuma', 'Cuma', 'Haftanın Başlangıcı')}
+                        {renderGunSatiri('pazartesi', 'Pazartesi')}
+                        {renderGunSatiri('sali', 'Salı')}
+                        {renderGunSatiri('carsamba', 'Çarşamba')}
+                        {renderGunSatiri('persembe', 'Perşembe')}
+                      </div>
+                    )}
+                  </div>
 
-                  {haftaSonuMusait && (
-                    <div className="pl-4 ml-2 border-l-2 border-blue-300 space-y-4 animate-fade-in-down mt-4">
-                      {renderGunSatiri('cumartesi', 'Cumartesi')}
-                      {renderGunSatiri('pazar', 'Pazar')}
+                  {/* HAFTA SONU BÖLÜMÜ */}
+                  <div>
+                    <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider">Hafta Sonu</h3>
+                    <div className="flex flex-col gap-3 mb-3">
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuYokum ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={haftaSonuYokum}
+                          onChange={(e) => handleHaftaSonuYokum(e.target.checked)}
+                          className="w-5 h-5 text-red-600 rounded focus:ring-red-500 cursor-pointer"
+                        />
+                        <span className={`font-bold text-lg ${haftaSonuYokum ? 'text-red-700' : 'text-slate-700'}`}>Hafta Sonu Müsait Değilim</span>
+                      </label>
+                      
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${haftaSonuMusait ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={haftaSonuMusait}
+                          onChange={(e) => handleHaftaSonuMusait(e.target.checked)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span className={`font-bold text-lg ${haftaSonuMusait ? 'text-blue-800' : 'text-slate-800'}`}>Hafta Sonu Müsaitim</span>
+                      </label>
                     </div>
-                  )}
+
+                    {haftaSonuMusait && (
+                      <div className="pl-4 ml-2 border-l-2 border-blue-300 space-y-4 animate-fade-in-down mt-4">
+                        {renderGunSatiri('cumartesi', 'Cumartesi')}
+                        {renderGunSatiri('pazar', 'Pazar')}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
+              )}
 
-              </div>
-
-              <div className="pt-4 border-t border-slate-200">
+              <div className="pt-4 border-t border-slate-200 mt-6">
                 <h3 className="font-bold text-slate-700 pb-2 mb-2">Ek Açıklama (İsteğe Bağlı)</h3>
                 <textarea 
                   value={mazeretNotu}
