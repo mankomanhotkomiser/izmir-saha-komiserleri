@@ -272,12 +272,27 @@ export default function Home() {
     if (!error) {
       setKomiserMaclari(prev => prev.map(m => aktifMacIdleri.includes(m.id) ? { ...m, tebellug_edildi: true } : m));
     } else {
-      alert("Görevler onaylanırken bir hata oluştu. Lütfen tekrar deneyin.");
+      alert("Görevler onaylanırken bir hata oluştu. Veritabanı iznini kontrol edin.");
     }
     setTebellugYukleniyor(false);
   }
 
   const mazeretKaydet = async () => {
+    // ==========================================
+    // YENİ KURAL: ZORUNLU SEÇİM KONTROLÜ
+    // ==========================================
+    if (!kompleYokum) {
+      if (!haftaIciYokum && !haftaIciMusait) {
+        alert("Lütfen 'Hafta İçi' (Cuma-Perşembe) için müsaitlik durumunuzu belirleyiniz (Müsaitim veya Müsait Değilim).");
+        return;
+      }
+      if (!haftaSonuYokum && !haftaSonuMusait) {
+        alert("Lütfen 'Hafta Sonu' (Cumartesi-Pazar) için müsaitlik durumunuzu belirleyiniz (Müsaitim veya Müsait Değilim).");
+        return;
+      }
+    }
+    // ==========================================
+
     setMazeretKaydediliyor(true);
     const hedefHafta = globalAktifHaftaNo + 1;
 
@@ -414,8 +429,14 @@ export default function Home() {
                 <p className="text-red-600 font-semibold mt-1">{globalAktifHaftaNo}. Hafta Görev Bülteni</p>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
-                <button onClick={tebellugKaydet} disabled={hepsiTebellugEdilmis || tebellugYukleniyor || aktifMaclar.length === 0} className={`text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 transition-colors ${hepsiTebellugEdilmis ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : aktifMaclar.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
-                  {tebellugYukleniyor ? 'İşleniyor...' : hepsiTebellugEdilmis ? '✓ Tebellüğ Edildi' : 'Tebellüğ Et'}
+                <button 
+                  onClick={tebellugKaydet} 
+                  disabled={hepsiTebellugEdilmis || tebellugYukleniyor || aktifMaclar.length === 0} 
+                  className={`text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 transition-colors 
+                    ${hepsiTebellugEdilmis ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300' 
+                    : aktifMaclar.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+                >
+                  {tebellugYukleniyor ? 'İşleniyor...' : hepsiTebellugEdilmis ? '✓ Tebellüğ Edildi' : 'Tebellüğ Et (Görevleri Aldım)'}
                 </button>
                 <button onClick={kartiIndir} className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg shadow">İndir / Paylaş</button>
               </div>
@@ -432,12 +453,26 @@ export default function Home() {
                     <div className="space-y-4">
                       {aktifMaclar.map((mac) => (
                         <div key={mac?.id} className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4">
-                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3"><span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span></div>
+                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                            <span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
+                          </div>
                           <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div>
-                            <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800">{mac?.saha}</span></div>
-                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800">{mac?.kategori_adi} (Kod: {mac?.mac_kodu})</span></div>
-                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span></div>
+                            <div className="flex flex-col">
+                              <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
+                              <span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span>
+                              <span className="font-bold text-slate-800">{mac?.saha}</span>
+                            </div>
+                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                              <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span>
+                              <span className="font-bold text-slate-800">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
+                            </div>
+                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                              <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span>
+                              <span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -446,18 +481,41 @@ export default function Home() {
                 </div>
                 {Object.keys(gecmisHaftalar).length > 0 && (
                   <div className="mt-8 border-t-2 border-slate-300 pt-6">
-                    <button onClick={() => setArsivAcik(!arsivAcik)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-4 px-5 rounded-xl shadow-md flex justify-between items-center"><span>Geçmiş Maç Arşivi</span><span className="text-xl">{arsivAcik ? '▲' : '▼'}</span></button>
+                    <button onClick={() => setArsivAcik(!arsivAcik)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-4 px-5 rounded-xl shadow-md flex justify-between items-center">
+                      <span>Geçmiş Maç Arşivi</span><span className="text-xl">{arsivAcik ? '▲' : '▼'}</span>
+                    </button>
                     {arsivAcik && (
                       <div className="mt-4 space-y-4">
                         {Object.keys(gecmisHaftalar).map(Number).sort((a, b) => b - a).map(haftaNo => (
                           <div key={haftaNo} className="border border-slate-300 rounded-xl overflow-hidden shadow-sm">
-                            <button onClick={() => haftaToggle(haftaNo)} className="w-full bg-slate-300 text-slate-900 font-bold py-3 px-5 flex justify-between items-center"><span>{haftaNo}. Hafta</span><span>{acikHaftalar.includes(haftaNo) ? '▲' : '▼'}</span></button>
+                            <button onClick={() => haftaToggle(haftaNo)} className="w-full bg-slate-300 text-slate-900 font-bold py-3 px-5 flex justify-between items-center">
+                              <span>{haftaNo}. Hafta Görevleri</span><span>{acikHaftalar.includes(haftaNo) ? '▲' : '▼'}</span>
+                            </button>
                             {acikHaftalar.includes(haftaNo) && (
                               <div className="p-4 bg-slate-100 space-y-4">
-                                {gecmisHaftalar[haftaNo].map(mac => (
-                                  <div key={mac?.id} className="bg-white border-l-4 border-slate-500 shadow-sm rounded-r-xl p-4">
-                                    <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3"><span className="font-bold text-slate-700 text-lg md:text-xl">{mac?.ev_sahibi} vs {mac?.misafir_takim}</span></div>
-                                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-lg"><div className="flex flex-col"><span className="font-bold text-slate-700">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div></div>
+                                {gecmisHaftalar[haftaNo].map((mac: any) => (
+                                  <div key={mac?.id} className="bg-white border-l-4 border-slate-500 shadow-sm rounded-r-xl p-4 opacity-95 relative">
+                                    <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                                      <span className="font-bold text-slate-700 text-lg md:text-xl leading-tight">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
+                                        <span className="font-bold text-slate-700">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
+                                        <span className="font-bold text-slate-700">{mac?.saha}</span>
+                                      </div>
+                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
+                                        <span className="font-bold text-slate-700">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
+                                      </div>
+                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
+                                        <span className="font-extrabold text-slate-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -538,7 +596,7 @@ export default function Home() {
             <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Sisteme Giriş Yapın</h2>
             {girisHatasi && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200 text-center">{girisHatasi}</div>}
             <div className="space-y-6">
-              <div><input type="text" inputMode="numeric" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-center" disabled={girisYukleniyor} /></div>
+              <div><input type="text" inputMode="numeric" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-center font-mono tracking-widest text-lg" disabled={girisYukleniyor} /></div>
               <button type="button" onClick={girisYap} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg" disabled={girisYukleniyor}>{girisYukleniyor ? 'Giriş Yapılıyor...' : "Giriş Yap"}</button>
             </div>
           </div>

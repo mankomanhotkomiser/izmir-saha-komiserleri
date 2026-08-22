@@ -64,7 +64,7 @@ export default function AdminPanel() {
       .limit(1000)
 
     if (macData && macData.length > 0) {
-      const cumalar = macData.map(mac => cumaBul(mac.tarih)).filter(t => t > 0)
+      const cumalar = macData.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
       const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
       
       const aktifHaftaIndex = essizCumalar.length
@@ -72,7 +72,7 @@ export default function AdminPanel() {
       
       setGlobalAktifHaftaNo(aktifHaftaIndex)
 
-      const sadeceBuHaftaninMaclari = macData.filter(mac => cumaBul(mac.tarih) === aktifCumaTarihi)
+      const sadeceBuHaftaninMaclari = macData.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
       setMaclar(sadeceBuHaftaninMaclari)
     }
 
@@ -96,14 +96,14 @@ export default function AdminPanel() {
     if (yetkili) {
       const musabakaDinleyici = supabase
         .channel('musabakalar-canli')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'musabakalar' }, (payload) => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'musabakalar' }, () => {
           veriCek(true) 
         })
         .subscribe()
 
       const mazeretDinleyici = supabase
         .channel('mazeretler-canli')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'mazeretler' }, (payload) => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mazeretler' }, () => {
           veriCek(true) 
         })
         .subscribe()
@@ -115,17 +115,17 @@ export default function AdminPanel() {
     }
   }, [yetkili])
 
-  const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m.komiser_id).filter(Boolean)));
+  const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m?.komiser_id).filter(Boolean)));
   const bekleyenKomiserler: any[] = [];
   const onayliKomiserler: any[] = [];
 
   gorevliKomiserIdleri.forEach(id => {
-    const komiserinMaclari = maclar.filter(m => m.komiser_id === id);
-    const komiserBilgisi = komiserler.find(k => k.komiser_id === id);
-    const komiserIsmi = komiserBilgisi ? komiserBilgisi.ad_soyad : `Komiser (${id})`;
+    const komiserinMaclari = maclar.filter(m => m?.komiser_id === id);
+    const komiserBilgisi = komiserler.find(k => k?.komiser_id === id);
+    const komiserIsmi = komiserBilgisi?.ad_soyad || `Komiser (${id})`;
     const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş";
     
-    const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m.tebellug_edildi === true);
+    const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m?.tebellug_edildi === true);
 
     const komiserObjesi = {
       id: id,
@@ -160,22 +160,10 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-700 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           <h1 className="text-2xl font-black text-white mb-2 tracking-widest">KARARGAH</h1>
-          <p className="text-slate-400 text-sm mb-6 uppercase tracking-widest">Sadece Yetkili Personel</p>
-          
           <form onSubmit={girisYap} className="space-y-4">
-            <input 
-              type="password" 
-              value={sifre}
-              onChange={(e) => setSifre(e.target.value)}
-              className="w-full bg-slate-900 border-2 border-slate-700 rounded-lg p-3 text-center text-white text-xl tracking-widest focus:border-blue-500 focus:outline-none transition-colors"
-              placeholder="PIN KODU"
-            />
-            {hata && <p className="text-red-500 text-sm font-bold animate-pulse">Erişim Reddedildi!</p>}
-            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg uppercase tracking-wider transition-colors">
-              Giriş Yap
-            </button>
+            <input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} className="w-full bg-slate-900 border-2 border-slate-700 rounded-lg p-3 text-center text-white" placeholder="PIN KODU" />
+            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg">Giriş Yap</button>
           </form>
         </div>
       </div>
@@ -185,203 +173,168 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
-        
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-30 flex flex-col items-end">
-            <span className="relative flex h-3 w-3 mb-1">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-            </span>
+            <span className="relative flex h-3 w-3 mb-1"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>
             <span className="text-[9px] font-mono text-blue-500 uppercase tracking-widest">WEB SOCKET AKTİF</span>
           </div>
-
           <div>
-            <h1 className="text-3xl font-black text-white flex items-center gap-3">
-              <span className="bg-red-600 text-white px-3 py-1 rounded-lg text-xl shadow-red-500/50 shadow-lg">RADAR</span>
-              Operasyon Merkezi
-            </h1>
-            <p className="text-slate-400 mt-1 flex items-center gap-2">
-              İzmir Saha Komiserleri Canlı Takip Ekranı 
-              <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-bold border border-slate-600">Aktif Hafta: {globalAktifHaftaNo}</span>
-            </p>
+            <h1 className="text-3xl font-black text-white flex items-center gap-3"><span className="bg-red-600 text-white px-3 py-1 rounded-lg text-xl">RADAR</span>Operasyon Merkezi</h1>
           </div>
-          
           <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0 z-10">
-            <button onClick={cikisYap} className="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow transition-colors text-sm border border-slate-600">
-              Güvenli Çıkış
-            </button>
-            <button onClick={() => veriCek(false)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105">
-              {yukleniyor ? (
-                <><span className="animate-spin text-lg">↻</span> Veri İndiriliyor...</>
-              ) : (
-                <><span className="text-lg">↻</span> Manuel Kontrol</>
-              )}
-            </button>
+            <button onClick={cikisYap} className="bg-slate-700 text-slate-300 font-bold py-2 px-4 rounded-lg text-sm">Güvenli Çıkış</button>
+            <button onClick={() => veriCek(false)} className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg">{yukleniyor ? 'İndiriliyor...' : 'Manuel Kontrol'}</button>
           </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
           <div className="space-y-6">
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
-              <div className="bg-red-900/50 p-4 border-b border-red-500/30 flex justify-between items-center">
-                <h2 className="text-red-400 font-bold text-lg flex items-center gap-2">
-                  Görevini Almayanlar
-                </h2>
-                <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">{bekleyenKomiserler.length} Kişi</span>
-              </div>
+              <div className="bg-red-900/50 p-4 border-b border-red-500/30 flex justify-between items-center"><h2 className="text-red-400 font-bold text-lg">Görevini Almayanlar</h2><span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">{bekleyenKomiserler.length} Kişi</span></div>
               <div className="p-4 max-h-[600px] overflow-y-auto space-y-3">
-                {bekleyenKomiserler.length === 0 ? (
-                  <p className="text-slate-500 text-center py-4 italic">Tüm görevler tebellüğ edildi veya bu hafta atanan maç yok.</p>
-                ) : (
-                  bekleyenKomiserler.map(komiser => (
-                    <div key={komiser.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden shadow-sm">
-                      <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-4 hover:bg-slate-800 transition-colors flex justify-between items-center">
-                        <div>
-                          <h3 className="text-white font-bold text-lg">{komiser.isim}</h3>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-red-400 font-mono text-xs bg-red-900/30 px-2 py-0.5 rounded">ID: {komiser.id}</span>
-                            <span className="text-slate-500 text-xs flex items-center gap-1">📞 {komiser.telefon}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="bg-slate-700 text-slate-300 text-xs font-bold px-3 py-1 rounded-full">{komiser.maclar.length} Maç</span>
-                          <span className="text-slate-400 text-xl">{acikKomiserId === komiser.id ? '▲' : '▼'}</span>
-                        </div>
-                      </button>
-                      
-                      {acikKomiserId === komiser.id && (
-                        <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4">
-                          {komiser.maclar.map((mac: any) => (
-                            <div key={mac.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative ${mac.tebellug_edildi ? 'border-green-500' : 'border-red-500'}`}>
-                              <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
-                                <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac.misafir_takim}</span>
-                                {mac.tebellug_edildi && <span className="text-[10px] bg-green-900/50 text-green-400 px-2 py-1 rounded font-bold">ONAYLI</span>}
+                {bekleyenKomiserler.map(komiser => (
+                  <div key={komiser?.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden shadow-sm">
+                    <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-4 hover:bg-slate-800 transition-colors flex justify-between items-center">
+                      <div><h3 className="text-white font-bold text-lg">{komiser?.isim}</h3><span className="text-red-400 font-mono text-xs">ID: {komiser?.id}</span></div>
+                    </button>
+                    {acikKomiserId === komiser.id && (
+                      <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4">
+                        {/* EKMEL KARTLARI (ADMİN) */}
+                        {komiser.maclar.map((mac: any) => (
+                          <div key={mac?.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative ${mac?.tebellug_edildi ? 'border-green-500' : 'border-red-500'}`}>
+                            <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
+                              <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac?.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac?.misafir_takim}</span>
+                              {mac?.tebellug_edildi && <span className="text-[10px] bg-green-900/50 text-green-400 px-2 py-1 rounded font-bold">ONAYLI</span>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
+                                <span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
                               </div>
-                              <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
-                                  <span className="font-bold text-slate-300">{new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
-                                  <span className="font-bold text-slate-300">{mac.saha}</span>
-                                </div>
-                                <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                  <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
-                                  <span className="font-bold text-slate-300">{mac.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu})</span></span>
-                                </div>
-                                <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                  <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
-                                  <span className="font-extrabold text-blue-400">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span>
-                                </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
+                                <span className="font-bold text-slate-300">{mac?.saha}</span>
+                              </div>
+                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
+                                <span className="font-bold text-slate-300">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
+                              </div>
+                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
+                                <span className="font-extrabold text-blue-400">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
-              <div className="bg-green-900/30 p-4 border-b border-green-500/30 flex justify-between items-center">
-                <h2 className="text-green-400 font-bold text-lg">✓ Görevini Alanlar</h2>
-                <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">{onayliKomiserler.length} Kişi</span>
-              </div>
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
+              <div className="bg-green-900/30 p-4 border-b border-green-500/30 flex justify-between items-center"><h2 className="text-green-400 font-bold text-lg">✓ Görevini Alanlar</h2><span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">{onayliKomiserler.length} Kişi</span></div>
               <div className="p-4 max-h-[400px] overflow-y-auto space-y-3">
-                {onayliKomiserler.length === 0 ? (
-                  <p className="text-slate-500 text-center py-4 italic">Henüz tebellüğ eden komiser yok.</p>
-                ) : (
-                  onayliKomiserler.map(komiser => (
-                    <div key={komiser.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-                      <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-3 hover:bg-slate-800 transition-colors flex justify-between items-center">
-                        <div>
-                          <h3 className="text-slate-300 font-bold text-md">{komiser.isim}</h3>
-                          <span className="text-green-500 font-mono text-[10px] mt-1 block">ID: {komiser.id} | Maç: {komiser.maclar.length}</span>
-                        </div>
-                        <span className="text-slate-500 text-lg">{acikKomiserId === komiser.id ? '▲' : '▼'}</span>
-                      </button>
-                      
-                      {acikKomiserId === komiser.id && (
-                        <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
-                          {komiser.maclar.map((mac: any) => (
-                             <div key={mac.id} className="bg-slate-900 border-l-2 border-green-500 rounded p-3 relative">
-                                <p className="font-bold text-slate-300 text-sm mb-2">{mac.ev_sahibi} vs {mac.misafir_takim}</p>
-                                <p className="text-xs text-slate-400">{mac.saha} | {new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</p>
-                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
+                {onayliKomiserler.map(komiser => (
+                  <div key={komiser?.id} className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-3 hover:bg-slate-800 transition-colors flex justify-between items-center"><div><h3 className="text-slate-300 font-bold text-md">{komiser?.isim}</h3></div></button>
+                    {acikKomiserId === komiser.id && (
+                      <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
+                        {/* EKMEL KARTLARI (ADMİN ONAYLANANLAR) */}
+                        {komiser.maclar.map((mac: any) => (
+                           <div key={mac?.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative border-green-500`}>
+                            <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
+                              <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac?.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac?.misafir_takim}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
+                                <span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
+                                <span className="font-bold text-slate-300">{mac?.saha}</span>
+                              </div>
+                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
+                                <span className="font-bold text-slate-300">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
+                              </div>
+                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
+                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
+                                <span className="font-extrabold text-blue-400">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
           <div>
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden h-full shadow-lg">
-              <div className="bg-amber-900/30 p-4 border-b border-amber-500/30 flex justify-between items-center">
-                <h2 className="text-amber-400 font-bold text-lg flex items-center gap-2">Gelen Mazeret Bildirimleri</h2>
-                <span className="bg-amber-500 text-slate-900 text-sm font-bold px-3 py-1 rounded-full">{mazeretler.length} Kayıt</span>
-              </div>
+              <div className="bg-amber-900/30 p-4 border-b border-amber-500/30 flex justify-between items-center"><h2 className="text-amber-400 font-bold text-lg">Gelen Mazeret Bildirimleri</h2><span className="bg-amber-500 text-slate-900 text-sm font-bold px-3 py-1 rounded-full">{mazeretler.length} Kayıt</span></div>
               <div className="p-4 max-h-[900px] overflow-y-auto space-y-4">
-                {mazeretler.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8 italic">Henüz mazeret bildiren personel yok.</p>
-                ) : (
-                  mazeretler.map(mazeret => {
-                    const komiserBilgisi = komiserler.find(k => k.komiser_id === mazeret.komiser_id);
-                    const isim = komiserBilgisi ? komiserBilgisi.ad_soyad : "Bilinmeyen Komiser";
+                {mazeretler.map(mazeret => {
+                  const komiserBilgisi = komiserler.find(k => k?.komiser_id === mazeret?.komiser_id);
+                  const isim = komiserBilgisi?.ad_soyad || "Bilinmeyen Komiser";
 
-                    return (
-                    <div key={mazeret.id} className="bg-slate-900 rounded-xl border border-slate-700 p-5 relative overflow-hidden shadow-sm">
-                      {mazeret.komple_yok && (
-                        <div className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl shadow-lg">
-                          KOMPLE YOK
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-                        <div>
-                          <h3 className="text-white font-bold text-lg">{isim}</h3>
-                          <p className="text-blue-400 font-mono text-xs mt-1">ID: {mazeret.komiser_id}</p>
-                        </div>
-                        <span className="bg-slate-800 text-slate-400 font-bold text-xs px-3 py-1 rounded border border-slate-700">Hafta: {mazeret.hafta_no}</span>
-                      </div>
+                  const gunIsimler: any = { cuma: 'Cuma', pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba', persembe: 'Perşembe', cumartesi: 'Cumartesi', pazar: 'Pazar' };
 
-                      {!mazeret.komple_yok && mazeret.detaylar && (
+                  return (
+                  <div key={mazeret?.id} className="bg-slate-900 rounded-xl border border-slate-700 p-5 relative overflow-hidden shadow-sm">
+                    {mazeret?.komple_yok && (<div className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl shadow-lg">KOMPLE YOK</div>)}
+                    <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3"><div><h3 className="text-white font-bold text-lg">{isim}</h3></div></div>
+                    
+                    {!mazeret?.komple_yok && mazeret?.detaylar && (
+                      <>
                         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaIciYokum ? 'bg-red-900/20 border-red-900/50 text-red-400' : mazeret.detaylar.haftaIciMusait ? 'bg-blue-900/20 border-blue-900/50 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaIciYokum ? 'bg-red-900/20 text-red-400 border-red-900/50' : mazeret.detaylar.haftaIciMusait ? 'bg-blue-900/20 text-blue-400 border-blue-900/50' : 'bg-slate-800 text-slate-400'}`}>
                             <span className="block text-[10px] font-bold uppercase mb-1 text-slate-500">Hafta İçi</span>
                             {mazeret.detaylar.haftaIciYokum ? 'MÜSAİT DEĞİL' : mazeret.detaylar.haftaIciMusait ? 'MÜSAİT' : 'Belirtilmedi'}
                           </div>
-                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaSonuYokum ? 'bg-red-900/20 border-red-900/50 text-red-400' : mazeret.detaylar.haftaSonuMusait ? 'bg-blue-900/20 border-blue-900/50 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaSonuYokum ? 'bg-red-900/20 text-red-400 border-red-900/50' : mazeret.detaylar.haftaSonuMusait ? 'bg-blue-900/20 text-blue-400 border-blue-900/50' : 'bg-slate-800 text-slate-400'}`}>
                             <span className="block text-[10px] font-bold uppercase mb-1 text-slate-500">Hafta Sonu</span>
                             {mazeret.detaylar.haftaSonuYokum ? 'MÜSAİT DEĞİL' : mazeret.detaylar.haftaSonuMusait ? 'MÜSAİT' : 'Belirtilmedi'}
                           </div>
                         </div>
-                      )}
 
-                      {mazeret.aciklama && (
-                        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3">
-                          <p className="text-slate-500 text-[10px] uppercase font-bold mb-2">Açıklama / Not:</p>
-                          <p className="text-slate-300 text-sm italic">"{mazeret.aciklama}"</p>
-                        </div>
-                      )}
-                      
-                      <p className="text-slate-600 text-[10px] text-right mt-3 font-mono">
-                        Kayıt: {new Date(mazeret.created_at).toLocaleString('tr-TR')}
-                      </p>
-                    </div>
-                  )})
-                )}
+                        {/* GÜN GÜN DETAYLI ANALİZ RADARI */}
+                        {mazeret.detaylar.gunler && (
+                          <div className="mt-3 space-y-2 mb-4">
+                            {['cuma', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cumartesi', 'pazar'].map(gunKey => {
+                              const gunData = mazeret.detaylar.gunler[gunKey];
+                              if (!gunData || !gunData.active) return null;
+
+                              return (
+                                <div key={gunKey} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
+                                  <span className="text-blue-400 font-bold text-sm w-24">{gunIsimler[gunKey]}</span>
+                                  <div className="flex flex-wrap gap-2 text-[10px] mt-2 sm:mt-0">
+                                    <span className="bg-slate-700 text-slate-300 px-2 py-1 rounded uppercase tracking-wider font-semibold">
+                                      {gunData.merkez && gunData.deplasman ? 'Merkez & Deplasman' : gunData.merkez ? 'Sadece Merkez' : gunData.deplasman ? 'Sadece Deplasman' : 'Konum Yok'}
+                                    </span>
+                                    <span className={`px-2 py-1 rounded font-bold uppercase tracking-wider ${gunData.tumGun ? 'bg-green-900/60 text-green-400' : 'bg-amber-900/60 text-amber-400'}`}>
+                                      {gunData.tumGun ? 'TÜM GÜN' : `${gunData.baslangic} - ${gunData.bitis}`}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {mazeret?.aciklama && (<div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3"><p className="text-slate-300 text-sm italic">"{mazeret.aciklama}"</p></div>)}
+                  </div>
+                )})}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
