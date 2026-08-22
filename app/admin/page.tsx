@@ -17,6 +17,18 @@ export default function AdminPanel() {
 
   const ADMIN_SIFRE = "1923"
 
+  // ==========================================
+  // F5 (SAYFA YENİLEME) KORUMASI (LOCALSTORAGE)
+  // ==========================================
+  useEffect(() => {
+    // Sayfa ilk açıldığında tarayıcı hafızasına bak
+    const kayitliYetki = localStorage.getItem('izmirAdminYetki')
+    if (kayitliYetki === 'true') {
+      setYetkili(true)
+      veriCek(false) // Hafızada yetki varsa direkt verileri çek
+    }
+  }, [])
+
   const cumaBul = (tarihMetni: string) => {
     if (!tarihMetni) return 0
     const parcalar = tarihMetni.split('-')
@@ -33,17 +45,23 @@ export default function AdminPanel() {
     e.preventDefault()
     if (sifre === ADMIN_SIFRE) {
       setYetkili(true)
-      veriCek()
+      // Şifre doğruysa tarayıcı hafızasına kaydet (Artık F5 atınca silinmez)
+      localStorage.setItem('izmirAdminYetki', 'true')
+      veriCek(false)
     } else {
       setHata(true)
       setTimeout(() => setHata(false), 2000)
     }
   }
 
+  const cikisYap = () => {
+    setYetkili(false)
+    localStorage.removeItem('izmirAdminYetki')
+  }
+
   const veriCek = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true)
     
-    // 1. Tüm Maçları Çek
     const { data: macData } = await supabase
       .from('musabakalar')
       .select('*')
@@ -63,14 +81,12 @@ export default function AdminPanel() {
       setMaclar(sadeceBuHaftaninMaclari)
     }
 
-    // 2. Komiserleri Çek
     const { data: komiserData } = await supabase
       .from('komiserler')
       .select('*')
 
     if (komiserData) setKomiserler(komiserData)
 
-    // 3. Mazeretleri Çek
     const { data: mazeretData } = await supabase
       .from('mazeretler')
       .select('*')
@@ -82,29 +98,26 @@ export default function AdminPanel() {
   }
 
   // =======================================================
-  // GERÇEK ZAMANLI (REALTIME) SUPABASE ABONELİĞİ (MASTER LEAGUE MANTIĞI)
+  // GERÇEK ZAMANLI (REALTIME) SUPABASE ABONELİĞİ
   // =======================================================
   useEffect(() => {
     if (yetkili) {
-      // 1. Müsabakalar Tablosunu Dinle (Tebellüğleri anında yakalamak için)
+      // 1. Müsabakalar Tablosunu Dinle
       const musabakaDinleyici = supabase
         .channel('musabakalar-canli')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'musabakalar' }, (payload) => {
-          console.log("Maç değişti, veri güncelleniyor...", payload)
-          veriCek(true) // Sessizce verileri tazele
+          veriCek(true) 
         })
         .subscribe()
 
-      // 2. Mazeretler Tablosunu Dinle (Yeni mazeret düştüğünde anında yakalamak için)
+      // 2. Mazeretler Tablosunu Dinle
       const mazeretDinleyici = supabase
         .channel('mazeretler-canli')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mazeretler' }, (payload) => {
-          console.log("Yeni mazeret geldi, veri güncelleniyor...", payload)
-          veriCek(true) // Sessizce verileri tazele
+          veriCek(true) 
         })
         .subscribe()
 
-      // Bileşen kapanırsa dinlemeyi bırak
       return () => {
         supabase.removeChannel(musabakaDinleyici)
         supabase.removeChannel(mazeretDinleyici)
@@ -123,6 +136,8 @@ export default function AdminPanel() {
     const komiserIsmi = komiserBilgisi ? komiserBilgisi.ad_soyad : `Komiser (${id})`;
     const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş";
     
+    // YENİ MANTIK: Gelen mac verisinin tebellug_edildi sütununu açıkça kontrol et. 
+    // false veya null ise bekliyor demektir.
     const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m.tebellug_edildi === true);
 
     const komiserObjesi = {
@@ -185,7 +200,6 @@ export default function AdminPanel() {
       <div className="max-w-7xl mx-auto">
         
         <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
-          {/* Kalp atışı animasyonu (arka planda çalışıtığını belli etmek için ufak bir detay) */}
           <div className="absolute top-0 right-0 p-4 opacity-30 flex flex-col items-end">
             <span className="relative flex h-3 w-3 mb-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -204,13 +218,19 @@ export default function AdminPanel() {
               <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-bold border border-slate-600">Aktif Hafta: {globalAktifHaftaNo}</span>
             </p>
           </div>
-          <button onClick={() => veriCek(false)} className="mt-4 md:mt-0 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-lg transition-all z-10">
-            {yukleniyor ? (
-              <><span className="animate-spin text-lg">↻</span> Veri İndiriliyor...</>
-            ) : (
-              <><span className="text-lg">↻</span> Manuel Kontrol</>
-            )}
-          </button>
+          
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0 z-10">
+            <button onClick={cikisYap} className="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow transition-colors text-sm border border-slate-600">
+              Güvenli Çıkış
+            </button>
+            <button onClick={() => veriCek(false)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105">
+              {yukleniyor ? (
+                <><span className="animate-spin text-lg">↻</span> Veri İndiriliyor...</>
+              ) : (
+                <><span className="text-lg">↻</span> Manuel Kontrol</>
+              )}
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
