@@ -83,7 +83,6 @@ export default function Home() {
               veriKaldimi = false
             } else {
               sayfa++
-              // Mobil işlemciyi yormamak için mikro-nefes arası
               await new Promise(res => setTimeout(res, 50))
             }
           } else {
@@ -106,16 +105,37 @@ export default function Home() {
     return () => { aktif = false; }
   }, [])
 
-  const mazeretKapisiAcikMi = () => true 
+  // ==========================================
+  // ZAMAN AYARLI MAZERET KAPISI MANTIĞI
+  // ==========================================
+  const mazeretKapisiAcikMi = () => {
+    /* 
+    ORİJİNAL KURAL (İleride devreye alınacak):
+    const suAn = new Date();
+    const gun = suAn.getDay(); // 0: Pazar, 1: Pzt, 2: Salı vb.
+    const saat = suAn.getHours();
+    
+    // Pazar saat 22:00 ve sonrası
+    if (gun === 0 && saat >= 22) return true;
+    // Pazartesi tüm gün
+    if (gun === 1) return true;
+    // Salı saat 08:00'den önce (00:00 - 07:59 arası)
+    if (gun === 2 && saat < 8) return true;
+    return false; 
+    */
 
-  // MOBİL KLAVYE VE BOŞLUK HATALARINA KARŞI ZIRHLI GİRİŞ FONKSİYONU
-  const girisYap = async (e: React.FormEvent) => {
-    e.preventDefault() // Mobil klavyenin sayfayı yenilemesini kesinlikle yasaklar!
+    // ŞİMDİLİK TEST İÇİN SÜREKLİ AÇIK:
+    return true; 
+  }
+
+  const mazeretAcik = mazeretKapisiAcikMi();
+
+  const girisYap = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault() 
     
     setGirisYukleniyor(true)
     setGirisHatasi(null)
 
-    // Mobil klavyenin aralara koyduğu TÜM BOŞLUKLARI silip ezer. (Örn: "26 20 05" -> "262005" olur)
     const temizId = kullaniciIdInput.replace(/\s+/g, '')
 
     if (!temizId) {
@@ -145,6 +165,10 @@ export default function Home() {
     } finally {
       setGirisYukleniyor(false)
     }
+  }
+
+  const enterTusuKontrol = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') girisYap()
   }
 
   const cikisYap = () => {
@@ -280,43 +304,45 @@ export default function Home() {
   }
 
   // ==========================================
-  // EKRAN 1: GİRİŞ EKRANI (Mobil Korumalı Form)
+  // EKRAN 1: GİRİŞ EKRANI 
   // ==========================================
   if (aktifEkran === 'giris') {
     return (
       <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
         <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl overflow-hidden">
-          <div className="bg-blue-900 p-8 text-center">
-            <h1 className="text-2xl font-bold text-white tracking-wide">İZMİR FSHKD</h1>
-            <p className="text-blue-200 mt-2 text-sm">Saha Komiseri Operasyon Karargahı</p>
+          
+          <div className="bg-blue-900 p-8 text-center flex flex-col items-center justify-center space-y-1">
+            <h1 className="text-3xl font-black text-white tracking-widest drop-shadow-md">İZMİR</h1>
+            <h2 className="text-xl font-bold text-blue-100 tracking-wide uppercase">Futbol Saha Komiserleri</h2>
+            <h3 className="text-lg font-semibold text-blue-200 tracking-widest uppercase">Derneği</h3>
           </div>
           
           <div className="p-8">
             <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Sisteme Giriş Yapın</h2>
             {girisHatasi && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200 text-center font-medium">{girisHatasi}</div>}
             
-            {/* MOBİL İÇİN TAM KORUMALI FORM */}
-            <form onSubmit={girisYap} className="space-y-6">
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-600 mb-2">Dernek ID Numarası</label>
                 <input 
                   type="text" 
-                  inputMode="numeric" // Mobil klavyenin sadece rakam açmasını sağlar
+                  inputMode="numeric" 
                   value={kullaniciIdInput}
                   onChange={(e) => setKullaniciIdInput(e.target.value)}
-                  placeholder="Örn: 262705"
+                  onKeyDown={enterTusuKontrol}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-blue-600 text-lg text-center font-mono tracking-widest"
                   disabled={girisYukleniyor}
                 />
               </div>
               <button 
-                type="submit" 
+                type="button" 
+                onClick={girisYap}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors flex justify-center items-center h-14"
                 disabled={girisYukleniyor}
               >
                 {girisYukleniyor ? <span className="animate-pulse">Giriş Yapılıyor...</span> : "Giriş Yap"}
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </main>
@@ -333,8 +359,9 @@ export default function Home() {
             </button>
           )}
           <div>
-            <h1 className="font-bold text-lg md:text-xl leading-tight">İzmir FSHKD</h1>
-            <p className="text-blue-300 text-xs">Aktif Hafta: {globalAktifHaftaNo}</p>
+            <h1 className="font-bold text-sm md:text-base leading-tight">İzmir Futbol Saha</h1>
+            <h1 className="font-bold text-sm md:text-base leading-tight text-blue-200">Komiserleri Derneği</h1>
+            <p className="text-blue-300 text-[10px] mt-0.5 font-mono">Aktif Hafta: {globalAktifHaftaNo}</p>
           </div>
         </div>
         <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
@@ -342,14 +369,27 @@ export default function Home() {
     </header>
   )
 
+  // ==========================================
+  // EKRAN 2: KÖK DİZİN (DASHBOARD)
+  // ==========================================
   if (aktifEkran === 'dashboard') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
         <OrtakHeader />
         <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6">
+          
+          {/* PROFİL KARTI VE FOTOĞRAF ALANI */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 flex flex-col md:flex-row items-center gap-6 border-t-4 border-blue-900">
-            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-blue-100 shadow-inner">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-blue-100 shadow-inner overflow-hidden relative">
+              <img 
+                src="/profil.jpg" 
+                alt="Profil" 
+                className="w-full h-full object-cover z-10" 
+                onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-800 absolute z-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
             <div className="text-center md:text-left flex-1">
               <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{seciliKomiser.ad_soyad}</h2>
@@ -360,17 +400,8 @@ export default function Home() {
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-600 mb-4 px-2">Operasyon Merkezi</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button onClick={() => setAktifEkran('mazeretBildir')} disabled={!mazeretKapisiAcikMi()} className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-md transition-all transform hover:scale-105 border-2 ${mazeretKapisiAcikMi() ? 'bg-white border-red-200 hover:border-red-500 hover:shadow-red-200' : 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed'}`}>
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mazeretKapisiAcikMi() ? 'bg-red-100 text-red-600' : 'bg-slate-200 text-slate-400'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              </div>
-              <h4 className={`font-bold text-lg ${mazeretKapisiAcikMi() ? 'text-slate-800' : 'text-slate-500'}`}>Müsaitlik / Mazeret</h4>
-              <p className="text-xs text-center mt-2 text-slate-500">Gelecek hafta için görev müsaitliğinizi bildirin.</p>
-            </button>
-
+          {/* GÖREV KARTLARI VE SKOR RAPORU (ÜSTE ALINDI) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-blue-200 transition-all transform hover:scale-105">
               <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -387,11 +418,49 @@ export default function Home() {
               <p className="text-xs text-center mt-2 text-slate-500">Maç günü saha ve skor raporlarını merkeze iletin.</p>
             </button>
           </div>
+
+          {/* MAZERET BUTONU HER ZAMAN EN ALTTA OLACAK */}
+          {mazeretAcik ? (
+            <div className="mt-2">
+              <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md transition-all transform hover:scale-[1.01] bg-white border-2 border-red-200 hover:border-red-500 hover:shadow-red-200">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-bold text-lg text-slate-800">Müsaitlik / Mazeret</h4>
+                    <p className="text-xs mt-1 text-slate-500">Gelecek hafta için görev müsaitliğinizi bildirin.</p>
+                  </div>
+                </div>
+                <div className="hidden sm:block text-red-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </div>
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2">
+              <button disabled className="w-full flex flex-col items-center justify-center p-4 rounded-2xl border-2 bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-500 text-left">Müsaitlik / Mazeret Sistemi Kapalı</h4>
+                    <p className="text-[10px] text-slate-400 text-left">Pazar 22:00 ile Salı 08:00 arasında açılır.</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
         </div>
       </main>
     )
   }
 
+  // ==========================================
+  // EKRAN 3: GÖREV KARTLARI 
+  // ==========================================
   if (aktifEkran === 'gorevKartlari') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -490,6 +559,9 @@ export default function Home() {
     )
   }
 
+  // ==========================================
+  // EKRAN 4: MAZERET EKRANI
+  // ==========================================
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
