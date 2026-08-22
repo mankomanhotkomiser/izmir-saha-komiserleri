@@ -195,6 +195,9 @@ export default function Home() {
     setKomiserMaclari([])
     setAktifEkran('giris')
     setTebellugEdildi(false)
+    // Çıkış yaparken tüm arşiv ayarlarını da sıfırla
+    setArsivAcik(false)
+    setAcikHaftalar([])
   }
 
   const komiserDetayGetir = async (komiser: any) => {
@@ -364,9 +367,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // AKILLI HEADER (ÇIKIŞ vs GERİ DÖN MANTIĞI)
-  // ==========================================
   const OrtakHeader = ({ geriButonuGoster = false }) => (
     <header className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -378,16 +378,19 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Eğer alt ekrandaysak SADECE Geri Dön butonu çıkar */}
         {geriButonuGoster ? (
-          <button onClick={() => setAktifEkran('dashboard')} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">
+          <button onClick={() => {
+            setAktifEkran('dashboard');
+            // Geri dönüldüğünde arşivleri her zaman Kapat/Sıfırla
+            setArsivAcik(false);
+            setAcikHaftalar([]);
+          }} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Geri
           </button>
         ) : (
-          /* Eğer Dashboard (Ana) ekrandaysak SADECE Çıkış butonu çıkar */
           <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
         )}
       </div>
@@ -551,13 +554,32 @@ export default function Home() {
                             {acikHaftalar.includes(haftaNo) && (
                               <div className="p-4 bg-slate-100 space-y-4">
                                 {gecmisHaftalar[haftaNo].map(mac => (
-                                  <div key={mac.id} className="bg-white border-l-4 border-slate-400 shadow-sm rounded-r-lg p-4 opacity-95 relative">
-                                    <div className="flex justify-between items-start mb-2 border-b border-slate-100 pb-2"><span className="font-bold text-slate-700 text-lg">{mac.ev_sahibi} <span className="text-slate-400 font-normal mx-1">vs</span> {mac.misafir_takim}</span></div>
-                                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-500 mt-2 bg-slate-50 p-3 rounded-lg">
-                                      <div className="flex flex-col"><span className="font-semibold text-slate-700">{new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</span></div>
-                                      <div className="flex flex-col"><span className="font-semibold text-slate-700">{mac.saha}</span></div>
+                                  
+                                  /* EKMEL KANUNLARI: ARŞİV KARTI DETAYLANDIRILDI */
+                                  <div key={mac.id} className="bg-white border-l-4 border-slate-500 shadow-sm rounded-r-xl p-4 opacity-95 relative">
+                                    <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                                      <span className="font-bold text-slate-700 text-lg md:text-xl leading-tight">{mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
+                                        <span className="font-bold text-slate-700">{new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat.substring(0, 5)}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
+                                        <span className="font-bold text-slate-700">{mac.saha}</span>
+                                      </div>
+                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
+                                        <span className="font-bold text-slate-700">{mac.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu})</span></span>
+                                      </div>
+                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
+                                        <span className="font-extrabold text-slate-700">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span>
+                                      </div>
                                     </div>
                                   </div>
+
                                 ))}
                               </div>
                             )}
