@@ -33,14 +33,13 @@ export default function AdminPanel() {
     e.preventDefault()
     if (sifre === ADMIN_SIFRE) {
       setYetkili(true)
-      veriCek() // İlk girişte loader ile çek
+      veriCek()
     } else {
       setHata(true)
       setTimeout(() => setHata(false), 2000)
     }
   }
 
-  // Sessiz parametresi: Arka planda 15 saniyede bir çalışırken ekranda "Yükleniyor" dönmesini engeller
   const veriCek = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true)
     
@@ -83,17 +82,34 @@ export default function AdminPanel() {
   }
 
   // =======================================================
-  // İŞTE SENİN DAHİYANE FİKRİN: 15 SANİYELİK TETİKLEYİCİ
+  // GERÇEK ZAMANLI (REALTIME) SUPABASE ABONELİĞİ (MASTER LEAGUE MANTIĞI)
   // =======================================================
   useEffect(() => {
-    let tetikleyici: any;
     if (yetkili) {
-      // Yetkili girişi yapılmışsa her 15 saniyede bir sessizce veri çek
-      tetikleyici = setInterval(() => {
-        veriCek(true) // sessiz = true
-      }, 15000)
+      // 1. Müsabakalar Tablosunu Dinle (Tebellüğleri anında yakalamak için)
+      const musabakaDinleyici = supabase
+        .channel('musabakalar-canli')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'musabakalar' }, (payload) => {
+          console.log("Maç değişti, veri güncelleniyor...", payload)
+          veriCek(true) // Sessizce verileri tazele
+        })
+        .subscribe()
+
+      // 2. Mazeretler Tablosunu Dinle (Yeni mazeret düştüğünde anında yakalamak için)
+      const mazeretDinleyici = supabase
+        .channel('mazeretler-canli')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mazeretler' }, (payload) => {
+          console.log("Yeni mazeret geldi, veri güncelleniyor...", payload)
+          veriCek(true) // Sessizce verileri tazele
+        })
+        .subscribe()
+
+      // Bileşen kapanırsa dinlemeyi bırak
+      return () => {
+        supabase.removeChannel(musabakaDinleyici)
+        supabase.removeChannel(mazeretDinleyici)
+      }
     }
-    return () => clearInterval(tetikleyici) // Sayfa kapanırsa motoru durdur
   }, [yetkili])
   // =======================================================
 
@@ -172,10 +188,10 @@ export default function AdminPanel() {
           {/* Kalp atışı animasyonu (arka planda çalışıtığını belli etmek için ufak bir detay) */}
           <div className="absolute top-0 right-0 p-4 opacity-30 flex flex-col items-end">
             <span className="relative flex h-3 w-3 mb-1">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
             </span>
-            <span className="text-[9px] font-mono text-green-500 uppercase tracking-widest">Canlı Senkron</span>
+            <span className="text-[9px] font-mono text-blue-500 uppercase tracking-widest">WEB SOCKET AKTİF</span>
           </div>
 
           <div>
@@ -188,11 +204,11 @@ export default function AdminPanel() {
               <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-bold border border-slate-600">Aktif Hafta: {globalAktifHaftaNo}</span>
             </p>
           </div>
-          <button onClick={() => veriCek(false)} className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 z-10">
+          <button onClick={() => veriCek(false)} className="mt-4 md:mt-0 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 shadow-lg transition-all z-10">
             {yukleniyor ? (
-              <><span className="animate-spin text-xl">↻</span> Güncelleniyor...</>
+              <><span className="animate-spin text-lg">↻</span> Veri İndiriliyor...</>
             ) : (
-              <><span className="text-xl">↻</span> Manuel Yenile</>
+              <><span className="text-lg">↻</span> Manuel Kontrol</>
             )}
           </button>
         </header>
@@ -203,7 +219,6 @@ export default function AdminPanel() {
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
               <div className="bg-red-900/50 p-4 border-b border-red-500/30 flex justify-between items-center">
                 <h2 className="text-red-400 font-bold text-lg flex items-center gap-2">
-                  <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>
                   Görevini Almayanlar
                 </h2>
                 <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">{bekleyenKomiserler.length} Kişi</span>
