@@ -33,15 +33,16 @@ export default function AdminPanel() {
     e.preventDefault()
     if (sifre === ADMIN_SIFRE) {
       setYetkili(true)
-      veriCek()
+      veriCek() // İlk girişte loader ile çek
     } else {
       setHata(true)
       setTimeout(() => setHata(false), 2000)
     }
   }
 
-  const veriCek = async () => {
-    setYukleniyor(true)
+  // Sessiz parametresi: Arka planda 15 saniyede bir çalışırken ekranda "Yükleniyor" dönmesini engeller
+  const veriCek = async (sessiz = false) => {
+    if (!sessiz) setYukleniyor(true)
     
     // 1. Tüm Maçları Çek
     const { data: macData } = await supabase
@@ -51,7 +52,6 @@ export default function AdminPanel() {
       .limit(1000)
 
     if (macData && macData.length > 0) {
-      // Hangi haftada olduğumuzu bul (Ana ekrandaki mantık)
       const cumalar = macData.map(mac => cumaBul(mac.tarih)).filter(t => t > 0)
       const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
       
@@ -60,7 +60,6 @@ export default function AdminPanel() {
       
       setGlobalAktifHaftaNo(aktifHaftaIndex)
 
-      // SADECE AKTİF HAFTANIN MAÇLARINI FİLTRELE! (Geçmiş haftaları çöpe at)
       const sadeceBuHaftaninMaclari = macData.filter(mac => cumaBul(mac.tarih) === aktifCumaTarihi)
       setMaclar(sadeceBuHaftaninMaclari)
     }
@@ -80,16 +79,25 @@ export default function AdminPanel() {
 
     if (mazeretData) setMazeretler(mazeretData)
       
-    setYukleniyor(false)
+    if (!sessiz) setYukleniyor(false)
   }
 
   // =======================================================
-  // RADAR MANTIĞI: MAÇLARI KİŞİLERE GÖRE GRUPLA
+  // İŞTE SENİN DAHİYANE FİKRİN: 15 SANİYELİK TETİKLEYİCİ
   // =======================================================
-  
-  // Sadece bu hafta maçı olan komiserlerin ID'leri
+  useEffect(() => {
+    let tetikleyici: any;
+    if (yetkili) {
+      // Yetkili girişi yapılmışsa her 15 saniyede bir sessizce veri çek
+      tetikleyici = setInterval(() => {
+        veriCek(true) // sessiz = true
+      }, 15000)
+    }
+    return () => clearInterval(tetikleyici) // Sayfa kapanırsa motoru durdur
+  }, [yetkili])
+  // =======================================================
+
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m.komiser_id).filter(Boolean)));
-  
   const bekleyenKomiserler: any[] = [];
   const onayliKomiserler: any[] = [];
 
@@ -99,7 +107,6 @@ export default function AdminPanel() {
     const komiserIsmi = komiserBilgisi ? komiserBilgisi.ad_soyad : `Komiser (${id})`;
     const komiserTelefon = komiserBilgisi?.telefon || "Belirtilmemiş";
     
-    // Eğer bir tane bile false (veya null) varsa "bekliyor" demektir.
     const hepsiTebellugEdilmis = komiserinMaclari.length > 0 && komiserinMaclari.every(m => m.tebellug_edildi === true);
 
     const komiserObjesi = {
@@ -161,7 +168,16 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-slate-900 text-slate-300 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
+          {/* Kalp atışı animasyonu (arka planda çalışıtığını belli etmek için ufak bir detay) */}
+          <div className="absolute top-0 right-0 p-4 opacity-30 flex flex-col items-end">
+            <span className="relative flex h-3 w-3 mb-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span className="text-[9px] font-mono text-green-500 uppercase tracking-widest">Canlı Senkron</span>
+          </div>
+
           <div>
             <h1 className="text-3xl font-black text-white flex items-center gap-3">
               <span className="bg-red-600 text-white px-3 py-1 rounded-lg text-xl shadow-red-500/50 shadow-lg">RADAR</span>
@@ -172,21 +188,18 @@ export default function AdminPanel() {
               <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded font-bold border border-slate-600">Aktif Hafta: {globalAktifHaftaNo}</span>
             </p>
           </div>
-          <button onClick={veriCek} className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105">
+          <button onClick={() => veriCek(false)} className="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 z-10">
             {yukleniyor ? (
               <><span className="animate-spin text-xl">↻</span> Güncelleniyor...</>
             ) : (
-              <><span className="text-xl">↻</span> Verileri Yenile</>
+              <><span className="text-xl">↻</span> Manuel Yenile</>
             )}
           </button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* TEBELLÜĞ RADARI (KİŞİ BAZLI) */}
           <div className="space-y-6">
-            
-            {/* BEKLEYEN KOMİSERLER */}
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-lg">
               <div className="bg-red-900/50 p-4 border-b border-red-500/30 flex justify-between items-center">
                 <h2 className="text-red-400 font-bold text-lg flex items-center gap-2">
@@ -215,7 +228,6 @@ export default function AdminPanel() {
                         </div>
                       </button>
                       
-                      {/* AKORDİYON İÇİ MAÇ KARTLARI (EKMEL KANUNLARI FORMATI) */}
                       {acikKomiserId === komiser.id && (
                         <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4">
                           {komiser.maclar.map((mac: any) => (
@@ -252,7 +264,6 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* ONAYLANAN KOMİSERLER */}
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
               <div className="bg-green-900/30 p-4 border-b border-green-500/30 flex justify-between items-center">
                 <h2 className="text-green-400 font-bold text-lg">✓ Görevini Alanlar</h2>
@@ -272,7 +283,6 @@ export default function AdminPanel() {
                         <span className="text-slate-500 text-lg">{acikKomiserId === komiser.id ? '▲' : '▼'}</span>
                       </button>
                       
-                      {/* ONAYLANANLARIN KARTLARI */}
                       {acikKomiserId === komiser.id && (
                         <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
                           {komiser.maclar.map((mac: any) => (
@@ -290,7 +300,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* MAZERET BİLDİRİMLERİ RADARI */}
           <div>
             <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden h-full shadow-lg">
               <div className="bg-amber-900/30 p-4 border-b border-amber-500/30 flex justify-between items-center">
