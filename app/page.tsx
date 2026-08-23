@@ -29,30 +29,26 @@ export default function Home() {
   // MAZERET STATE'LERİ
   const [kompleYokum, setKompleYokum] = useState(false)
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
-  
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
 
-  // DİNÇER HOCANIN TESPİTİ: tumGun artık false. Böylece saatler default olarak açık gelecek.
   const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: false, baslangic: '09:00', bitis: '22:00' }
   const [gunler, setGunler] = useState<Record<string, any>>({
-    cuma: { ...defaultGunDurumu },
-    cumartesi: { ...defaultGunDurumu },
-    pazar: { ...defaultGunDurumu },
-    pazartesi: { ...defaultGunDurumu },
-    sali: { ...defaultGunDurumu },
-    carsamba: { ...defaultGunDurumu },
-    persembe: { ...defaultGunDurumu }
+    cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
+    pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
   })
 
-  const updateGun = (key: string, field: string, val: any) => {
-    setGunler(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: val }
-    }))
-  }
-
+  const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
   const [mazeretNotu, setMazeretNotu] = useState('')
+
+  // SKOR BİLDİRİM STATE'LERİ
+  const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
+  const [evSkor, setEvSkor] = useState<string>('')
+  const [misafirSkor, setMisafirSkor] = useState<string>('')
+  const [macDurumu, setMacDurumu] = useState<'oynandi' | 'ev_sahibi_gelmedi' | 'misafir_gelmedi' | 'ikisi_de_gelmedi' | 'yarida_kaldi'>('oynandi')
+  const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay'>('olaysiz')
+  const [raporNotu, setRaporNotu] = useState('')
+  const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
 
   const cumaBul = (tarihMetni: string) => {
     if (!tarihMetni) return 0
@@ -76,41 +72,28 @@ export default function Home() {
         let veriKaldimi = true
 
         while (veriKaldimi && aktif) {
-          const { data, error } = await supabase
-            .from('musabakalar')
-            .select('id, tarih, saat, saha, ev_sahibi, misafir_takim, kategori_adi, mac_kodu, tebellug_edildi')
-            .range(sayfa * limit, (sayfa + 1) * limit - 1)
-
+          const { data, error } = await supabase.from('musabakalar').select('*').range(sayfa * limit, (sayfa + 1) * limit - 1)
           if (error) break;
-
           if (data && data.length > 0) {
             tumMaclar = [...tumMaclar, ...data]
-            if (data.length < limit) {
-              veriKaldimi = false
-            } else {
-              sayfa++
-              await new Promise(res => setTimeout(res, 50))
-            }
-          } else {
-            veriKaldimi = false
-          }
+            if (data.length < limit) veriKaldimi = false
+            else { sayfa++; await new Promise(res => setTimeout(res, 50)) }
+          } else veriKaldimi = false
         }
         
         if (tumMaclar && tumMaclar.length > 0 && aktif) {
           const cumalar = tumMaclar.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
           const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
-          
           setHaftaReferanslari(essizCumalar)
           setGlobalAktifHaftaNo(essizCumalar.length)
         }
-      } catch (err: any) {
-        console.error("Arka plan yükleme hatası:", err)
-      }
+      } catch (err: any) { console.error("Arka plan yükleme hatası:", err) }
     }
     arkaPlaniHazirla()
     return () => { aktif = false; }
   }, [])
 
+  // İŞTE SİLİNEN VE SİSTEMİ ÇÖKERTEN O İKİ SATIR GERİ GELDİ!
   const mazeretKapisiAcikMi = () => true; 
   const mazeretAcik = mazeretKapisiAcikMi();
 
@@ -127,11 +110,8 @@ export default function Home() {
       setSeciliKomiser(data)
       await komiserDetayGetir(data)
       setAktifEkran('dashboard') 
-    } catch (err) {
-      setGirisHatasi("Bağlantı sorunu oluştu, tekrar deneyin.")
-    } finally {
-      setGirisYukleniyor(false)
-    }
+    } catch (err) { setGirisHatasi("Bağlantı sorunu oluştu, tekrar deneyin.") } 
+    finally { setGirisYukleniyor(false) }
   }
 
   const enterTusuKontrol = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') girisYap() }
@@ -144,21 +124,16 @@ export default function Home() {
     setArsivAcik(false)
     setAcikHaftalar([])
     
-    // Mazeret Sıfırlama
     setMazeretTipi(null)
     setKompleYokum(false)
     setGenelMerkez(true)
     setGenelDeplasman(false)
     setMazeretNotu('')
     setGunler({
-      cuma: { ...defaultGunDurumu },
-      cumartesi: { ...defaultGunDurumu },
-      pazar: { ...defaultGunDurumu },
-      pazartesi: { ...defaultGunDurumu },
-      sali: { ...defaultGunDurumu },
-      carsamba: { ...defaultGunDurumu },
-      persembe: { ...defaultGunDurumu }
+      cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
+      pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
     })
+    skorFormunuSifirla();
   }
 
   const komiserDetayGetir = async (komiser: any) => {
@@ -214,75 +189,80 @@ export default function Home() {
     setTebellugYukleniyor(true);
     const aktifMacIdleri = aktifMaclar.map(m => m.id);
     const { error } = await supabase.from('musabakalar').update({ tebellug_edildi: true }).in('id', aktifMacIdleri);
-    if (!error) {
-      setKomiserMaclari(prev => prev.map(m => aktifMacIdleri.includes(m.id) ? { ...m, tebellug_edildi: true } : m));
-    } else {
-      alert("Görevler onaylanırken bir hata oluştu.");
-    }
+    if (!error) { setKomiserMaclari(prev => prev.map(m => aktifMacIdleri.includes(m.id) ? { ...m, tebellug_edildi: true } : m)); } 
+    else { alert("Görevler onaylanırken bir hata oluştu."); }
     setTebellugYukleniyor(false);
   }
 
   const mazeretKaydet = async () => {
-    if (!mazeretTipi && !kompleYokum) {
-      alert("⚠️ Lütfen size uygun olan seçeneklerden birini işaretleyiniz!"); return;
-    }
-
-    if (mazeretTipi === 'full' && !genelMerkez && !genelDeplasman) {
-      alert("⚠️ Tüm Hafta Müsaitim seçeneğini işaretlediniz ancak Merkez veya Deplasman seçmediniz. Lütfen en az bir konum seçiniz."); return;
-    }
-
+    if (!mazeretTipi && !kompleYokum) { alert("⚠️ Lütfen size uygun olan seçeneklerden birini işaretleyiniz!"); return; }
+    if (mazeretTipi === 'full' && !genelMerkez && !genelDeplasman) { alert("⚠️ Tüm Hafta Müsaitim seçeneğini işaretlediniz ancak Merkez veya Deplasman seçmediniz. Lütfen en az bir konum seçiniz."); return; }
     if (mazeretTipi === 'secmeli') {
       const aktifGunVarMi = Object.values(gunler).some(g => g.active);
-      if (!aktifGunVarMi) {
-        alert("⚠️ Seçmeli müsaitlik dediniz ancak hiçbir gün seçmediniz. Lütfen müsait olduğunuz günleri işaretleyiniz."); return;
-      }
+      if (!aktifGunVarMi) { alert("⚠️ Seçmeli müsaitlik dediniz ancak hiçbir gün seçmediniz. Lütfen müsait olduğunuz günleri işaretleyiniz."); return; }
     }
 
     setMazeretKaydediliyor(true);
     const hedefHafta = globalAktifHaftaNo + 1;
-
-    // Arka Planda Temizlik ve Admin Uyumu
     const temizGunler = JSON.parse(JSON.stringify(gunler));
     
-    if (kompleYokum || mazeretTipi === 'yok') {
-      Object.keys(temizGunler).forEach(g => { temizGunler[g].active = false; });
-    } else if (mazeretTipi === 'full') {
-      Object.keys(temizGunler).forEach(g => {
-        temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' };
-      });
-    }
+    if (kompleYokum || mazeretTipi === 'yok') { Object.keys(temizGunler).forEach(g => { temizGunler[g].active = false; }); } 
+    else if (mazeretTipi === 'full') { Object.keys(temizGunler).forEach(g => { temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' }; }); }
 
     const payload = {
-      komiser_id: seciliKomiser.komiser_id,
-      hafta_no: hedefHafta,
-      komple_yok: kompleYokum || mazeretTipi === 'yok',
-      aciklama: mazeretNotu,
-      detaylar: {
-        mod: mazeretTipi,
-        genelMerkez: mazeretTipi === 'full' ? genelMerkez : null,
-        genelDeplasman: mazeretTipi === 'full' ? genelDeplasman : null,
-        gunler: (mazeretTipi === 'secmeli' || mazeretTipi === 'full') ? temizGunler : null
-      }
+      komiser_id: seciliKomiser.komiser_id, hafta_no: hedefHafta, komple_yok: kompleYokum || mazeretTipi === 'yok', aciklama: mazeretNotu,
+      detaylar: { mod: mazeretTipi, genelMerkez: mazeretTipi === 'full' ? genelMerkez : null, genelDeplasman: mazeretTipi === 'full' ? genelDeplasman : null, gunler: (mazeretTipi === 'secmeli' || mazeretTipi === 'full') ? temizGunler : null }
     };
 
     try {
       await supabase.from('mazeretler').delete().match({ komiser_id: seciliKomiser.komiser_id, hafta_no: hedefHafta });
       const { error } = await supabase.from('mazeretler').insert([payload]);
-
       if (!error) {
         setMazeretKaydedildi(true);
-        setTimeout(() => {
-          setAktifEkran('dashboard');
-          setMazeretKaydedildi(false);
-        }, 2000);
+        setTimeout(() => { setAktifEkran('dashboard'); setMazeretKaydedildi(false); }, 2000);
       } else { alert("Mazeret sisteme iletilemedi: " + error.message); }
     } catch (err) { alert("Bağlantı hatası oluştu."); } 
     finally { setMazeretKaydediliyor(false); }
   }
 
-  const haftaToggle = (haftaNo: number) => {
-    setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo])
+  // ==========================================
+  // SKOR VE SAHA RAPORU MOTORU
+  // ==========================================
+  const skorFormunuSifirla = () => {
+    setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null);
   }
+
+  const skorRaporunuGonder = async (macId: number) => {
+    if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) {
+      alert("⚠️ Lütfen maçın skorunu giriniz."); return;
+    }
+    if (olayDurumu !== 'olaysiz' && raporNotu.trim() === '') {
+      alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen Rapor Notu kısmına olayın detayını (Kırmızı kart, saha olayları vb.) kısaca yazınız."); return;
+    }
+
+    setSkorKaydediliyor(true);
+
+    const guncellenecekVeri = {
+      ev_sahibi_skor: evSkor === '' ? null : Number(evSkor),
+      misafir_skor: misafirSkor === '' ? null : Number(misafirSkor),
+      mac_durumu: macDurumu,
+      olay_durumu: olayDurumu,
+      rapor_notu: raporNotu,
+      skor_girildi: true
+    };
+
+    try {
+      const { error } = await supabase.from('musabakalar').update(guncellenecekVeri).eq('id', macId);
+      if (!error) {
+        setKomiserMaclari(prev => prev.map(m => m.id === macId ? { ...m, ...guncellenecekVeri } : m));
+        skorFormunuSifirla();
+        alert("✅ Raporunuz başarıyla Karargaha (Admin Paneli) iletildi!");
+      } else { alert("Hata oluştu: " + error.message); }
+    } catch (err) { alert("Bağlantı hatası!"); } 
+    finally { setSkorKaydediliyor(false); }
+  }
+
+  const haftaToggle = (haftaNo: number) => { setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo]) }
 
   const renderGunSatiri = (key: string, label: string) => {
     const g = gunler[key]
@@ -330,7 +310,7 @@ export default function Home() {
           </div>
         </div>
         {geriButonuGoster ? (
-          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); }} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">Geri</button>
+          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); }} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">Geri</button>
         ) : (
           <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
         )}
@@ -354,7 +334,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-blue-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800">Görev Kartım</h4><p className="text-xs text-center mt-2 text-slate-500">Atanan maçlarınızı görün ve görevi tebellüğ edin.</p></button>
-            <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-green-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800 text-center">Skor & Saha Raporu</h4></button>
+            <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-green-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800 text-center">Skor & Saha Raporu</h4><p className="text-xs text-center mt-2 text-slate-500">Tebellüğ ettiğiniz maçların sonucunu bildirin.</p></button>
           </div>
           {mazeretAcik ? (
             <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-white border-2 border-red-200 hover:border-red-500"><div className="text-left"><h4 className="font-bold text-lg text-slate-800">Müsaitlik / Mazeret</h4></div></button>
@@ -366,6 +346,132 @@ export default function Home() {
     )
   }
 
+  // ==========================================
+  // SKOR VE SAHA RAPORU (DİJİTAL MAÇ KARTI)
+  // ==========================================
+  if (aktifEkran === 'skorRapor') {
+    const tebellugEdilenMaclar = aktifMaclar.filter(m => m.tebellug_edildi === true);
+
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        <OrtakHeader geriButonuGoster={true} />
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-4 border-green-700 text-center">
+            <h4 className="text-xl font-black text-green-800 tracking-wide uppercase">DİJİTAL SAHA RAPORU</h4>
+            <p className="text-slate-500 text-sm mt-1">Lütfen göreviniz bittiğinde maç sonucunu ve varsa saha olaylarını Karargaha iletiniz.</p>
+          </div>
+
+          {tebellugEdilenMaclar.length === 0 ? (
+            <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500">
+              <span className="text-4xl block mb-3">📋</span>
+              <p>Raporlanacak aktif (tebellüğ edilmiş) bir göreviniz bulunmuyor.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {tebellugEdilenMaclar.map(mac => {
+                const acikMi = acikSkorMacId === mac.id;
+                const raporGonderilmis = mac.skor_girildi === true;
+
+                return (
+                  <div key={mac.id} className={`bg-white rounded-xl shadow-md border-2 transition-all ${raporGonderilmis ? 'border-green-500' : acikMi ? 'border-blue-500' : 'border-slate-300'}`}>
+                    
+                    <button 
+                      onClick={() => {
+                        if (raporGonderilmis) return;
+                        if (acikMi) { skorFormunuSifirla(); } 
+                        else { skorFormunuSifirla(); setAcikSkorMacId(mac.id); }
+                      }} 
+                      className={`w-full text-left p-4 rounded-xl flex justify-between items-center ${raporGonderilmis ? 'bg-green-50 cursor-default' : 'hover:bg-slate-50'}`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded font-bold">{mac.mac_kodu}</span>
+                          <span className="text-slate-500 text-xs font-bold">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span>
+                        </div>
+                        <h3 className="font-bold text-lg text-slate-800">{mac.ev_sahibi} <span className="text-slate-400 mx-1">vs</span> {mac.misafir_takim}</h3>
+                        <p className="text-slate-500 text-xs mt-1">{mac.saha} | {new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat?.substring(0,5)}</p>
+                      </div>
+                      
+                      {raporGonderilmis ? (
+                        <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow flex items-center gap-1">✓ İLETİLDİ</span>
+                      ) : (
+                        <span className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition-colors">RAPORLA</span>
+                      )}
+                    </button>
+
+                    {acikMi && !raporGonderilmis && (
+                      <div className="p-4 border-t-2 border-slate-100 bg-slate-50 rounded-b-xl animate-fade-in-down">
+                        
+                        <div className="mb-5">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Maç Durumu</label>
+                          <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full p-3 border-2 border-slate-300 rounded-lg font-bold text-slate-700 bg-white">
+                            <option value="oynandi">Normal Oynandı</option>
+                            <option value="ev_sahibi_gelmedi">Ev Sahibi Takım Sahaya Çıkmadı</option>
+                            <option value="misafir_gelmedi">Misafir Takım Sahaya Çıkmadı</option>
+                            <option value="ikisi_de_gelmedi">İki Takım da Sahaya Çıkmadı</option>
+                            <option value="yarida_kaldi">Maç Yarıda Kaldı</option>
+                          </select>
+                        </div>
+
+                        {macDurumu === 'oynandi' && (
+                          <div className="mb-5 bg-white p-4 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-4">
+                            <div className="flex-1 text-center">
+                              <label className="block text-xs font-bold text-slate-500 mb-2 truncate">{mac.ev_sahibi}</label>
+                              <input type="number" min="0" value={evSkor} onChange={e => setEvSkor(e.target.value)} className="w-20 text-center text-3xl font-black p-2 border-2 border-slate-300 rounded-lg focus:border-blue-500" placeholder="-" />
+                            </div>
+                            <span className="text-2xl font-black text-slate-400 mt-5">-</span>
+                            <div className="flex-1 text-center">
+                              <label className="block text-xs font-bold text-slate-500 mb-2 truncate">{mac.misafir_takim}</label>
+                              <input type="number" min="0" value={misafirSkor} onChange={e => setMisafirSkor(e.target.value)} className="w-20 text-center text-3xl font-black p-2 border-2 border-slate-300 rounded-lg focus:border-blue-500" placeholder="-" />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mb-5">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Saha Olayları</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => setOlayDurumu('olaysiz')} className={`p-3 rounded-lg font-bold border-2 transition-all ${olayDurumu === 'olaysiz' ? 'bg-green-100 border-green-500 text-green-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>OLAYSIZ BİTTİ</button>
+                            <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-3 rounded-lg font-bold border-2 transition-all text-xs sm:text-sm ${olayDurumu === 'teknik_olay' ? 'bg-amber-100 border-amber-500 text-amber-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>TEKNİK OLAY<br/><span className="text-[9px] font-normal block mt-1">(Küfür, İtiraz vb.)</span></button>
+                            <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-3 rounded-lg font-bold border-2 transition-all text-xs sm:text-sm ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-100 border-red-500 text-red-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>EMNİYETLİK<br/><span className="text-[9px] font-normal block mt-1">(Kavga, Sahaya Girme)</span></button>
+                          </div>
+                        </div>
+
+                        <div className="mb-5">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex justify-between">
+                            <span>Görev Raporu / Notlar</span>
+                            {olayDurumu !== 'olaysiz' && <span className="text-red-500 font-bold">* Doldurulması Zorunlu</span>}
+                          </label>
+                          <textarea 
+                            value={raporNotu} 
+                            onChange={e => setRaporNotu(e.target.value)} 
+                            className={`w-full p-3 border-2 rounded-lg font-serif text-sm min-h-[100px] ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white focus:border-blue-500'}`}
+                            placeholder={olayDurumu === 'olaysiz' ? "Yönetime iletmek istediğiniz not varsa buraya yazabilirsiniz (İsteğe bağlı)..." : "Lütfen yaşanan olayın türünü (Kırmızı Kart, Saha Karışması, Hakeme İtiraz) ve detaylarını kısaca yazınız..."}
+                          ></textarea>
+                        </div>
+
+                        <button 
+                          onClick={() => skorRaporunuGonder(mac.id)}
+                          disabled={skorKaydediliyor}
+                          className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black tracking-widest py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                        >
+                          {skorKaydediliyor ? 'GÖNDERİLİYOR...' : 'RAPORU KARARGAHA İLET'}
+                        </button>
+
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+    )
+  }
+
+  // ==========================================
+  // GÖREV KARTLARI (BİLDİĞİMİZ EKMEL KANUNLARI)
+  // ==========================================
   if (aktifEkran === 'gorevKartlari') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -396,7 +502,9 @@ export default function Home() {
                     <div className="space-y-4">
                       {aktifMaclar.map((mac) => (
                         <div key={mac?.id} className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4">
-                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3"><span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span></div>
+                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                            <span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
+                          </div>
                           <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                             <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div>
                             <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800">{mac?.saha}</span></div>
@@ -453,6 +561,7 @@ export default function Home() {
     )
   }
 
+  // MAZERET BİLDİRİMİ EKRANI (DEĞİŞMEDİ)
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
@@ -460,7 +569,10 @@ export default function Home() {
         <div className="flex-1 w-full max-w-2xl mx-auto p-4 md:p-6 pb-20">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-blue-500">
             {mazeretKaydedildi ? (
-              <div className="p-10 text-center animate-fade-in-down"><h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p></div>
+              <div className="p-10 text-center animate-fade-in-down">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
+                <h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p>
+              </div>
             ) : (
               <>
                 <div className="bg-slate-50 p-6 border-b border-slate-200 text-center">
@@ -478,7 +590,6 @@ export default function Home() {
 
                   {!kompleYokum && (
                     <div className="space-y-4 mt-8 animate-fade-in-down">
-
                       <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'full' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
                         <label className="flex items-start gap-4 p-4 cursor-pointer">
                           <input type="radio" name="mazeret" checked={mazeretTipi === 'full'} onChange={() => setMazeretTipi('full')} className="w-6 h-6 text-blue-600 mt-0.5" />
@@ -509,7 +620,6 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-
                     </div>
                   )}
 
