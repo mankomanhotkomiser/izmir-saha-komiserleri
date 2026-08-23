@@ -15,11 +15,11 @@ export default function Home() {
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   
-  // TÜM İZMİR MAÇLARI VE KOMİSER LİSTESİ (Bülten Arama İçin)
+  // TÜM İZMİR MAÇLARI VE KOMİSER LİSTESİ
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   
-  // YENİ: 3 FARKLI ARAMA KUTUCUĞU STATE'İ
+  // ARAMA KUTUCUĞU STATE'LERİ
   const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
   const [aramaKomiser, setAramaKomiser] = useState('')
   const [aramaSaha, setAramaSaha] = useState('')
@@ -380,12 +380,11 @@ export default function Home() {
   }
 
   // ==========================================
-  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA (AKILLI FİLTRE)
+  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA (AKILLI FİLTRE VE AÇILIR LİSTE)
   // ==========================================
   if (aktifEkran === 'bultenArama') {
     let filtrelenmisMaclar = tumAktifMaclar;
 
-    // FİLTRELEME MANTIĞI: 3 kutucuğa aynı anda yazılırsa hepsini uyduranı bulur
     if (aramaKomiser.trim() !== '') {
       const q = aramaKomiser.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => {
@@ -393,12 +392,10 @@ export default function Home() {
         return isim.toLocaleLowerCase('tr-TR').includes(q);
       });
     }
-
     if (aramaSaha.trim() !== '') {
       const q = aramaSaha.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => mac.saha?.toLocaleLowerCase('tr-TR').includes(q));
     }
-
     if (aramaTakim.trim() !== '') {
       const q = aramaTakim.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => 
@@ -407,16 +404,18 @@ export default function Home() {
       );
     }
 
+    // AÇILIR KUTU (DATALIST) İÇİN A'DAN Z'YE SIRALI LİSTELER
+    const siraliKomiserler = [...tumKomiserler].sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR'));
+    const siraliSahalar = Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+    const siraliTakimlar = Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
         <OrtakHeader geriButonuGoster={true} />
         <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
           
           <div className="bg-slate-800 rounded-xl shadow-lg mb-6 border-b-4 border-blue-500 overflow-hidden">
-            <button 
-              onClick={() => setAramaTuruAcik(!aramaTuruAcik)} 
-              className="w-full p-4 flex justify-between items-center hover:bg-slate-700 transition-colors"
-            >
+            <button onClick={() => setAramaTuruAcik(!aramaTuruAcik)} className="w-full p-4 flex justify-between items-center hover:bg-slate-700 transition-colors">
               <h4 className="text-lg md:text-xl font-black text-white tracking-wide uppercase flex items-center gap-2">🔍 Saha ve Görev İstihbaratı</h4>
               <span className="text-white text-xl">{aramaTuruAcik ? '▲' : '▼'}</span>
             </button>
@@ -424,37 +423,52 @@ export default function Home() {
             {aramaTuruAcik && (
               <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-700 space-y-4 animate-fade-in-down">
                 
+                {/* 1. SAHA KOMİSERİ DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Saha Komiseri Adı</label>
                   <input 
+                    list="komiser-listesi"
                     type="text" 
-                    placeholder="Örn: Önder Aslan" 
+                    placeholder="Örn: Önder Aslan (Seçebilir veya Yazabilirsiniz)" 
                     value={aramaKomiser}
                     onChange={(e) => setAramaKomiser(e.target.value)}
                     className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                   />
+                  <datalist id="komiser-listesi">
+                    {siraliKomiserler.map((k, i) => <option key={i} value={k.ad_soyad} />)}
+                  </datalist>
                 </div>
 
+                {/* 2. SAHA DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Saha Adı</label>
                   <input 
+                    list="saha-listesi"
                     type="text" 
-                    placeholder="Örn: Balçova Sahası" 
+                    placeholder="Örn: Balçova Sahası (Seçebilir veya Yazabilirsiniz)" 
                     value={aramaSaha}
                     onChange={(e) => setAramaSaha(e.target.value)}
                     className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
                   />
+                  <datalist id="saha-listesi">
+                    {siraliSahalar.map((saha, i) => <option key={i} value={saha as string} />)}
+                  </datalist>
                 </div>
 
+                {/* 3. TAKIM DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım Adı</label>
                   <input 
+                    list="takim-listesi"
                     type="text" 
-                    placeholder="Örn: Göztepe" 
+                    placeholder="Örn: Göztepe (Seçebilir veya Yazabilirsiniz)" 
                     value={aramaTakim}
                     onChange={(e) => setAramaTakim(e.target.value)}
                     className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors"
                   />
+                  <datalist id="takim-listesi">
+                    {siraliTakimlar.map((takim, i) => <option key={i} value={takim as string} />)}
+                  </datalist>
                 </div>
 
                 {/* TEMİZLE BUTONU */}
@@ -462,20 +476,19 @@ export default function Home() {
                   <div className="pt-2 text-right">
                     <button 
                       onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }}
-                      className="text-slate-400 hover:text-red-400 text-sm font-bold underline"
+                      className="text-slate-400 hover:text-red-400 text-sm font-bold underline transition-colors"
                     >
                       Filtreleri Temizle
                     </button>
                   </div>
                 )}
-
               </div>
             )}
           </div>
 
           <div className="space-y-4">
             {filtrelenmisMaclar.length === 0 ? (
-              <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500">Aramanızla eşleşen herhangi bir müsabaka bulunamadı.</div>
+              <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500 font-bold">Aramanızla eşleşen herhangi bir müsabaka bulunamadı.</div>
             ) : (
               filtrelenmisMaclar.map(mac => {
                 const komiserIsim = tumKomiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Komiser Atanmadı";
@@ -486,6 +499,7 @@ export default function Home() {
                         {mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}
                       </span>
                     </div>
+                    {/* DİNÇER HOCANIN İSTEDİĞİ ORJİNAL KART DETAYLARI EKLENDİ */}
                     <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <div className="flex flex-col">
                         <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
@@ -495,9 +509,17 @@ export default function Home() {
                         <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span>
                         <span className="font-bold text-slate-800">{mac.saha}</span>
                       </div>
-                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200 col-span-2">
-                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Görevli Komiser</span>
-                        <span className="font-extrabold text-blue-700 text-base">{komiserIsim}</span>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span>
+                        <span className="font-bold text-slate-800">{mac.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu})</span></span>
+                      </div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span>
+                        <span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span>
+                      </div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-300 col-span-2 bg-white p-2 rounded border">
+                        <span className="text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider">Müsabaka Saha Komiseri</span>
+                        <span className="font-black text-red-700 text-base">{komiserIsim}</span>
                       </div>
                     </div>
                   </div>
