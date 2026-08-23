@@ -7,13 +7,13 @@ export default function AdminPanel() {
   const [yetkili, setYetkili] = useState(false)
   const [hata, setHata] = useState(false)
 
-  // SEKMELER (RADAR veya SİCİL)
-  const [adminModu, setAdminModu] = useState<'radar' | 'sicil'>('radar')
+  // 3 ANA SEKMELİ KOMUTA MERKEZİ
+  const [adminModu, setAdminModu] = useState<'radar' | 'skorlar' | 'sicil'>('radar')
 
   const [maclar, setMaclar] = useState<any[]>([])       // Sadece aktif haftanın maçları
-  const [tumMaclar, setTumMaclar] = useState<any[]>([]) // Sicil için tüm sezonun maçları
+  const [tumMaclar, setTumMaclar] = useState<any[]>([]) // Sicil için tüm sezon
   const [komiserler, setKomiserler] = useState<any[]>([])
-  const [mazeretler, setMazeretler] = useState<any[]>([]) // Tüm sezonun mazeretleri
+  const [mazeretler, setMazeretler] = useState<any[]>([])
   const [yukleniyor, setYukleniyor] = useState(false)
   
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
@@ -23,6 +23,7 @@ export default function AdminPanel() {
   const [acikOnayliId, setAcikOnayliId] = useState<string | null>(null)
   const [acikMazeretId, setAcikMazeretId] = useState<string | null>(null)
   const [acikSicilId, setAcikSicilId] = useState<string | null>(null)
+  const [acikRaporId, setAcikRaporId] = useState<number | null>(null)
 
   const [acikSolGrup, setAcikSolGrup] = useState<'bekleyen' | 'onayli' | null>('bekleyen')
   const [acikSagGrup, setAcikSagGrup] = useState<'724' | 'secmeli' | 'kapali' | 'bildirmeyen' | null>(null)
@@ -76,7 +77,7 @@ export default function AdminPanel() {
       .limit(1000)
 
     if (macData && macData.length > 0) {
-      setTumMaclar(macData) // İstihbarat/Sicil için tüm maçları hafızaya al
+      setTumMaclar(macData)
       
       const cumalar = macData.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
       const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
@@ -87,7 +88,7 @@ export default function AdminPanel() {
       setGlobalAktifHaftaNo(aktifHaftaIndex)
 
       const sadeceBuHaftaninMaclari = macData.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
-      setMaclar(sadeceBuHaftaninMaclari) // Radar için sadece bu haftanın maçları
+      setMaclar(sadeceBuHaftaninMaclari)
     }
 
     const { data: komiserData } = await supabase
@@ -125,9 +126,7 @@ export default function AdminPanel() {
     }
   }, [yetkili])
 
-  // ==========================================
-  // RADAR HESAPLAMALARI (GÖREV DURUMLARI)
-  // ==========================================
+  // GÖREV KATEGORİLERİ
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m?.komiser_id).filter(Boolean)));
   const bekleyenKomiserler: any[] = [];
   const onayliKomiserler: any[] = [];
@@ -144,11 +143,8 @@ export default function AdminPanel() {
     else bekleyenKomiserler.push(komiserObjesi);
   });
 
-  // ==========================================
-  // HEDEF HAFTA MAZERET FİLTRELEMESİ (RADAR TEMİZLİĞİ)
-  // ==========================================
-  const hedefHafta = globalAktifHaftaNo + 1; // Komiserlerin doldurduğu mazeret haftası
-  const aktifMazeretler = mazeretler.filter(m => m.hafta_no === hedefHafta); // Sadece önümüzdeki hafta!
+  const hedefHafta = globalAktifHaftaNo + 1;
+  const aktifMazeretler = mazeretler.filter(m => m.hafta_no === hedefHafta);
 
   const goreveKapaliList = aktifMazeretler.filter(m => m?.komple_yok || m?.detaylar?.mod === 'yok');
   const tamMusaitList = aktifMazeretler.filter(m => !m?.komple_yok && m?.detaylar?.mod === 'full');
@@ -158,6 +154,21 @@ export default function AdminPanel() {
   const bildirmeyenList = komiserler.filter(k => !bildirenIdler.includes(k.komiser_id));
 
   const gunIsimler: any = { cuma: 'Cuma', cumartesi: 'Cumartesi', pazar: 'Pazar', pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba', persembe: 'Perşembe' };
+
+  // SKOR & SAHA RAPORLARI HESAPLAMALARI
+  const olayliMaclar = maclar.filter(m => m.skor_girildi && m.olay_durumu !== 'olaysiz');
+  const olaysizMaclar = maclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz');
+  const bekleyenRaporlar = maclar.filter(m => !m.skor_girildi);
+
+  const macDurumEtiketi = (durum: string) => {
+    switch (durum) {
+      case 'ev_sahibi_gelmedi': return 'Ev Sahibi Sahaya Çıkmadı';
+      case 'misafir_gelmedi': return 'Misafir Takım Sahaya Çıkmadı';
+      case 'ikisi_de_gelmedi': return 'İki Takım da Çıkmadı';
+      case 'yarida_kaldi': return 'Maç Yarıda Kaldı';
+      default: return 'Oynandı';
+    }
+  }
 
   if (!yetkili) {
     return (
@@ -181,7 +192,7 @@ export default function AdminPanel() {
         <header className="flex flex-col md:flex-row justify-between items-center mb-6 bg-slate-800 p-6 rounded-t-md border border-slate-700 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-30 flex flex-col items-end">
             <span className="relative flex h-3 w-3 mb-1"><span className="animate-ping absolute inline-flex h-full w-full rounded bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded h-3 w-3 bg-blue-500"></span></span>
-            <span className="text-[9px] font-mono text-blue-500 uppercase tracking-widest">WEB SOCKET AKTİF</span>
+            <span className="text-[9px] font-mono text-blue-500 uppercase tracking-widest">WEB SOCKET CANLI</span>
           </div>
           <div>
             <h1 className="text-3xl font-black text-white flex items-center gap-3"><span className="bg-red-700 text-white px-3 py-1 rounded text-xl shadow-lg">RADAR</span>Operasyon Merkezi</h1>
@@ -193,23 +204,25 @@ export default function AdminPanel() {
           </div>
         </header>
 
-        {/* ANA SEKMELER (RADAR vs SİCİL) */}
+        {/* 3 ANA SEÇENEKLİ ASKERİ NİZAM BUTONLARI */}
         <div className="flex bg-slate-800 border-x border-b border-slate-700 rounded-b-md mb-8 overflow-hidden shadow-lg">
-          <button onClick={() => setAdminModu('radar')} className={`flex-1 py-4 font-black tracking-widest uppercase transition-colors ${adminModu === 'radar' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
-            📡 CANLI RADAR (AKTİF HAFTA: {globalAktifHaftaNo})
+          <button onClick={() => setAdminModu('radar')} className={`flex-1 py-4 font-black tracking-widest uppercase transition-colors text-xs md:text-sm ${adminModu === 'radar' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
+            📡 CANLI RADAR ({globalAktifHaftaNo}. HAFTA)
           </button>
-          <button onClick={() => setAdminModu('sicil')} className={`flex-1 py-4 font-black tracking-widest uppercase transition-colors ${adminModu === 'sicil' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
-            📊 PERSONEL SİCİLİ VE İSTATİSTİKLER
+          <button onClick={() => setAdminModu('skorlar')} className={`flex-1 py-4 font-black tracking-widest uppercase transition-colors text-xs md:text-sm flex items-center justify-center gap-2 ${adminModu === 'skorlar' ? 'bg-red-700 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
+            🚨 SAHA & SKOR RAPORLARI {olayliMaclar.length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded font-black animate-pulse">{olayliMaclar.length} OLAY</span>}
+          </button>
+          <button onClick={() => setAdminModu('sicil')} className={`flex-1 py-4 font-black tracking-widest uppercase transition-colors text-xs md:text-sm ${adminModu === 'sicil' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}>
+            📊 PERSONEL SİCİLİ
           </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* MOD 1: CANLI RADAR EKRANI (TEMİZLENMİŞ VE SADECE HEDEF HAFTAYA ODAKLI) */}
+        {/* MOD 1: CANLI RADAR EKRANI */}
         {/* ========================================================================= */}
         {adminModu === 'radar' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-down">
             
-            {/* SOL SÜTUN: GÖREV DURUMLARI (AKTİF HAFTA) */}
             <div className="space-y-4">
               <div className="bg-slate-800 text-slate-300 px-4 py-2 rounded border border-slate-700 text-sm font-bold uppercase tracking-wider text-center">
                 Müsabaka Durumu (Hafta {globalAktifHaftaNo})
@@ -293,9 +306,8 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* SAĞ SÜTUN: MAZERET BİLDİRİMLERİ (SADECE HEDEF HAFTA) */}
+            {/* SAĞ SÜTUN: MAZERET BİLDİRİMLERİ */}
             <div className="bg-slate-800 rounded-md border border-slate-700 overflow-hidden h-full shadow-lg flex flex-col">
-              
               <div className="bg-black p-4 border-b border-slate-700 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <h2 className="text-white font-bold text-lg tracking-wide uppercase">MAZERET BİLDİRİMLERİ</h2>
@@ -305,160 +317,196 @@ export default function AdminPanel() {
               </div>
               
               <div className="p-4 space-y-4 overflow-y-auto flex-1 bg-slate-900">
-
-                {/* SIRA 1: GÖREVE KAPALI OLANLAR */}
+                {/* 1: GÖREVE KAPALI */}
                 <div className={`border rounded-md transition-all overflow-hidden ${acikSagGrup === 'kapali' ? 'border-red-500' : 'border-slate-700'}`}>
                   <button onClick={() => setAcikSagGrup(acikSagGrup === 'kapali' ? null : 'kapali')} className="w-full bg-slate-800 hover:bg-slate-700 p-3 flex justify-between items-center transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="text-red-400 font-bold text-base uppercase">Göreve Kapalı Olanlar</span>
-                      <span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{goreveKapaliList.length}</span>
-                    </div>
+                    <div className="flex items-center gap-3"><span className="text-red-400 font-bold text-base uppercase">Göreve Kapalı Olanlar</span><span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{goreveKapaliList.length}</span></div>
                     <span className="text-slate-400">{acikSagGrup === 'kapali' ? '▲' : '▼'}</span>
                   </button>
                   {acikSagGrup === 'kapali' && (
                     <div className="p-2 bg-slate-900 space-y-2">
-                      {goreveKapaliList.length === 0 && <p className="text-slate-500 text-center italic py-2">Bu kategoride kimse yok.</p>}
-                      {goreveKapaliList.map(m => {
-                        const isim = komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad || "Bilinmeyen";
-                        const acikMi = acikMazeretId === m.id;
-                        return (
-                          <div key={m.id} className="border border-slate-700 bg-slate-800 rounded overflow-hidden">
-                            <button onClick={() => setAcikMazeretId(acikMi ? null : m.id)} className="w-full text-left p-3 flex justify-between items-center hover:bg-slate-700">
-                              <span className="font-bold text-slate-200">{isim}</span><span className="text-slate-500">{acikMi ? '▲' : '▼'}</span>
-                            </button>
-                            {acikMi && (
-                              <div className="p-3 bg-slate-900 border-t border-slate-700 text-center">
-                                <span className="text-red-500 font-bold text-sm tracking-widest uppercase">BU HAFTA GÖREV ALMAYACAK</span>
-                                {m.aciklama && <p className="mt-2 text-slate-400 text-xs italic border-t border-slate-800 pt-2 text-left">Not: {m.aciklama}</p>}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {goreveKapaliList.map(m => (
+                        <div key={m.id} className="p-3 bg-slate-800 rounded border border-slate-700 flex justify-between items-center">
+                          <span className="font-bold text-slate-200">{komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad}</span>
+                          <span className="text-red-500 text-xs font-bold uppercase">KAPALI</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
-                {/* SIRA 2: TÜM HAFTA (7/24) MÜSAİT */}
+                {/* 2: 7/24 */}
                 <div className={`border rounded-md transition-all overflow-hidden ${acikSagGrup === '724' ? 'border-green-500' : 'border-slate-700'}`}>
                   <button onClick={() => setAcikSagGrup(acikSagGrup === '724' ? null : '724')} className="w-full bg-slate-800 hover:bg-slate-700 p-3 flex justify-between items-center transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-400 font-bold text-base uppercase">Tüm Hafta Müsait (7/24)</span>
-                      <span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{tamMusaitList.length}</span>
-                    </div>
+                    <div className="flex items-center gap-3"><span className="text-green-400 font-bold text-base uppercase">Tüm Hafta Müsait (7/24)</span><span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{tamMusaitList.length}</span></div>
                     <span className="text-slate-400">{acikSagGrup === '724' ? '▲' : '▼'}</span>
                   </button>
                   {acikSagGrup === '724' && (
                     <div className="p-2 bg-slate-900 space-y-2">
-                      {tamMusaitList.length === 0 && <p className="text-slate-500 text-center italic py-2">Bu kategoride kimse yok.</p>}
-                      {tamMusaitList.map(m => {
-                        const isim = komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad || "Bilinmeyen";
-                        const acikMi = acikMazeretId === m.id;
-                        return (
-                          <div key={m.id} className="border border-slate-700 bg-slate-800 rounded overflow-hidden">
-                            <button onClick={() => setAcikMazeretId(acikMi ? null : m.id)} className="w-full text-left p-3 flex justify-between items-center hover:bg-slate-700">
-                              <span className="font-bold text-slate-200">{isim}</span><span className="text-slate-500">{acikMi ? '▲' : '▼'}</span>
-                            </button>
-                            {acikMi && (
-                              <div className="p-3 bg-slate-900 border-t border-slate-700">
-                                <div className="flex justify-start gap-4 text-xs uppercase font-bold text-slate-300 bg-slate-800 p-2 rounded">
-                                  <span className={m.detaylar?.genelMerkez ? 'text-green-400' : 'text-slate-600'}>✓ Merkez</span>
-                                  <span className={m.detaylar?.genelDeplasman ? 'text-green-400' : 'text-slate-600'}>✓ Deplasman</span>
-                                </div>
-                                {m.aciklama && <p className="mt-2 text-slate-400 text-xs italic">Not: {m.aciklama}</p>}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {tamMusaitList.map(m => (
+                        <div key={m.id} className="p-3 bg-slate-800 rounded border border-slate-700 flex justify-between items-center">
+                          <span className="font-bold text-slate-200">{komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad}</span>
+                          <span className="text-green-400 text-xs font-bold">7/24</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
-                {/* SIRA 3: SEÇMELİ MÜSAİTLİK */}
+                {/* 3: SEÇMELİ */}
                 <div className={`border rounded-md transition-all overflow-hidden ${acikSagGrup === 'secmeli' ? 'border-blue-500' : 'border-slate-700'}`}>
                   <button onClick={() => setAcikSagGrup(acikSagGrup === 'secmeli' ? null : 'secmeli')} className="w-full bg-slate-800 hover:bg-slate-700 p-3 flex justify-between items-center transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="text-blue-400 font-bold text-base uppercase">Seçmeli Müsaitlik Bildirenler</span>
-                      <span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{secmeliList.length}</span>
-                    </div>
+                    <div className="flex items-center gap-3"><span className="text-blue-400 font-bold text-base uppercase">Seçmeli Müsaitlik Bildirenler</span><span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{secmeliList.length}</span></div>
                     <span className="text-slate-400">{acikSagGrup === 'secmeli' ? '▲' : '▼'}</span>
                   </button>
                   {acikSagGrup === 'secmeli' && (
                     <div className="p-2 bg-slate-900 space-y-2">
-                      {secmeliList.length === 0 && <p className="text-slate-500 text-center italic py-2">Bu kategoride kimse yok.</p>}
-                      {secmeliList.map(m => {
-                        const isim = komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad || "Bilinmeyen";
-                        const acikMi = acikMazeretId === m.id;
-                        return (
-                          <div key={m.id} className="border border-slate-700 bg-slate-800 rounded overflow-hidden">
-                            <button onClick={() => setAcikMazeretId(acikMi ? null : m.id)} className="w-full text-left p-3 flex justify-between items-center hover:bg-slate-700">
-                              <span className="font-bold text-slate-200">{isim}</span><span className="text-slate-500">{acikMi ? '▲' : '▼'}</span>
-                            </button>
-                            {acikMi && (
-                              <div className="p-3 bg-slate-900 border-t border-slate-700 space-y-1">
-                                {['cuma', 'cumartesi', 'pazar', 'pazartesi', 'sali', 'carsamba', 'persembe'].map(gunKey => {
-                                  const gunData = m?.detaylar?.gunler?.[gunKey];
-                                  if (!gunData || !gunData.active) {
-                                    return (
-                                      <div key={gunKey} className="flex justify-between bg-slate-800 p-2 rounded border border-slate-700">
-                                        <span className="text-slate-500 font-bold text-xs">{gunIsimler[gunKey]}</span><span className="text-red-500 font-bold text-[10px] tracking-widest">KAPALI</span>
-                                      </div>
-                                    )
-                                  }
-                                  return (
-                                    <div key={gunKey} className="flex flex-col sm:flex-row justify-between bg-slate-800 p-2 rounded border border-slate-600">
-                                      <span className="text-blue-400 font-bold text-xs">{gunIsimler[gunKey]}</span>
-                                      <div className="flex gap-2 text-[10px] mt-1 sm:mt-0 font-bold uppercase">
-                                        <span className="text-slate-300">{gunData.merkez && gunData.deplasman ? 'Merkez & Depl.' : gunData.merkez ? 'Merkez' : gunData.deplasman ? 'Deplasman' : 'Yok'}</span>
-                                        <span className="text-slate-500">|</span>
-                                        <span className="text-slate-300">{gunData.tumGun ? 'TÜM GÜN' : `${gunData.baslangic} - ${gunData.bitis}`}</span>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                                {m.aciklama && <p className="mt-3 text-slate-400 text-xs italic border-t border-slate-700 pt-2">Not: {m.aciklama}</p>}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {secmeliList.map(m => (
+                        <div key={m.id} className="p-3 bg-slate-800 rounded border border-slate-700 flex justify-between items-center">
+                          <span className="font-bold text-slate-200">{komiserler.find(k => k.komiser_id === m.komiser_id)?.ad_soyad}</span>
+                          <span className="text-blue-400 text-xs font-bold">SEÇMELİ</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
-                {/* SIRA 4: MAZERET BİLDİRMEYENLER */}
+                {/* 4: BİLDİRMEYENLER */}
                 <div className={`border rounded-md transition-all overflow-hidden ${acikSagGrup === 'bildirmeyen' ? 'border-slate-500' : 'border-slate-700'}`}>
                   <button onClick={() => setAcikSagGrup(acikSagGrup === 'bildirmeyen' ? null : 'bildirmeyen')} className="w-full bg-slate-800 hover:bg-slate-700 p-3 flex justify-between items-center transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-300 font-bold text-base uppercase">Mazeret Bildirmeyenler</span>
-                      <span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{bildirmeyenList.length}</span>
-                    </div>
+                    <div className="flex items-center gap-3"><span className="text-slate-300 font-bold text-base uppercase">Mazeret Bildirmeyenler</span><span className="bg-slate-900 border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs font-bold">{bildirmeyenList.length}</span></div>
                     <span className="text-slate-400">{acikSagGrup === 'bildirmeyen' ? '▲' : '▼'}</span>
                   </button>
                   {acikSagGrup === 'bildirmeyen' && (
                     <div className="p-2 bg-slate-900 space-y-2">
-                      {bildirmeyenList.length === 0 ? (
-                        <p className="text-green-500 text-center font-bold py-2">Herkes bildirim yaptı.</p>
-                      ) : (
-                        bildirmeyenList.map(k => (
-                          <div key={k.komiser_id} className="p-3 bg-slate-800 rounded flex justify-between border border-slate-700">
-                            <span className="font-bold text-slate-300">{k.ad_soyad}</span>
-                            <span className="text-slate-500 font-mono text-[10px]">ID: {k.komiser_id}</span>
-                          </div>
-                        ))
-                      )}
+                      {bildirmeyenList.map(k => (
+                        <div key={k.komiser_id} className="p-3 bg-slate-800 rounded flex justify-between border border-slate-700"><span className="font-bold text-slate-300">{k.ad_soyad}</span></div>
+                      ))}
                     </div>
                   )}
                 </div>
-
               </div>
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* MOD 2: PERSONEL SİCİL VE İSTATİSTİKLERİ (YENİ MODÜL - TÜM SEZON ARŞİVİ) */}
+        {/* MOD 2: SAHA & SKOR RAPORLARI (YEPYENİ KIRMIZI ALARM RADARI) */}
+        {/* ========================================================================= */}
+        {adminModu === 'skorlar' && (
+          <div className="space-y-8 animate-fade-in-down">
+            
+            {/* 1. BÖLÜM: KIRMIZI ALARMLI OLAYLI MAÇLAR */}
+            <div className="bg-red-950/30 border-2 border-red-600 rounded-md p-6 shadow-2xl shadow-red-950/50">
+              <div className="flex items-center justify-between border-b border-red-800/80 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl animate-bounce">🚨</span>
+                  <h2 className="text-xl md:text-2xl font-black text-red-400 tracking-wider uppercase">OLAYLI MÜSABAKALAR RADARI</h2>
+                </div>
+                <span className="bg-red-600 text-white font-black px-4 py-1.5 rounded-full text-sm shadow-lg animate-pulse">{olayliMaclar.length} VUKUAT</span>
+              </div>
+
+              {olayliMaclar.length === 0 ? (
+                <div className="text-center py-8 text-green-400 font-bold bg-slate-900/50 rounded border border-green-900/30">
+                  ✓ Bu hafta hiçbir maçta olay bildirilmedi. Karargah tertemiz!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {olayliMaclar.map(mac => {
+                    const komiserIsim = komiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Bilinmiyor";
+                    const isEmniyetlik = mac.olay_durumu === 'emniyetlik_olay';
+
+                    return (
+                      <div key={mac.id} className="bg-slate-900 border-2 border-red-500 rounded-md p-5 shadow-lg relative overflow-hidden">
+                        <div className="flex justify-between items-start mb-3 border-b border-slate-800 pb-3">
+                          <div>
+                            <span className="bg-slate-800 text-slate-300 font-mono text-xs px-2 py-0.5 rounded mr-2 font-bold">{mac.mac_kodu}</span>
+                            <span className="text-slate-400 text-xs font-bold">{mac.saha}</span>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded text-xs font-black uppercase tracking-wider ${isEmniyetlik ? 'bg-red-600 text-white animate-pulse' : 'bg-amber-600 text-slate-900'}`}>
+                            {isEmniyetlik ? 'EMNİYETLİK OLAY' : 'TEKNİK OLAY'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center my-3 bg-slate-800/80 p-3 rounded border border-slate-700">
+                          <span className="font-black text-white text-base md:text-lg">{mac.ev_sahibi}</span>
+                          <span className="font-black text-amber-400 text-xl md:text-2xl px-3">{mac.mac_durumu === 'oynandi' ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : macDurumEtiketi(mac.mac_durumu)}</span>
+                          <span className="font-black text-white text-base md:text-lg">{mac.misafir_takim}</span>
+                        </div>
+
+                        <div className="bg-red-950/40 border border-red-900/60 p-3 rounded mt-3">
+                          <span className="text-red-400 text-[10px] font-black uppercase tracking-widest block mb-1">GÖREVLİ KOMİSER TUTANAĞI ({komiserIsim}):</span>
+                          <p className="text-slate-200 text-sm font-serif italic">"{mac.rapor_notu || 'Açıklama girilmedi.'}"</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 2. BÖLÜM: OLAYSIZ BİTEN MAÇLAR VE BEKLEYENLER */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* OLAYSIZ BİTEN MAÇLAR */}
+              <div className="bg-slate-800 rounded-md border border-slate-700 overflow-hidden shadow-lg">
+                <div className="bg-green-950/40 p-4 border-b border-green-800/50 flex justify-between items-center">
+                  <h3 className="text-green-400 font-bold text-base uppercase">✓ OLAYSIZ BİTEN MÜSABAKALAR</h3>
+                  <span className="bg-green-600 text-white font-bold px-3 py-1 rounded text-xs">{olaysizMaclar.length} Maç</span>
+                </div>
+                
+                <div className="p-4 max-h-[500px] overflow-y-auto space-y-3 bg-slate-900">
+                  {olaysizMaclar.length === 0 && <p className="text-slate-500 text-center italic py-4">Henüz olaysız biten maç raporu gelmedi.</p>}
+                  {olaysizMaclar.map(mac => {
+                    const komiserIsim = komiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Bilinmiyor";
+                    return (
+                      <div key={mac.id} className="bg-slate-800 border-l-4 border-green-500 p-3 rounded shadow-sm flex flex-col justify-between gap-2">
+                        <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+                          <span className="font-bold text-slate-200 text-sm">{mac.ev_sahibi} vs {mac.misafir_takim}</span>
+                          <span className="bg-slate-900 text-green-400 px-3 py-1 rounded font-black text-sm border border-slate-700">{mac.mac_durumu === 'oynandi' ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : macDurumEtiketi(mac.mac_durumu)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Komiser: <strong className="text-slate-300">{komiserIsim}</strong></span>
+                          <span>{mac.saha}</span>
+                        </div>
+                        {mac.rapor_notu && <p className="text-slate-400 text-xs italic bg-slate-900 p-2 rounded mt-1">Not: "{mac.rapor_notu}"</p>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* RAPORU BEKLENEN MAÇLAR */}
+              <div className="bg-slate-800 rounded-md border border-slate-700 overflow-hidden shadow-lg">
+                <div className="bg-slate-700 p-4 border-b border-slate-600 flex justify-between items-center">
+                  <h3 className="text-slate-300 font-bold text-base uppercase">⏳ RAPORU BEKLENEN MÜSABAKALAR</h3>
+                  <span className="bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded text-xs">{bekleyenRaporlar.length} Maç</span>
+                </div>
+                
+                <div className="p-4 max-h-[500px] overflow-y-auto space-y-3 bg-slate-900">
+                  {bekleyenRaporlar.length === 0 && <p className="text-green-500 text-center font-bold py-4">Tüm maçların skor raporları ulaştı!</p>}
+                  {bekleyenRaporlar.map(mac => {
+                    const komiserIsim = komiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Komiser Atanmadı";
+                    return (
+                      <div key={mac.id} className="bg-slate-800 border-l-2 border-slate-600 p-3 rounded flex justify-between items-center opacity-80">
+                        <div>
+                          <p className="font-bold text-slate-300 text-sm">{mac.ev_sahibi} vs {mac.misafir_takim}</p>
+                          <span className="text-slate-500 text-xs">{mac.saha} | Görevli: {komiserIsim}</span>
+                        </div>
+                        <span className="bg-slate-900 border border-slate-700 text-slate-400 text-[10px] px-2 py-1 rounded uppercase font-bold">BEKLİYOR</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MOD 3: PERSONEL SİCİL VE İSTATİSTİKLERİ */}
         {/* ========================================================================= */}
         {adminModu === 'sicil' && (
           <div className="bg-slate-800 border border-slate-700 rounded-md shadow-lg p-6 animate-fade-in-down">
@@ -468,7 +516,6 @@ export default function AdminPanel() {
             
             <div className="space-y-4 max-h-[800px] overflow-y-auto">
               {komiserler.map(komiser => {
-                // KOMİSERİN İSTATİSTİKLERİNİ HESAPLA
                 const komiserinTumMaclari = tumMaclar.filter(m => m.komiser_id === komiser.komiser_id);
                 const komiserinTumMazeretleri = mazeretler.filter(m => m.komiser_id === komiser.komiser_id).sort((a, b) => b.hafta_no - a.hafta_no);
                 
@@ -481,45 +528,31 @@ export default function AdminPanel() {
                 return (
                   <div key={komiser.komiser_id} className="bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
                     <button onClick={() => setAcikSicilId(acikMi ? null : komiser.komiser_id)} className="w-full text-left p-4 hover:bg-slate-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      
                       <div className="flex-1">
                         <h3 className="font-bold text-white text-lg">{komiser.ad_soyad}</h3>
                         <span className="text-slate-500 font-mono text-xs">ID: {komiser.komiser_id}</span>
                       </div>
-
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="bg-blue-900/50 border border-blue-500/50 text-blue-300 text-xs font-bold px-3 py-1 rounded">Toplam Görev: {toplamGorev}</span>
-                        <span className="bg-red-900/50 border border-red-500/50 text-red-300 text-xs font-bold px-3 py-1 rounded">Kapalı (Kaytaran): {toplamKapali}</span>
-                        <span className="bg-green-900/50 border border-green-500/50 text-green-300 text-xs font-bold px-3 py-1 rounded">7/24 Göreve Hazır: {toplam724}</span>
+                        <span className="bg-red-900/50 border border-red-500/50 text-red-300 text-xs font-bold px-3 py-1 rounded">Kapalı: {toplamKapali}</span>
+                        <span className="bg-green-900/50 border border-green-500/50 text-green-300 text-xs font-bold px-3 py-1 rounded">7/24: {toplam724}</span>
                         <span className="text-slate-400 ml-2">{acikMi ? '▲' : '▼'}</span>
                       </div>
-
                     </button>
 
                     {acikMi && (
                       <div className="p-4 bg-slate-800 border-t border-slate-700">
-                        <h4 className="font-bold text-slate-400 text-xs uppercase mb-3 tracking-widest">Geçmiş Mazeret Arşivi (Hafta Hafta)</h4>
-                        
+                        <h4 className="font-bold text-slate-400 text-xs uppercase mb-3 tracking-widest">Geçmiş Mazeret Arşivi</h4>
                         {komiserinTumMazeretleri.length === 0 ? (
-                          <p className="text-slate-500 italic text-sm">Bu komiserin geçmişte hiçbir mazeret bildirimi bulunmuyor.</p>
+                          <p className="text-slate-500 italic text-sm">Geçmiş mazeret bildirimi bulunmuyor.</p>
                         ) : (
                           <div className="space-y-2">
-                            {komiserinTumMazeretleri.map(m => {
-                              let badge = <span className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px] font-bold">BİLİNMİYOR</span>;
-                              if (m.komple_yok || m.detaylar?.mod === 'yok') badge = <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">GÖREVE KAPALI</span>;
-                              else if (m.detaylar?.mod === 'full') badge = <span className="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">7/24 MÜSAİT</span>;
-                              else if (m.detaylar?.mod === 'secmeli') badge = <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">SEÇMELİ</span>;
-
-                              return (
-                                <div key={m.id} className="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-700">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-amber-400 font-bold text-sm w-16">{m.hafta_no}. Hafta</span>
-                                    {badge}
-                                  </div>
-                                  <span className="text-slate-500 text-[10px] font-mono">{new Date(m.created_at).toLocaleDateString('tr-TR')}</span>
-                                </div>
-                              )
-                            })}
+                            {komiserinTumMazeretleri.map(m => (
+                              <div key={m.id} className="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-700">
+                                <span className="text-amber-400 font-bold text-sm">{m.hafta_no}. Hafta</span>
+                                <span className="text-slate-400 text-xs">{m.komple_yok ? 'GÖREVE KAPALI' : m.detaylar?.mod === 'full' ? '7/24 MÜSAİT' : 'SEÇMELİ'}</span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
