@@ -199,31 +199,10 @@ export default function AdminPanel() {
                     </button>
                     {acikKomiserId === komiser.id && (
                       <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-4">
-                        {/* EKMEL KARTLARI (ADMİN) */}
                         {komiser.maclar.map((mac: any) => (
-                          <div key={mac?.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative ${mac?.tebellug_edildi ? 'border-green-500' : 'border-red-500'}`}>
-                            <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
-                              <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac?.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac?.misafir_takim}</span>
-                              {mac?.tebellug_edildi && <span className="text-[10px] bg-green-900/50 text-green-400 px-2 py-1 rounded font-bold">ONAYLI</span>}
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                              <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
-                                <span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
-                                <span className="font-bold text-slate-300">{mac?.saha}</span>
-                              </div>
-                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
-                                <span className="font-bold text-slate-300">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
-                              </div>
-                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
-                                <span className="font-extrabold text-blue-400">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
-                              </div>
-                            </div>
+                          <div key={mac?.id} className={`bg-slate-900 border-l-4 p-4 ${mac?.tebellug_edildi ? 'border-green-500' : 'border-red-500'}`}>
+                            <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3"><span className="font-bold text-slate-200 text-base">{mac?.ev_sahibi} vs {mac?.misafir_takim}</span></div>
+                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg"><div className="flex flex-col"><span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase">Tarih & Saat</span><span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div></div>
                           </div>
                         ))}
                       </div>
@@ -241,31 +220,8 @@ export default function AdminPanel() {
                     <button onClick={() => toggleAkordiyon(komiser.id)} className="w-full text-left p-3 hover:bg-slate-800 transition-colors flex justify-between items-center"><div><h3 className="text-slate-300 font-bold text-md">{komiser?.isim}</h3></div></button>
                     {acikKomiserId === komiser.id && (
                       <div className="p-3 bg-slate-800 border-t border-slate-700 space-y-3">
-                        {/* EKMEL KARTLARI (ADMİN ONAYLANANLAR) */}
                         {komiser.maclar.map((mac: any) => (
-                           <div key={mac?.id} className={`bg-slate-900 border-l-4 shadow-sm rounded-r-xl p-4 opacity-95 relative border-green-500`}>
-                            <div className="flex justify-between items-start mb-3 border-b border-slate-700 pb-3">
-                              <span className="font-bold text-slate-200 text-base md:text-lg leading-tight">{mac?.ev_sahibi} <span className="text-slate-500 font-medium mx-1 text-sm">vs</span> {mac?.misafir_takim}</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-400 mt-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                              <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> 
-                                <span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Saha</span> 
-                                <span className="font-bold text-slate-300">{mac?.saha}</span>
-                              </div>
-                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> 
-                                <span className="font-bold text-slate-300">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
-                              </div>
-                              <div className="flex flex-col mt-2 pt-3 border-t border-slate-700">
-                                <span className="text-[10px] text-slate-500 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> 
-                                <span className="font-extrabold text-blue-400">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
-                              </div>
-                            </div>
-                          </div>
+                           <div key={mac?.id} className="bg-slate-900 border-l-2 border-green-500 rounded p-3"><p className="font-bold text-slate-300 text-sm mb-2">{mac?.ev_sahibi} vs {mac?.misafir_takim}</p></div>
                         ))}
                       </div>
                     )}
@@ -282,54 +238,68 @@ export default function AdminPanel() {
                 {mazeretler.map(mazeret => {
                   const komiserBilgisi = komiserler.find(k => k?.komiser_id === mazeret?.komiser_id);
                   const isim = komiserBilgisi?.ad_soyad || "Bilinmeyen Komiser";
+                  const gunIsimler: any = { cuma: 'Cuma', cumartesi: 'Cumartesi', pazar: 'Pazar', pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba', persembe: 'Perşembe' };
 
-                  const gunIsimler: any = { cuma: 'Cuma', pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba', persembe: 'Perşembe', cumartesi: 'Cumartesi', pazar: 'Pazar' };
+                  const isKompleYok = mazeret?.komple_yok || mazeret?.detaylar?.mod === 'yok';
+                  const isFull = mazeret?.detaylar?.mod === 'full';
+                  const isSecmeli = mazeret?.detaylar?.mod === 'secmeli';
 
                   return (
                   <div key={mazeret?.id} className="bg-slate-900 rounded-xl border border-slate-700 p-5 relative overflow-hidden shadow-sm">
-                    {mazeret?.komple_yok && (<div className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl shadow-lg">KOMPLE YOK</div>)}
-                    <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3"><div><h3 className="text-white font-bold text-lg">{isim}</h3></div></div>
-                    
-                    {!mazeret?.komple_yok && mazeret?.detaylar && (
-                      <>
-                        <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaIciYokum ? 'bg-red-900/20 text-red-400 border-red-900/50' : mazeret.detaylar.haftaIciMusait ? 'bg-blue-900/20 text-blue-400 border-blue-900/50' : 'bg-slate-800 text-slate-400'}`}>
-                            <span className="block text-[10px] font-bold uppercase mb-1 text-slate-500">Hafta İçi</span>
-                            {mazeret.detaylar.haftaIciYokum ? 'MÜSAİT DEĞİL' : mazeret.detaylar.haftaIciMusait ? 'MÜSAİT' : 'Belirtilmedi'}
-                          </div>
-                          <div className={`p-3 rounded-lg border ${mazeret.detaylar.haftaSonuYokum ? 'bg-red-900/20 text-red-400 border-red-900/50' : mazeret.detaylar.haftaSonuMusait ? 'bg-blue-900/20 text-blue-400 border-blue-900/50' : 'bg-slate-800 text-slate-400'}`}>
-                            <span className="block text-[10px] font-bold uppercase mb-1 text-slate-500">Hafta Sonu</span>
-                            {mazeret.detaylar.haftaSonuYokum ? 'MÜSAİT DEĞİL' : mazeret.detaylar.haftaSonuMusait ? 'MÜSAİT' : 'Belirtilmedi'}
-                          </div>
-                        </div>
-
-                        {/* GÜN GÜN DETAYLI ANALİZ RADARI */}
-                        {mazeret.detaylar.gunler && (
-                          <div className="mt-3 space-y-2 mb-4">
-                            {['cuma', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cumartesi', 'pazar'].map(gunKey => {
-                              const gunData = mazeret.detaylar.gunler[gunKey];
-                              if (!gunData || !gunData.active) return null;
-
-                              return (
-                                <div key={gunKey} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
-                                  <span className="text-blue-400 font-bold text-sm w-24">{gunIsimler[gunKey]}</span>
-                                  <div className="flex flex-wrap gap-2 text-[10px] mt-2 sm:mt-0">
-                                    <span className="bg-slate-700 text-slate-300 px-2 py-1 rounded uppercase tracking-wider font-semibold">
-                                      {gunData.merkez && gunData.deplasman ? 'Merkez & Deplasman' : gunData.merkez ? 'Sadece Merkez' : gunData.deplasman ? 'Sadece Deplasman' : 'Konum Yok'}
-                                    </span>
-                                    <span className={`px-2 py-1 rounded font-bold uppercase tracking-wider ${gunData.tumGun ? 'bg-green-900/60 text-green-400' : 'bg-amber-900/60 text-amber-400'}`}>
-                                      {gunData.tumGun ? 'TÜM GÜN' : `${gunData.baslangic} - ${gunData.bitis}`}
-                                    </span>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </>
+                    {/* BÜYÜK KIRMIZI AFİŞ: KOMPLE YOK */}
+                    {isKompleYok && (
+                      <div className="bg-red-900/30 border border-red-500/50 text-center p-3 mb-4 rounded-lg animate-pulse">
+                        <span className="text-red-400 font-black text-lg tracking-widest uppercase">BU HAFTA GÖREVE KAPALI</span>
+                        <p className="text-red-300/70 text-xs mt-1">(Hafta İçi ve Hafta Sonu Müsait Değil)</p>
+                      </div>
                     )}
 
-                    {mazeret?.aciklama && (<div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3"><p className="text-slate-300 text-sm italic">"{mazeret.aciklama}"</p></div>)}
+                    {/* BÜYÜK YEŞİL AFİŞ: 7/24 */}
+                    {isFull && (
+                      <div className="bg-green-900/30 border border-green-500/50 text-center p-3 mb-4 rounded-lg">
+                        <span className="text-green-400 font-black text-lg tracking-widest uppercase">TÜM HAFTA (7/24) MÜSAİT</span>
+                        <div className="flex justify-center gap-3 mt-2 text-[10px] uppercase font-bold text-slate-300">
+                          <span className={mazeret?.detaylar?.genelMerkez ? 'text-green-400' : 'opacity-30'}>✓ Merkez</span>
+                          <span className={mazeret?.detaylar?.genelDeplasman ? 'text-green-400' : 'opacity-30'}>✓ Deplasman</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3"><div><h3 className="text-white font-bold text-lg">{isim}</h3></div><span className="text-blue-400 font-mono text-xs">ID: {mazeret.komiser_id}</span></div>
+
+                    {/* SEÇMELİ: GÜNLER VE SAATLER TABLOSU */}
+                    {isSecmeli && mazeret?.detaylar?.gunler && (
+                      <div className="mt-3 space-y-2 mb-4">
+                        {['cuma', 'cumartesi', 'pazar', 'pazartesi', 'sali', 'carsamba', 'persembe'].map(gunKey => {
+                          const gunData = mazeret.detaylar.gunler[gunKey];
+                          
+                          if (!gunData || !gunData.active) {
+                            return (
+                              <div key={gunKey} className="flex flex-col sm:flex-row sm:items-center justify-between bg-red-900/10 p-2 rounded-lg border border-red-900/30 opacity-70">
+                                <span className="text-red-400 font-bold text-xs w-24">{gunIsimler[gunKey]}</span>
+                                <span className="text-red-500 font-bold text-[10px] tracking-widest uppercase">MÜSAİT DEĞİL</span>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <div key={gunKey} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
+                              <span className="text-blue-400 font-bold text-sm w-24">{gunIsimler[gunKey]}</span>
+                              <div className="flex flex-wrap gap-2 text-[10px] mt-2 sm:mt-0">
+                                <span className="bg-slate-700 text-slate-300 px-2 py-1 rounded uppercase tracking-wider font-semibold">
+                                  {gunData.merkez && gunData.deplasman ? 'Merkez & Deplasman' : gunData.merkez ? 'Sadece Merkez' : gunData.deplasman ? 'Sadece Deplasman' : 'Konum Yok'}
+                                </span>
+                                <span className={`px-2 py-1 rounded font-bold uppercase tracking-wider ${gunData.tumGun ? 'bg-green-900/60 text-green-400' : 'bg-amber-900/60 text-amber-400'}`}>
+                                  {gunData.tumGun ? 'TÜM GÜN (09:00 - 22:00)' : `${gunData.baslangic} - ${gunData.bitis}`}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {mazeret?.aciklama && (<div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3"><p className="text-slate-500 text-[10px] uppercase font-bold mb-1">Açıklama / Not:</p><p className="text-slate-300 text-sm italic">"{mazeret.aciklama}"</p></div>)}
                   </div>
                 )})}
               </div>

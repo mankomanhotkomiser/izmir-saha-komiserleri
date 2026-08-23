@@ -28,24 +28,29 @@ export default function Home() {
 
   // MAZERET STATE'LERİ
   const [kompleYokum, setKompleYokum] = useState(false)
-  const [haftaIciModu, setHaftaIciModu] = useState<'724' | 'tam' | 'secmeli' | 'yok' | null>(null)
-  const [haftaSonuModu, setHaftaSonuModu] = useState<'tam' | 'secmeli' | 'yok' | null>(null)
+  const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
   
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
-  const [hsGenelMerkez, setHsGenelMerkez] = useState(true)
-  const [hsGenelDeplasman, setHsGenelDeplasman] = useState(false)
 
-  const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: true, baslangic: '09:00', bitis: '22:00' }
+  // DİNÇER HOCANIN TESPİTİ: tumGun artık false. Böylece saatler default olarak açık gelecek.
+  const defaultGunDurumu = { active: false, merkez: true, deplasman: false, tumGun: false, baslangic: '09:00', bitis: '22:00' }
   const [gunler, setGunler] = useState<Record<string, any>>({
     cuma: { ...defaultGunDurumu },
+    cumartesi: { ...defaultGunDurumu },
+    pazar: { ...defaultGunDurumu },
     pazartesi: { ...defaultGunDurumu },
     sali: { ...defaultGunDurumu },
     carsamba: { ...defaultGunDurumu },
-    persembe: { ...defaultGunDurumu },
-    cumartesi: { ...defaultGunDurumu },
-    pazar: { ...defaultGunDurumu }
+    persembe: { ...defaultGunDurumu }
   })
+
+  const updateGun = (key: string, field: string, val: any) => {
+    setGunler(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: val }
+    }))
+  }
 
   const [mazeretNotu, setMazeretNotu] = useState('')
 
@@ -131,7 +136,6 @@ export default function Home() {
 
   const enterTusuKontrol = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') girisYap() }
 
-  // YENİ CIKISYAP: Tüm mazeret verileri %100 sıfırlanıyor (State Bleed engellendi)
   const cikisYap = () => {
     setSeciliKomiser(null)
     setKullaniciIdInput('')
@@ -140,23 +144,20 @@ export default function Home() {
     setArsivAcik(false)
     setAcikHaftalar([])
     
-    // Mazeret Ekranını Fabrika Ayarlarına Döndür
+    // Mazeret Sıfırlama
+    setMazeretTipi(null)
     setKompleYokum(false)
-    setHaftaIciModu(null)
-    setHaftaSonuModu(null)
     setGenelMerkez(true)
     setGenelDeplasman(false)
-    setHsGenelMerkez(true)
-    setHsGenelDeplasman(false)
     setMazeretNotu('')
     setGunler({
       cuma: { ...defaultGunDurumu },
+      cumartesi: { ...defaultGunDurumu },
+      pazar: { ...defaultGunDurumu },
       pazartesi: { ...defaultGunDurumu },
       sali: { ...defaultGunDurumu },
       carsamba: { ...defaultGunDurumu },
-      persembe: { ...defaultGunDurumu },
-      cumartesi: { ...defaultGunDurumu },
-      pazar: { ...defaultGunDurumu }
+      persembe: { ...defaultGunDurumu }
     })
   }
 
@@ -222,59 +223,45 @@ export default function Home() {
   }
 
   const mazeretKaydet = async () => {
-    if (!kompleYokum) {
-      if (!haftaIciModu) { alert("⚠️ HATA: 'Hafta İçi' için bir seçenek işaretlemediniz!"); return; }
-      if (haftaIciModu !== '724' && !haftaSonuModu) { alert("⚠️ HATA: 'Hafta Sonu' için bir seçenek işaretlemediniz!"); return; }
-      if (haftaIciModu === 'yok' && haftaSonuModu === 'yok') { alert("⚠️ DİKKAT: Hem hafta içi hem de hafta sonu için 'Müsait Değilim' dediniz. \nLütfen en üstteki kırmızı 'Bu hafta görev alamayacağım' şalterini kullanın."); return; }
-
-      if (haftaIciModu === 'secmeli') {
-        const hSecili = gunler.cuma.active || gunler.pazartesi.active || gunler.sali.active || gunler.carsamba.active || gunler.persembe.active;
-        if (!hSecili) { alert("⚠️ HATA: Hafta içi seçmeli dediniz ancak gün seçmediniz!"); return; }
-      }
-      if (haftaSonuModu === 'secmeli' && haftaIciModu !== '724') {
-        const sSecili = gunler.cumartesi.active || gunler.pazar.active;
-        if (!sSecili) { alert("⚠️ HATA: Hafta sonu seçmeli dediniz ancak gün seçmediniz!"); return; }
-      }
+    if (!mazeretTipi && !kompleYokum) {
+      alert("⚠️ Lütfen size uygun olan seçeneklerden birini işaretleyiniz!"); return;
     }
 
-    const temizGunler = JSON.parse(JSON.stringify(gunler));
+    if (mazeretTipi === 'full' && !genelMerkez && !genelDeplasman) {
+      alert("⚠️ Tüm Hafta Müsaitim seçeneğini işaretlediniz ancak Merkez veya Deplasman seçmediniz. Lütfen en az bir konum seçiniz."); return;
+    }
 
-    if (!kompleYokum) {
-      if (haftaIciModu === '724') {
-        Object.keys(temizGunler).forEach(g => {
-          temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' };
-        });
-      } else {
-        if (haftaIciModu === 'tam') {
-          ['cuma', 'pazartesi', 'sali', 'carsamba', 'persembe'].forEach(g => { temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' }; });
-        } else if (haftaIciModu === 'yok') {
-          ['cuma', 'pazartesi', 'sali', 'carsamba', 'persembe'].forEach(g => { temizGunler[g].active = false; });
-        }
-
-        if (haftaSonuModu === 'tam') {
-          ['cumartesi', 'pazar'].forEach(g => { temizGunler[g] = { active: true, merkez: hsGenelMerkez, deplasman: hsGenelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' }; });
-        } else if (haftaSonuModu === 'yok') {
-          ['cumartesi', 'pazar'].forEach(g => { temizGunler[g].active = false; });
-        }
+    if (mazeretTipi === 'secmeli') {
+      const aktifGunVarMi = Object.values(gunler).some(g => g.active);
+      if (!aktifGunVarMi) {
+        alert("⚠️ Seçmeli müsaitlik dediniz ancak hiçbir gün seçmediniz. Lütfen müsait olduğunuz günleri işaretleyiniz."); return;
       }
-    } else {
-      Object.keys(temizGunler).forEach(g => { temizGunler[g].active = false; });
     }
 
     setMazeretKaydediliyor(true);
     const hedefHafta = globalAktifHaftaNo + 1;
 
+    // Arka Planda Temizlik ve Admin Uyumu
+    const temizGunler = JSON.parse(JSON.stringify(gunler));
+    
+    if (kompleYokum || mazeretTipi === 'yok') {
+      Object.keys(temizGunler).forEach(g => { temizGunler[g].active = false; });
+    } else if (mazeretTipi === 'full') {
+      Object.keys(temizGunler).forEach(g => {
+        temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' };
+      });
+    }
+
     const payload = {
       komiser_id: seciliKomiser.komiser_id,
       hafta_no: hedefHafta,
-      komple_yok: kompleYokum,
+      komple_yok: kompleYokum || mazeretTipi === 'yok',
       aciklama: mazeretNotu,
       detaylar: {
-        haftaIciYokum: haftaIciModu === 'yok',
-        haftaIciMusait: haftaIciModu === 'tam' || haftaIciModu === 'secmeli' || haftaIciModu === '724',
-        haftaSonuYokum: haftaSonuModu === 'yok',
-        haftaSonuMusait: haftaSonuModu === 'tam' || haftaSonuModu === 'secmeli' || haftaIciModu === '724',
-        gunler: temizGunler
+        mod: mazeretTipi,
+        genelMerkez: mazeretTipi === 'full' ? genelMerkez : null,
+        genelDeplasman: mazeretTipi === 'full' ? genelDeplasman : null,
+        gunler: (mazeretTipi === 'secmeli' || mazeretTipi === 'full') ? temizGunler : null
       }
     };
 
@@ -297,13 +284,13 @@ export default function Home() {
     setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo])
   }
 
-  const renderGunSatiri = (key: string, label: string, extraNote: string = "") => {
+  const renderGunSatiri = (key: string, label: string) => {
     const g = gunler[key]
     return (
       <div key={key} className={`border ${g.active ? 'border-blue-400 bg-blue-50/30 shadow-md' : 'border-slate-200 bg-white'} rounded-xl overflow-hidden mb-3 transition-all`}>
         <label className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${g.active ? 'bg-blue-100/50' : 'hover:bg-slate-50'}`}>
           <input type="checkbox" checked={g.active} onChange={e => updateGun(key, 'active', e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
-          <span className={`font-bold text-lg ${g.active ? 'text-blue-800' : 'text-slate-600'}`}>{label} {extraNote && <span className="text-xs font-normal text-slate-500 ml-1">({extraNote})</span>}</span>
+          <span className={`font-bold text-lg ${g.active ? 'text-blue-800' : 'text-slate-600'}`}>{label}</span>
         </label>
         
         {g.active && (
@@ -409,9 +396,7 @@ export default function Home() {
                     <div className="space-y-4">
                       {aktifMaclar.map((mac) => (
                         <div key={mac?.id} className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4">
-                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
-                            <span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
-                          </div>
+                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3"><span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span></div>
                           <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                             <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div>
                             <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800">{mac?.saha}</span></div>
@@ -434,7 +419,6 @@ export default function Home() {
                         {Object.keys(gecmisHaftalar).map(Number).sort((a, b) => b - a).map(haftaNo => (
                           <div key={haftaNo} className="border border-slate-300 rounded-xl overflow-hidden shadow-sm">
                             <button onClick={() => haftaToggle(haftaNo)} className="w-full bg-slate-300 text-slate-900 font-bold py-3 px-5 flex justify-between items-center">
-                              {/* EKMEL KANUNLARI: ARŞİV SAYACI GERİ GELDİ */}
                               <span>{haftaNo}. Hafta Görevleri <span className="bg-slate-800 text-white text-xs px-2 py-1 rounded ml-2">{gecmisHaftalar[haftaNo].length} Görev</span></span>
                               <span>{acikHaftalar.includes(haftaNo) ? '▲' : '▼'}</span>
                             </button>
@@ -476,10 +460,7 @@ export default function Home() {
         <div className="flex-1 w-full max-w-2xl mx-auto p-4 md:p-6 pb-20">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-blue-500">
             {mazeretKaydedildi ? (
-              <div className="p-10 text-center animate-fade-in-down">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
-                <h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p>
-              </div>
+              <div className="p-10 text-center animate-fade-in-down"><h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p></div>
             ) : (
               <>
                 <div className="bg-slate-50 p-6 border-b border-slate-200 text-center">
@@ -489,7 +470,7 @@ export default function Home() {
 
                 <div className="p-6 space-y-8">
                   <div className={`border rounded-xl p-4 flex items-start gap-4 transition-colors hover:bg-red-50 ${kompleYokum ? 'bg-red-50 border-red-500 ring-2 ring-red-200' : 'bg-white border-slate-200'}`}>
-                    <input type="checkbox" id="kompleYokum" checked={kompleYokum} onChange={(e) => { setKompleYokum(e.target.checked); if (e.target.checked) { setHaftaIciModu(null); setHaftaSonuModu(null); } }} className="mt-1 w-6 h-6 text-red-600 rounded cursor-pointer" />
+                    <input type="checkbox" id="kompleYokum" checked={kompleYokum} onChange={(e) => { setKompleYokum(e.target.checked); if (e.target.checked) { setMazeretTipi(null); } }} className="mt-1 w-6 h-6 text-red-600 rounded cursor-pointer" />
                     <label htmlFor="kompleYokum" className="cursor-pointer">
                       <span className={`block font-bold text-lg ${kompleYokum ? 'text-red-700' : 'text-slate-700'}`}>Bu hafta görev alamayacağım.</span><span className="block text-sm mt-1 text-slate-500">İşaretlerseniz tüm hafta boyunca (hafta içi ve hafta sonu) kapalı görünürsünüz.</span>
                     </label>
@@ -497,14 +478,13 @@ export default function Home() {
 
                   {!kompleYokum && (
                     <div className="space-y-4 mt-8 animate-fade-in-down">
-                      <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider text-sm">1. Hafta İçi Modülü (Zorunlu)</h3>
 
-                      <div className={`border-2 rounded-xl transition-all ${haftaIciModu === '724' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
+                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'full' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
                         <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="haftaIci" checked={haftaIciModu === '724'} onChange={() => { setHaftaIciModu('724'); setHaftaSonuModu(null); }} className="w-6 h-6 text-blue-600 mt-0.5" />
-                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta Müsaitim (7/24)</span><span className="text-sm text-slate-500 block mt-1">Günün her saati, haftanın 7 günü her maça açığım. (Hafta sonunu da kapsar).</span></div>
+                          <input type="radio" name="mazeret" checked={mazeretTipi === 'full'} onChange={() => setMazeretTipi('full')} className="w-6 h-6 text-blue-600 mt-0.5" />
+                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta Müsaitim (7/24)</span><span className="text-sm text-slate-500 block mt-1">Günün her saati, haftanın 7 günü her maça açığım.</span></div>
                         </label>
-                        {haftaIciModu === '724' && (
+                        {mazeretTipi === 'full' && (
                           <div className="p-4 border-t border-blue-200 bg-white m-2 rounded-lg flex flex-wrap gap-6 animate-fade-in-down">
                             <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelMerkez} onChange={e => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Merkez</label>
                             <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelDeplasman} onChange={e => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Deplasman</label>
@@ -512,27 +492,16 @@ export default function Home() {
                         )}
                       </div>
 
-                      <div className={`border-2 rounded-xl transition-all ${haftaIciModu === 'tam' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
+                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'secmeli' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
                         <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="haftaIci" checked={haftaIciModu === 'tam'} onChange={() => setHaftaIciModu('tam')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta İçi Müsaitim</span><span className="text-sm text-slate-500 block mt-1">(Cuma, Pazartesi, Salı, Çarşamba, Perşembe günlerinin tümü)</span></div>
+                          <input type="radio" name="mazeret" checked={mazeretTipi === 'secmeli'} onChange={() => setMazeretTipi('secmeli')} className="w-6 h-6 text-blue-600 mt-0.5" />
+                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Seçmeli Müsaitlik</span><span className="text-sm text-slate-500 block mt-1">Sadece aşağıda seçeceğim gün ve saatlerde müsaitim.</span></div>
                         </label>
-                        {haftaIciModu === 'tam' && (
-                          <div className="p-4 border-t border-blue-200 bg-white m-2 rounded-lg flex flex-wrap gap-6 animate-fade-in-down">
-                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelMerkez} onChange={e => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Merkez</label>
-                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelDeplasman} onChange={e => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Deplasman</label>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={`border-2 rounded-xl transition-all ${haftaIciModu === 'secmeli' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
-                        <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="haftaIci" checked={haftaIciModu === 'secmeli'} onChange={() => setHaftaIciModu('secmeli')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Hafta İçi Seçmeli Müsaitlik</span><span className="text-sm text-slate-500 block mt-1">Sadece kendi seçeceğim gün ve saatlerde müsaitim.</span></div>
-                        </label>
-                        {haftaIciModu === 'secmeli' && (
+                        {mazeretTipi === 'secmeli' && (
                           <div className="p-4 border-t border-blue-200 bg-transparent m-2 rounded-lg space-y-4 animate-fade-in-down">
-                            {renderGunSatiri('cuma', 'Cuma', 'Haftanın İlk Günü')}
+                            {renderGunSatiri('cuma', 'Cuma')}
+                            {renderGunSatiri('cumartesi', 'Cumartesi')}
+                            {renderGunSatiri('pazar', 'Pazar')}
                             {renderGunSatiri('pazartesi', 'Pazartesi')}
                             {renderGunSatiri('sali', 'Salı')}
                             {renderGunSatiri('carsamba', 'Çarşamba')}
@@ -541,58 +510,12 @@ export default function Home() {
                         )}
                       </div>
 
-                      <div className={`border-2 rounded-xl transition-all ${haftaIciModu === 'yok' ? 'border-red-500 bg-red-50 shadow-md' : 'border-slate-200 bg-white hover:border-red-300'}`}>
-                        <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="haftaIci" checked={haftaIciModu === 'yok'} onChange={() => setHaftaIciModu('yok')} className="w-6 h-6 text-red-600 mt-0.5" />
-                          <div><span className={`font-bold text-lg block leading-tight ${haftaIciModu === 'yok' ? 'text-red-700' : 'text-slate-800'}`}>Hafta İçi Müsait Değilim</span><span className="text-sm text-slate-500 block mt-1">Sadece hafta sonu için görev alabilirim.</span></div>
-                        </label>
-                      </div>
-
-                      {haftaIciModu !== '724' && (
-                        <div className="pt-6 mt-6 border-t-2 border-slate-300 border-dashed animate-fade-in-down">
-                          <h3 className="font-bold text-slate-700 border-b pb-2 mb-4 uppercase tracking-wider text-sm">2. Hafta Sonu Modülü (Zorunlu)</h3>
-                          <div className="space-y-4">
-                            <div className={`border-2 rounded-xl transition-all ${haftaSonuModu === 'tam' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
-                              <label className="flex items-start gap-4 p-4 cursor-pointer">
-                                <input type="radio" name="haftaSonu" checked={haftaSonuModu === 'tam'} onChange={() => setHaftaSonuModu('tam')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                                <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta Sonu Müsaitim</span><span className="text-sm text-slate-500 block mt-1">(Cumartesi ve Pazar günlerinin tümü)</span></div>
-                              </label>
-                              {haftaSonuModu === 'tam' && (
-                                <div className="p-4 border-t border-blue-200 bg-white m-2 rounded-lg flex flex-wrap gap-6 animate-fade-in-down">
-                                  <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={hsGenelMerkez} onChange={e => setHsGenelMerkez(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Merkez</label>
-                                  <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={hsGenelDeplasman} onChange={e => setHsGenelDeplasman(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Deplasman</label>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className={`border-2 rounded-xl transition-all ${haftaSonuModu === 'secmeli' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
-                              <label className="flex items-start gap-4 p-4 cursor-pointer">
-                                <input type="radio" name="haftaSonu" checked={haftaSonuModu === 'secmeli'} onChange={() => setHaftaSonuModu('secmeli')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                                <div><span className="font-bold text-lg text-slate-800 block leading-tight">Hafta Sonu Seçmeli Müsaitlik</span><span className="text-sm text-slate-500 block mt-1">Cumartesi ya da Pazar için özel saat seçeceğim.</span></div>
-                              </label>
-                              {haftaSonuModu === 'secmeli' && (
-                                <div className="p-4 border-t border-blue-200 bg-transparent m-2 rounded-lg space-y-4 animate-fade-in-down">
-                                  {renderGunSatiri('cumartesi', 'Cumartesi')}
-                                  {renderGunSatiri('pazar', 'Pazar')}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className={`border-2 rounded-xl transition-all ${haftaSonuModu === 'yok' ? 'border-red-500 bg-red-50 shadow-md' : 'border-slate-200 bg-white hover:border-red-300'}`}>
-                              <label className="flex items-start gap-4 p-4 cursor-pointer">
-                                <input type="radio" name="haftaSonu" checked={haftaSonuModu === 'yok'} onChange={() => setHaftaSonuModu('yok')} className="w-6 h-6 text-red-600 mt-0.5" />
-                                <div><span className={`font-bold text-lg block leading-tight ${haftaSonuModu === 'yok' ? 'text-red-700' : 'text-slate-800'}`}>Hafta Sonu Müsait Değilim</span><span className="text-sm text-slate-500 block mt-1">Bu hafta sonu bana görev yazmayın.</span></div>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
                   <div className="pt-6 border-t border-slate-200 mt-8">
                     <h3 className="font-bold text-slate-700 pb-2 mb-2">Ek Açıklama / Not</h3>
-                    <textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-4 focus:border-blue-500 min-h-[100px] shadow-sm" placeholder="Yönetime iletmek istediğiniz ek bir not... (Örn: Arabam bozuldu, cenazem var vb.)"></textarea>
+                    <textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-4 focus:border-blue-500 min-h-[100px] shadow-sm" placeholder="Yönetime iletmek istediğiniz ek bir not... (Örn: Arabam bozuldu vb.)"></textarea>
                   </div>
                   
                   <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg mt-4 text-lg disabled:opacity-70">
