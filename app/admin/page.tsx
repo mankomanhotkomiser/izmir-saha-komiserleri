@@ -18,6 +18,9 @@ export default function AdminPanel() {
   
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   
+  // YENİ EKLENEN ARAMA ÇUBUĞU STATE'İ
+  const [radarArama, setRadarArama] = useState('')
+
   // AKORDİYON STATE'LERİ
   const [acikBekleyenId, setAcikBekleyenId] = useState<string | null>(null)
   const [acikOnayliId, setAcikOnayliId] = useState<string | null>(null)
@@ -126,10 +129,10 @@ export default function AdminPanel() {
     }
   }, [yetkili])
 
-  // GÖREV KATEGORİLERİ
+  // GÖREV KATEGORİLERİ VE ARAMA FİLTRESİ
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m?.komiser_id).filter(Boolean)));
-  const bekleyenKomiserler: any[] = [];
-  const onayliKomiserler: any[] = [];
+  let bekleyenKomiserler: any[] = [];
+  let onayliKomiserler: any[] = [];
 
   gorevliKomiserIdleri.forEach(id => {
     const komiserinMaclari = maclar.filter(m => m?.komiser_id === id);
@@ -142,6 +145,13 @@ export default function AdminPanel() {
     if (hepsiTebellugEdilmis) onayliKomiserler.push(komiserObjesi);
     else bekleyenKomiserler.push(komiserObjesi);
   });
+
+  // ARAMA FİLTRESİNİ UYGULA
+  if (radarArama.trim() !== '') {
+    const aramaMetni = radarArama.toLocaleLowerCase('tr-TR');
+    bekleyenKomiserler = bekleyenKomiserler.filter(k => k.isim.toLocaleLowerCase('tr-TR').includes(aramaMetni) || String(k.id).includes(aramaMetni));
+    onayliKomiserler = onayliKomiserler.filter(k => k.isim.toLocaleLowerCase('tr-TR').includes(aramaMetni) || String(k.id).includes(aramaMetni));
+  }
 
   const hedefHafta = globalAktifHaftaNo + 1;
   const aktifMazeretler = mazeretler.filter(m => m.hafta_no === hedefHafta);
@@ -169,6 +179,45 @@ export default function AdminPanel() {
       default: return 'Oynandı';
     }
   }
+
+  // YARDIMCI FONKSİYON: Görev Türünü Belirle (Ekmel Kanunları)
+  const gorevTuruBelirle = (kategori: string, macKodu: string) => {
+    const kat = kategori ? kategori.toUpperCase() : ""
+    const kod = macKodu ? macKodu.toUpperCase() : ""
+    if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri"
+    if (kat.includes('U17') || kat.includes('U19') || kat.includes('PAF')) return "Denetçi"
+    if (kat.includes('GELİŞİM') && (kat.includes('U13') || kat.includes('U14') || kat.includes('U15') || kat.includes('U16'))) return "Saha Komiseri / Denetçi"
+    return "Saha Komiseri"
+  }
+
+  // YENİ BİLEŞEN: KOMİSERİN EKRANINDAKİ (Orjinal Görev Kartı Tasarımı)
+  const OrjinalGorevKarti = ({ mac }: { mac: any }) => (
+    <div className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4 mb-3">
+      <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+        <span className="font-bold text-blue-950 text-lg md:text-xl">
+          {mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+        <div className="flex flex-col">
+          <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
+          <span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span>
+          <span className="font-bold text-slate-800">{mac?.saha}</span>
+        </div>
+        <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+          <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span>
+          <span className="font-bold text-slate-800">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span>
+        </div>
+        <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
+          <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span>
+          <span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
+        </div>
+      </div>
+    </div>
+  )
 
   if (!yetkili) {
     return (
@@ -224,8 +273,17 @@ export default function AdminPanel() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-down">
             
             <div className="space-y-4">
-              <div className="bg-slate-800 text-slate-300 px-4 py-2 rounded border border-slate-700 text-sm font-bold uppercase tracking-wider text-center">
-                Müsabaka Durumu (Hafta {globalAktifHaftaNo})
+              <div className="bg-slate-800 text-slate-300 px-4 py-2 rounded border border-slate-700 text-sm font-bold uppercase tracking-wider text-center flex flex-col gap-3">
+                <span>Müsabaka Durumu (Hafta {globalAktifHaftaNo})</span>
+                
+                {/* DİNÇER HOCANIN İSTEDİĞİ ARAMA ÇUBUĞU */}
+                <input 
+                  type="text" 
+                  placeholder="Komiser Adı veya ID ile Ara..." 
+                  value={radarArama}
+                  onChange={(e) => setRadarArama(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-blue-500 transition-colors text-sm"
+                />
               </div>
 
               {/* GÖREVİNİ ALMAYANLAR */}
@@ -252,18 +310,16 @@ export default function AdminPanel() {
                           </div>
                         </button>
                         {acikMi && (
-                          <div className="p-3 bg-slate-900 border-t border-slate-700 space-y-3">
+                          <div className="p-4 bg-slate-800 border-t border-slate-700">
+                            {/* ORJİNAL KART GÖRÜNÜMÜ */}
                             {komiser.maclar.map((mac: any) => (
-                              <div key={mac?.id} className="bg-slate-800 border-l-4 border-red-500 rounded-r p-3 shadow-sm">
-                                <div className="flex justify-between items-start mb-2 border-b border-slate-700 pb-2"><span className="font-bold text-slate-200">{mac?.ev_sahibi} vs {mac?.misafir_takim}</span></div>
-                                <div className="grid grid-cols-2 gap-2 text-xs text-slate-400"><div className="flex flex-col"><span className="text-slate-500 font-semibold uppercase">Tarih/Saat</span><span className="font-bold text-slate-300">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div></div>
-                              </div>
+                              <OrjinalGorevKarti key={mac?.id} mac={mac} />
                             ))}
                           </div>
                         )}
                       </div>
                     )})}
-                    {bekleyenKomiserler.length === 0 && <div className="text-center p-6 text-slate-500 italic">Bekleyen görev bulunmuyor.</div>}
+                    {bekleyenKomiserler.length === 0 && <div className="text-center p-6 text-slate-500 italic">{radarArama ? 'Aramanızla eşleşen görevli bulunamadı.' : 'Bekleyen görev bulunmuyor.'}</div>}
                   </div>
                 )}
               </div>
@@ -292,15 +348,16 @@ export default function AdminPanel() {
                           </div>
                         </button>
                         {acikMi && (
-                          <div className="p-3 bg-slate-900 border-t border-slate-700 space-y-2">
+                          <div className="p-4 bg-slate-800 border-t border-slate-700">
+                            {/* ORJİNAL KART GÖRÜNÜMÜ */}
                             {komiser.maclar.map((mac: any) => (
-                              <div key={mac?.id} className="bg-slate-800 border-l-2 border-green-500 rounded p-2"><p className="font-bold text-slate-300 text-xs">{mac?.ev_sahibi} vs {mac?.misafir_takim}</p></div>
+                              <OrjinalGorevKarti key={mac?.id} mac={mac} />
                             ))}
                           </div>
                         )}
                       </div>
                     )})}
-                    {onayliKomiserler.length === 0 && <div className="text-center p-6 text-slate-500 italic">Henüz tebellüğ eden yok.</div>}
+                    {onayliKomiserler.length === 0 && <div className="text-center p-6 text-slate-500 italic">{radarArama ? 'Aramanızla eşleşen görevli bulunamadı.' : 'Henüz tebellüğ eden yok.'}</div>}
                   </div>
                 )}
               </div>
@@ -391,11 +448,10 @@ export default function AdminPanel() {
         )}
 
         {/* ========================================================================= */}
-        {/* MOD 2: SAHA & SKOR RAPORLARI (YEPYENİ KIRMIZI ALARM RADARI) */}
+        {/* MOD 2: SAHA & SKOR RAPORLARI */}
         {/* ========================================================================= */}
         {adminModu === 'skorlar' && (
           <div className="space-y-8 animate-fade-in-down">
-            
             {/* 1. BÖLÜM: KIRMIZI ALARMLI OLAYLI MAÇLAR */}
             <div className="bg-red-950/30 border-2 border-red-600 rounded-md p-6 shadow-2xl shadow-red-950/50">
               <div className="flex items-center justify-between border-b border-red-800/80 pb-4 mb-4">
@@ -499,9 +555,7 @@ export default function AdminPanel() {
                   })}
                 </div>
               </div>
-
             </div>
-
           </div>
         )}
 

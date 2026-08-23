@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 
-type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir';
+type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama';
 
 export default function Home() {
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
@@ -14,6 +14,17 @@ export default function Home() {
 
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
+  
+  // TÜM İZMİR MAÇLARI VE KOMİSER LİSTESİ (Bülten Arama İçin)
+  const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
+  const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
+  
+  // YENİ: 3 FARKLI ARAMA KUTUCUĞU STATE'İ
+  const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
+  const [aramaKomiser, setAramaKomiser] = useState('')
+  const [aramaSaha, setAramaSaha] = useState('')
+  const [aramaTakim, setAramaTakim] = useState('')
+
   const [macYukleniyor, setMacYukleniyor] = useState(false)
   
   const [haftaReferanslari, setHaftaReferanslari] = useState<number[]>([])
@@ -85,15 +96,23 @@ export default function Home() {
           const cumalar = tumMaclar.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
           const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
           setHaftaReferanslari(essizCumalar)
-          setGlobalAktifHaftaNo(essizCumalar.length)
+          const aktifHaftaNo = essizCumalar.length
+          setGlobalAktifHaftaNo(aktifHaftaNo)
+
+          const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
+          const aktifHaftaMaclari = tumMaclar.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
+          setTumAktifMaclar(aktifHaftaMaclari)
         }
+
+        const { data: komiserlerData } = await supabase.from('komiserler').select('*')
+        if (komiserlerData && aktif) setTumKomiserler(komiserlerData)
+
       } catch (err: any) { console.error("Arka plan yükleme hatası:", err) }
     }
     arkaPlaniHazirla()
     return () => { aktif = false; }
   }, [])
 
-  // İŞTE SİLİNEN VE SİSTEMİ ÇÖKERTEN O İKİ SATIR GERİ GELDİ!
   const mazeretKapisiAcikMi = () => true; 
   const mazeretAcik = mazeretKapisiAcikMi();
 
@@ -120,6 +139,7 @@ export default function Home() {
     setSeciliKomiser(null)
     setKullaniciIdInput('')
     setKomiserMaclari([])
+    setAramaKomiser(''); setAramaSaha(''); setAramaTakim('');
     setAktifEkran('giris')
     setArsivAcik(false)
     setAcikHaftalar([])
@@ -310,7 +330,7 @@ export default function Home() {
           </div>
         </div>
         {geriButonuGoster ? (
-          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); }} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">Geri</button>
+          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }} className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded-lg shadow transition-colors border border-blue-500">Geri</button>
         ) : (
           <button onClick={cikisYap} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 px-3 rounded shadow transition-colors">Çıkış</button>
         )}
@@ -332,15 +352,160 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-blue-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800">Görev Kartım</h4><p className="text-xs text-center mt-2 text-slate-500">Atanan maçlarınızı görün ve görevi tebellüğ edin.</p></button>
             <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-green-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800 text-center">Skor & Saha Raporu</h4><p className="text-xs text-center mt-2 text-slate-500">Tebellüğ ettiğiniz maçların sonucunu bildirin.</p></button>
           </div>
+
+          <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-slate-800 border-2 border-slate-700 hover:border-slate-500 hover:bg-slate-900 transition-all transform hover:scale-105">
+            <div className="text-left">
+              <h4 className="font-bold text-lg text-white">🔍 Haftalık Bülten & Görev Arama</h4>
+              <p className="text-xs mt-1 text-slate-400">Saha, takım veya komiser ismine göre İzmir'deki tüm güncel görevleri sorgulayın.</p>
+            </div>
+          </button>
+
           {mazeretAcik ? (
-            <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-white border-2 border-red-200 hover:border-red-500"><div className="text-left"><h4 className="font-bold text-lg text-slate-800">Müsaitlik / Mazeret</h4></div></button>
+            <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-white border-2 border-red-200 hover:border-red-500 transition-all transform hover:scale-105">
+              <div className="text-left">
+                <h4 className="font-bold text-lg text-slate-800">Müsaitlik / Mazeret Bildir</h4>
+              </div>
+            </button>
           ) : (
             <button disabled className="w-full p-4 rounded-2xl bg-slate-100 opacity-60 cursor-not-allowed"><h4 className="font-bold text-sm text-slate-500 text-left">Sistem Kapalı</h4></button>
           )}
+        </div>
+      </main>
+    )
+  }
+
+  // ==========================================
+  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA (AKILLI FİLTRE)
+  // ==========================================
+  if (aktifEkran === 'bultenArama') {
+    let filtrelenmisMaclar = tumAktifMaclar;
+
+    // FİLTRELEME MANTIĞI: 3 kutucuğa aynı anda yazılırsa hepsini uyduranı bulur
+    if (aramaKomiser.trim() !== '') {
+      const q = aramaKomiser.toLocaleLowerCase('tr-TR');
+      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => {
+        const isim = tumKomiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "";
+        return isim.toLocaleLowerCase('tr-TR').includes(q);
+      });
+    }
+
+    if (aramaSaha.trim() !== '') {
+      const q = aramaSaha.toLocaleLowerCase('tr-TR');
+      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => mac.saha?.toLocaleLowerCase('tr-TR').includes(q));
+    }
+
+    if (aramaTakim.trim() !== '') {
+      const q = aramaTakim.toLocaleLowerCase('tr-TR');
+      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => 
+        mac.ev_sahibi?.toLocaleLowerCase('tr-TR').includes(q) || 
+        mac.misafir_takim?.toLocaleLowerCase('tr-TR').includes(q)
+      );
+    }
+
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        <OrtakHeader geriButonuGoster={true} />
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+          
+          <div className="bg-slate-800 rounded-xl shadow-lg mb-6 border-b-4 border-blue-500 overflow-hidden">
+            <button 
+              onClick={() => setAramaTuruAcik(!aramaTuruAcik)} 
+              className="w-full p-4 flex justify-between items-center hover:bg-slate-700 transition-colors"
+            >
+              <h4 className="text-lg md:text-xl font-black text-white tracking-wide uppercase flex items-center gap-2">🔍 Saha ve Görev İstihbaratı</h4>
+              <span className="text-white text-xl">{aramaTuruAcik ? '▲' : '▼'}</span>
+            </button>
+            
+            {aramaTuruAcik && (
+              <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-700 space-y-4 animate-fade-in-down">
+                
+                <div>
+                  <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Saha Komiseri Adı</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Önder Aslan" 
+                    value={aramaKomiser}
+                    onChange={(e) => setAramaKomiser(e.target.value)}
+                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Saha Adı</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Balçova Sahası" 
+                    value={aramaSaha}
+                    onChange={(e) => setAramaSaha(e.target.value)}
+                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım Adı</label>
+                  <input 
+                    type="text" 
+                    placeholder="Örn: Göztepe" 
+                    value={aramaTakim}
+                    onChange={(e) => setAramaTakim(e.target.value)}
+                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors"
+                  />
+                </div>
+
+                {/* TEMİZLE BUTONU */}
+                {(aramaKomiser || aramaSaha || aramaTakim) && (
+                  <div className="pt-2 text-right">
+                    <button 
+                      onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }}
+                      className="text-slate-400 hover:text-red-400 text-sm font-bold underline"
+                    >
+                      Filtreleri Temizle
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {filtrelenmisMaclar.length === 0 ? (
+              <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500">Aramanızla eşleşen herhangi bir müsabaka bulunamadı.</div>
+            ) : (
+              filtrelenmisMaclar.map(mac => {
+                const komiserIsim = tumKomiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Komiser Atanmadı";
+                return (
+                  <div key={mac.id} className="bg-white border-l-4 border-slate-800 shadow-md rounded-r-xl p-4">
+                    <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                      <span className="font-bold text-blue-950 text-lg md:text-xl">
+                        {mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
+                        <span className="font-bold text-slate-800">{mac.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac.saat ? mac.saat.substring(0, 5) : ""}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span>
+                        <span className="font-bold text-slate-800">{mac.saha}</span>
+                      </div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200 col-span-2">
+                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Görevli Komiser</span>
+                        <span className="font-extrabold text-blue-700 text-base">{komiserIsim}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
         </div>
       </main>
     )
@@ -561,7 +726,7 @@ export default function Home() {
     )
   }
 
-  // MAZERET BİLDİRİMİ EKRANI (DEĞİŞMEDİ)
+  // MAZERET BİLDİRİMİ EKRANI
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
