@@ -15,11 +15,9 @@ export default function Home() {
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   
-  // TÜM İZMİR MAÇLARI VE KOMİSER LİSTESİ
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   
-  // ARAMA KUTUCUĞU STATE'LERİ
   const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
   const [aramaKomiser, setAramaKomiser] = useState('')
   const [aramaSaha, setAramaSaha] = useState('')
@@ -37,7 +35,6 @@ export default function Home() {
   const [mazeretKaydediliyor, setMazeretKaydediliyor] = useState(false)
   const [mazeretKaydedildi, setMazeretKaydedildi] = useState(false)
 
-  // MAZERET STATE'LERİ
   const [kompleYokum, setKompleYokum] = useState(false)
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
   const [genelMerkez, setGenelMerkez] = useState(true)
@@ -52,12 +49,12 @@ export default function Home() {
   const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
   const [mazeretNotu, setMazeretNotu] = useState('')
 
-  // SKOR BİLDİRİM STATE'LERİ
+  // GÜNCELLENEN SKOR BİLDİRİM STATE'LERİ
   const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
   const [evSkor, setEvSkor] = useState<string>('')
   const [misafirSkor, setMisafirSkor] = useState<string>('')
-  const [macDurumu, setMacDurumu] = useState<'oynandi' | 'ev_sahibi_gelmedi' | 'misafir_gelmedi' | 'ikisi_de_gelmedi' | 'yarida_kaldi'>('oynandi')
-  const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay'>('olaysiz')
+  const [macDurumu, setMacDurumu] = useState<'oynandi' | 'yarida_kaldi' | 'takimlar_cikmadi'>('oynandi')
+  const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay' | 'hava_muhalefeti' | 'saha_sorunu'>('olaysiz')
   const [raporNotu, setRaporNotu] = useState('')
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
 
@@ -73,7 +70,6 @@ export default function Home() {
     return d.getTime()
   }
 
-  // SAYFA YENİLENDİĞİNDE OTOMATİK GİRİŞ YAP (YENİ EKLENDİ)
   useEffect(() => {
     const kayitliId = localStorage.getItem('izmirKomiserId')
     if (kayitliId) {
@@ -151,7 +147,6 @@ export default function Home() {
       if (error || !data) { setGirisHatasi("Bu ID numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       
       setSeciliKomiser(data)
-      // HAFIZAYA KAYDET (YENİ EKLENDİ)
       localStorage.setItem('izmirKomiserId', data.komiser_id)
 
       await komiserDetayGetir(data)
@@ -181,8 +176,6 @@ export default function Home() {
       pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
     })
     skorFormunuSifirla();
-    
-    // ÇIKIŞ YAPINCA HAFIZAYI SİL (YENİ EKLENDİ)
     localStorage.removeItem('izmirKomiserId')
   }
 
@@ -276,25 +269,48 @@ export default function Home() {
   }
 
   // ==========================================
-  // SKOR VE SAHA RAPORU MOTORU
+  // SKOR VE SAHA RAPORU MOTORU (GÜNCELLENEBİLİR VE 5 KATEGORİLİ)
   // ==========================================
   const skorFormunuSifirla = () => {
     setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null);
+  }
+
+  const raporFormunuAc = (mac: any) => {
+    if (acikSkorMacId === mac.id) {
+      skorFormunuSifirla(); 
+    } else {
+      setAcikSkorMacId(mac.id);
+      if (mac.skor_girildi) {
+        setEvSkor(mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor.toString() : '');
+        setMisafirSkor(mac.misafir_skor !== null ? mac.misafir_skor.toString() : '');
+        setMacDurumu(mac.mac_durumu || 'oynandi');
+        setOlayDurumu(mac.olay_durumu || 'olaysiz');
+        setRaporNotu(mac.rapor_notu || '');
+      } else {
+        setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu('');
+      }
+    }
   }
 
   const skorRaporunuGonder = async (macId: number) => {
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) {
       alert("⚠️ Lütfen maçın skorunu giriniz."); return;
     }
-    if (olayDurumu !== 'olaysiz' && raporNotu.trim() === '') {
-      alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen Rapor Notu kısmına olayın detayını (Kırmızı kart, saha olayları vb.) kısaca yazınız."); return;
+    // Emniyetlik ve Teknik olaylarda not zorunlu
+    if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') {
+      alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen Rapor Notu kısmına olayın detayını kısaca yazınız."); return;
+    }
+    // Hava muhalefeti veya saha sorununda, maç "Oynandı" Olamaz uyarısı
+    if ((olayDurumu === 'hava_muhalefeti' || olayDurumu === 'saha_sorunu') && macDurumu === 'oynandi') {
+      const onay = window.confirm("Saha olaylarında 'Hava/Saha Sorunu' seçtiniz ama Maç Durumu 'Tamamlandı' görünüyor. Bu doğru mu?");
+      if(!onay) return;
     }
 
     setSkorKaydediliyor(true);
 
     const guncellenecekVeri = {
-      ev_sahibi_skor: evSkor === '' ? null : Number(evSkor),
-      misafir_skor: misafirSkor === '' ? null : Number(misafirSkor),
+      ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || evSkor === '') ? null : Number(evSkor),
+      misafir_skor: (macDurumu === 'takimlar_cikmadi' || misafirSkor === '') ? null : Number(misafirSkor),
       mac_durumu: macDurumu,
       olay_durumu: olayDurumu,
       rapor_notu: raporNotu,
@@ -306,11 +322,13 @@ export default function Home() {
       if (!error) {
         setKomiserMaclari(prev => prev.map(m => m.id === macId ? { ...m, ...guncellenecekVeri } : m));
         skorFormunuSifirla();
-        alert("✅ Raporunuz başarıyla Karargaha (Admin Paneli) iletildi!");
+        alert("✅ Raporunuz başarıyla Karargaha (Admin Paneli) iletildi/güncellendi!");
       } else { alert("Hata oluştu: " + error.message); }
     } catch (err) { alert("Bağlantı hatası!"); } 
     finally { setSkorKaydediliyor(false); }
   }
+
+  const skorSecenekleri = Array.from({ length: 31 }, (_, i) => i.toString());
 
   const haftaToggle = (haftaNo: number) => { setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo]) }
 
@@ -410,7 +428,7 @@ export default function Home() {
   }
 
   // ==========================================
-  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA (AKILLI FİLTRE VE AÇILIR LİSTE)
+  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA
   // ==========================================
   if (aktifEkran === 'bultenArama') {
     let filtrelenmisMaclar = tumAktifMaclar;
@@ -430,7 +448,8 @@ export default function Home() {
       const q = aramaTakim.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => 
         mac.ev_sahibi?.toLocaleLowerCase('tr-TR').includes(q) || 
-        mac.misafir_takim?.toLocaleLowerCase('tr-TR').includes(q)
+        mac.misafir_takim?.toLocaleLowerCase('tr-TR').includes(q) ||
+        mac.kategori_adi?.toLocaleLowerCase('tr-TR').includes(q)
       );
     }
 
@@ -451,60 +470,25 @@ export default function Home() {
             
             {aramaTuruAcik && (
               <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-700 space-y-4 animate-fade-in-down">
-                
                 <div>
                   <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Saha Komiseri Adı</label>
-                  <input 
-                    list="komiser-listesi"
-                    type="text" 
-                    placeholder="Örn: Önder Aslan (Seçebilir veya Yazabilirsiniz)" 
-                    value={aramaKomiser}
-                    onChange={(e) => setAramaKomiser(e.target.value)}
-                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <datalist id="komiser-listesi">
-                    {siraliKomiserler.map((k, i) => <option key={i} value={k.ad_soyad} />)}
-                  </datalist>
+                  <input list="komiser-listesi" type="text" placeholder="Örn: Önder Aslan (Seçebilir veya Yazabilirsiniz)" value={aramaKomiser} onChange={(e) => setAramaKomiser(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors" />
+                  <datalist id="komiser-listesi">{siraliKomiserler.map((k, i) => <option key={i} value={k.ad_soyad} />)}</datalist>
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Saha Adı</label>
-                  <input 
-                    list="saha-listesi"
-                    type="text" 
-                    placeholder="Örn: Balçova Sahası (Seçebilir veya Yazabilirsiniz)" 
-                    value={aramaSaha}
-                    onChange={(e) => setAramaSaha(e.target.value)}
-                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
-                  />
-                  <datalist id="saha-listesi">
-                    {siraliSahalar.map((saha, i) => <option key={i} value={saha as string} />)}
-                  </datalist>
+                  <input list="saha-listesi" type="text" placeholder="Örn: Balçova Sahası (Seçebilir veya Yazabilirsiniz)" value={aramaSaha} onChange={(e) => setAramaSaha(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors" />
+                  <datalist id="saha-listesi">{siraliSahalar.map((saha, i) => <option key={i} value={saha as string} />)}</datalist>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım Adı</label>
-                  <input 
-                    list="takim-listesi"
-                    type="text" 
-                    placeholder="Örn: Göztepe (Seçebilir veya Yazabilirsiniz)" 
-                    value={aramaTakim}
-                    onChange={(e) => setAramaTakim(e.target.value)}
-                    className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors"
-                  />
-                  <datalist id="takim-listesi">
-                    {siraliTakimlar.map((takim, i) => <option key={i} value={takim as string} />)}
-                  </datalist>
+                  <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım veya Lig Adı</label>
+                  <input list="takim-listesi" type="text" placeholder="Örn: Göztepe veya U16 (Seçebilir veya Yazabilirsiniz)" value={aramaTakim} onChange={(e) => setAramaTakim(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors" />
+                  <datalist id="takim-listesi">{siraliTakimlar.map((takim, i) => <option key={i} value={takim as string} />)}</datalist>
                 </div>
 
                 {(aramaKomiser || aramaSaha || aramaTakim) && (
                   <div className="pt-2 text-right">
-                    <button 
-                      onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }}
-                      className="text-slate-400 hover:text-red-400 text-sm font-bold underline transition-colors"
-                    >
-                      Filtreleri Temizle
-                    </button>
+                    <button onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }} className="text-slate-400 hover:text-red-400 text-sm font-bold underline transition-colors">Filtreleri Temizle</button>
                   </div>
                 )}
               </div>
@@ -520,45 +504,27 @@ export default function Home() {
                 return (
                   <div key={mac.id} className="bg-white border-l-4 border-slate-800 shadow-md rounded-r-xl p-4">
                     <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
-                      <span className="font-bold text-blue-950 text-lg md:text-xl">
-                        {mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}
-                      </span>
+                      <span className="font-bold text-blue-950 text-lg md:text-xl">{mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
-                        <span className="font-bold text-slate-800">{mac.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac.saat ? mac.saat.substring(0, 5) : ""}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span>
-                        <span className="font-bold text-slate-800">{mac.saha}</span>
-                      </div>
-                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
-                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span>
-                        <span className="font-bold text-slate-800">{mac.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu})</span></span>
-                      </div>
-                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200">
-                        <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span>
-                        <span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span>
-                      </div>
-                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-300 col-span-2 bg-white p-2 rounded border">
-                        <span className="text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider">Müsabaka Saha Komiseri</span>
-                        <span className="font-black text-red-700 text-base">{komiserIsim}</span>
-                      </div>
+                      <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800">{mac.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac.saat ? mac.saat.substring(0, 5) : ""}</span></div>
+                      <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800">{mac.saha}</span></div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800">{mac.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu})</span></span></div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span></div>
+                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-300 col-span-2 bg-white p-2 rounded border"><span className="text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider">Müsabaka Saha Komiseri</span><span className="font-black text-red-700 text-base">{komiserIsim}</span></div>
                     </div>
                   </div>
                 )
               })
             )}
           </div>
-
         </div>
       </main>
     )
   }
 
   // ==========================================
-  // SKOR VE SAHA RAPORU (DİJİTAL MAÇ KARTI)
+  // SKOR VE SAHA RAPORU (DİJİTAL MAÇ KARTI - YENİ 5 KATEGORİLİ)
   // ==========================================
   if (aktifEkran === 'skorRapor') {
     const tebellugEdilenMaclar = aktifMaclar.filter(m => m.tebellug_edildi === true);
@@ -587,12 +553,8 @@ export default function Home() {
                   <div key={mac.id} className={`bg-white rounded-xl shadow-md border-2 transition-all ${raporGonderilmis ? 'border-green-500' : acikMi ? 'border-blue-500' : 'border-slate-300'}`}>
                     
                     <button 
-                      onClick={() => {
-                        if (raporGonderilmis) return;
-                        if (acikMi) { skorFormunuSifirla(); } 
-                        else { skorFormunuSifirla(); setAcikSkorMacId(mac.id); }
-                      }} 
-                      className={`w-full text-left p-4 rounded-xl flex justify-between items-center ${raporGonderilmis ? 'bg-green-50 cursor-default' : 'hover:bg-slate-50'}`}
+                      onClick={() => raporFormunuAc(mac)} 
+                      className={`w-full text-left p-4 rounded-xl flex justify-between items-center hover:bg-slate-50 transition-colors ${raporGonderilmis && !acikMi ? 'bg-green-50' : ''}`}
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -603,50 +565,78 @@ export default function Home() {
                         <p className="text-slate-500 text-xs mt-1">{mac.saha} | {new Date(mac.tarih).toLocaleDateString('tr-TR')} - {mac.saat?.substring(0,5)}</p>
                       </div>
                       
-                      {raporGonderilmis ? (
-                        <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow flex items-center gap-1">✓ İLETİLDİ</span>
+                      {raporGonderilmis && !acikMi ? (
+                        <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow flex items-center gap-1 hover:bg-green-700">✓ İLETİLDİ (Düzelt)</span>
                       ) : (
-                        <span className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700 transition-colors">RAPORLA</span>
+                        <span className={`text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition-colors ${acikMi ? 'bg-slate-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                          {acikMi ? 'KAPAT' : 'RAPORLA'}
+                        </span>
                       )}
                     </button>
 
-                    {acikMi && !raporGonderilmis && (
+                    {acikMi && (
                       <div className="p-4 border-t-2 border-slate-100 bg-slate-50 rounded-b-xl animate-fade-in-down">
                         
-                        <div className="mb-5">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Maç Durumu</label>
-                          <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full p-3 border-2 border-slate-300 rounded-lg font-bold text-slate-700 bg-white">
-                            <option value="oynandi">Normal Oynandı</option>
-                            <option value="ev_sahibi_gelmedi">Ev Sahibi Takım Sahaya Çıkmadı</option>
-                            <option value="misafir_gelmedi">Misafir Takım Sahaya Çıkmadı</option>
-                            <option value="ikisi_de_gelmedi">İki Takım da Sahaya Çıkmadı</option>
+                        {/* 1. MAÇ DURUMU (3 SEÇENEĞE DÜŞÜRÜLDÜ) */}
+                        <div className="mb-5 flex flex-col items-center">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Maç Durumu</label>
+                          <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full md:w-3/4 p-3 border-2 border-slate-300 rounded-lg font-bold text-slate-700 bg-white text-center appearance-none cursor-pointer">
+                            <option value="oynandi">Müsabaka Tamamlandı</option>
                             <option value="yarida_kaldi">Maç Yarıda Kaldı</option>
+                            <option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option>
                           </select>
                         </div>
 
-                        {macDurumu === 'oynandi' && (
-                          <div className="mb-5 bg-white p-4 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-4">
+                        {/* 2. SKOR GİRİŞİ (TAKIMLAR ÇIKMADIYSA GİZLENİR) */}
+                        {macDurumu !== 'takimlar_cikmadi' && (
+                          <div className="mb-5 bg-white p-4 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-4 max-w-lg mx-auto">
                             <div className="flex-1 text-center">
                               <label className="block text-xs font-bold text-slate-500 mb-2 truncate">{mac.ev_sahibi}</label>
-                              <input type="number" min="0" value={evSkor} onChange={e => setEvSkor(e.target.value)} className="w-20 text-center text-3xl font-black p-2 border-2 border-slate-300 rounded-lg focus:border-blue-500" placeholder="-" />
+                              <select value={evSkor} onChange={e => setEvSkor(e.target.value)} className="w-20 md:w-24 text-center text-xl md:text-3xl font-black p-2 md:p-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50 hover:bg-slate-100 transition-colors">
+                                <option value="" disabled>-</option>
+                                {skorSecenekleri.map(s => <option key={`ev-${s}`} value={s}>{s}</option>)}
+                              </select>
                             </div>
-                            <span className="text-2xl font-black text-slate-400 mt-5">-</span>
+                            <span className="text-xl md:text-3xl font-black text-slate-300 mt-5">-</span>
                             <div className="flex-1 text-center">
                               <label className="block text-xs font-bold text-slate-500 mb-2 truncate">{mac.misafir_takim}</label>
-                              <input type="number" min="0" value={misafirSkor} onChange={e => setMisafirSkor(e.target.value)} className="w-20 text-center text-3xl font-black p-2 border-2 border-slate-300 rounded-lg focus:border-blue-500" placeholder="-" />
+                              <select value={misafirSkor} onChange={e => setMisafirSkor(e.target.value)} className="w-20 md:w-24 text-center text-xl md:text-3xl font-black p-2 md:p-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50 hover:bg-slate-100 transition-colors">
+                                <option value="" disabled>-</option>
+                                {skorSecenekleri.map(s => <option key={`misafir-${s}`} value={s}>{s}</option>)}
+                              </select>
                             </div>
                           </div>
                         )}
 
+                        {/* 3. SAHA VE OLAY DURUMU (5 KATEGORİ) */}
                         <div className="mb-5">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Saha Olayları</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            <button onClick={() => setOlayDurumu('olaysiz')} className={`p-3 rounded-lg font-bold border-2 transition-all ${olayDurumu === 'olaysiz' ? 'bg-green-100 border-green-500 text-green-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>OLAYSIZ BİTTİ</button>
-                            <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-3 rounded-lg font-bold border-2 transition-all text-xs sm:text-sm ${olayDurumu === 'teknik_olay' ? 'bg-amber-100 border-amber-500 text-amber-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>TEKNİK OLAY<br/><span className="text-[9px] font-normal block mt-1">(Küfür, İtiraz vb.)</span></button>
-                            <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-3 rounded-lg font-bold border-2 transition-all text-xs sm:text-sm ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-100 border-red-500 text-red-800 shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>EMNİYETLİK<br/><span className="text-[9px] font-normal block mt-1">(Kavga, Sahaya Girme)</span></button>
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Saha Olayları</label>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                            <button onClick={() => setOlayDurumu('olaysiz')} className={`p-3 md:p-4 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center ${olayDurumu === 'olaysiz' ? 'bg-green-100 border-green-500 text-green-800 shadow-md transform scale-105' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                              <span className="text-sm md:text-base">OLAYSIZ BİTTİ</span>
+                            </button>
+                            <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-3 md:p-4 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center ${olayDurumu === 'teknik_olay' ? 'bg-amber-100 border-amber-500 text-amber-800 shadow-md transform scale-105' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                              <span className="text-sm md:text-base mb-1">TEKNİK OLAY</span>
+                              <span className="text-[9px] md:text-[10px] font-medium text-center opacity-80 leading-tight">(Küfür, İtiraz, İhraç vb.)</span>
+                            </button>
+                            <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-3 md:p-4 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-100 border-red-500 text-red-800 shadow-md transform scale-105' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                              <span className="text-sm md:text-base mb-1">EMNİYETLİK OLAY</span>
+                              <span className="text-[9px] md:text-[10px] font-medium text-center opacity-80 leading-tight">(Kavga, Sahaya Girme,<br/>Görevlilere Mukavemet)</span>
+                            </button>
+                          </div>
+                          
+                          {/* YENİ: KÜÇÜK KUTULAR (HAVA/SAHA SORUNU) */}
+                          <div className="grid grid-cols-2 gap-2 mt-2 max-w-lg mx-auto">
+                            <button onClick={() => setOlayDurumu('hava_muhalefeti')} className={`p-2 rounded-lg font-bold border-2 transition-all text-xs flex items-center justify-center gap-2 ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-700 border-slate-800 text-white shadow-md' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                              ☁️ Hava Muhalefeti
+                            </button>
+                            <button onClick={() => setOlayDurumu('saha_sorunu')} className={`p-2 rounded-lg font-bold border-2 transition-all text-xs flex items-center justify-center gap-2 ${olayDurumu === 'saha_sorunu' ? 'bg-slate-700 border-slate-800 text-white shadow-md' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                              🏟️ Saha/Tesis Müsait Değil
+                            </button>
                           </div>
                         </div>
 
+                        {/* 4. NOT / AÇIKLAMA */}
                         <div className="mb-5">
                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex justify-between">
                             <span>Görev Raporu / Notlar</span>
@@ -655,17 +645,17 @@ export default function Home() {
                           <textarea 
                             value={raporNotu} 
                             onChange={e => setRaporNotu(e.target.value)} 
-                            className={`w-full p-3 border-2 rounded-lg font-serif text-sm min-h-[100px] ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white focus:border-blue-500'}`}
-                            placeholder={olayDurumu === 'olaysiz' ? "Yönetime iletmek istediğiniz not varsa buraya yazabilirsiniz (İsteğe bağlı)..." : "Lütfen yaşanan olayın türünü (Kırmızı Kart, Saha Karışması, Hakeme İtiraz) ve detaylarını kısaca yazınız..."}
+                            className={`w-full p-4 border-2 rounded-lg font-serif text-sm min-h-[120px] shadow-inner ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white focus:border-blue-500'}`}
+                            placeholder={olayDurumu === 'olaysiz' ? "Yönetime iletmek istediğiniz not varsa buraya yazabilirsiniz (İsteğe bağlı)..." : "Lütfen yaşanan olayın detayını veya maça çıkmayan takımın adını belirtiniz..."}
                           ></textarea>
                         </div>
 
                         <button 
                           onClick={() => skorRaporunuGonder(mac.id)}
                           disabled={skorKaydediliyor}
-                          className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black tracking-widest py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                          className={`w-full text-white font-black tracking-widest py-4 md:py-5 rounded-xl shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-lg ${raporGonderilmis ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-800 hover:bg-slate-900'}`}
                         >
-                          {skorKaydediliyor ? 'GÖNDERİLİYOR...' : 'RAPORU KARARGAHA İLET'}
+                          {skorKaydediliyor ? 'İŞLENİYOR...' : (raporGonderilmis ? 'RAPORU GÜNCELLE' : 'RAPORU KARARGAHA İLET')}
                         </button>
 
                       </div>
@@ -772,101 +762,5 @@ export default function Home() {
     )
   }
 
-  // MAZERET BİLDİRİMİ EKRANI
-  if (aktifEkran === 'mazeretBildir') {
-    return (
-      <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
-        <OrtakHeader geriButonuGoster={true} />
-        <div className="flex-1 w-full max-w-2xl mx-auto p-4 md:p-6 pb-20">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-blue-500">
-            {mazeretKaydedildi ? (
-              <div className="p-10 text-center animate-fade-in-down">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
-                <h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p>
-              </div>
-            ) : (
-              <>
-                <div className="bg-slate-50 p-6 border-b border-slate-200 text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
-                  <h2 className="text-xl font-bold text-slate-800">Haftalık Müsaitlik Durumu</h2><p className="text-slate-500 text-sm mt-1">Önümüzdeki TFF bülteni için görev tercihlerinizi belirleyin.</p>
-                </div>
-
-                <div className="p-6 space-y-8">
-                  <div className={`border rounded-xl p-4 flex items-start gap-4 transition-colors hover:bg-red-50 ${kompleYokum ? 'bg-red-50 border-red-500 ring-2 ring-red-200' : 'bg-white border-slate-200'}`}>
-                    <input type="checkbox" id="kompleYokum" checked={kompleYokum} onChange={(e) => { setKompleYokum(e.target.checked); if (e.target.checked) { setMazeretTipi(null); } }} className="mt-1 w-6 h-6 text-red-600 rounded cursor-pointer" />
-                    <label htmlFor="kompleYokum" className="cursor-pointer">
-                      <span className={`block font-bold text-lg ${kompleYokum ? 'text-red-700' : 'text-slate-700'}`}>Bu hafta görev alamayacağım.</span><span className="block text-sm mt-1 text-slate-500">İşaretlerseniz tüm hafta boyunca (hafta içi ve hafta sonu) kapalı görünürsünüz.</span>
-                    </label>
-                  </div>
-
-                  {!kompleYokum && (
-                    <div className="space-y-4 mt-8 animate-fade-in-down">
-                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'full' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
-                        <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="mazeret" checked={mazeretTipi === 'full'} onChange={() => setMazeretTipi('full')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta Müsaitim (7/24)</span><span className="text-sm text-slate-500 block mt-1">Günün her saati, haftanın 7 günü her maça açığım.</span></div>
-                        </label>
-                        {mazeretTipi === 'full' && (
-                          <div className="p-4 border-t border-blue-200 bg-white m-2 rounded-lg flex flex-wrap gap-6 animate-fade-in-down">
-                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelMerkez} onChange={e => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Merkez</label>
-                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelDeplasman} onChange={e => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Deplasman</label>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'secmeli' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
-                        <label className="flex items-start gap-4 p-4 cursor-pointer">
-                          <input type="radio" name="mazeret" checked={mazeretTipi === 'secmeli'} onChange={() => setMazeretTipi('secmeli')} className="w-6 h-6 text-blue-600 mt-0.5" />
-                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Seçmeli Müsaitlik</span><span className="text-sm text-slate-500 block mt-1">Sadece aşağıda seçeceğim gün ve saatlerde müsaitim.</span></div>
-                        </label>
-                        {mazeretTipi === 'secmeli' && (
-                          <div className="p-4 border-t border-blue-200 bg-transparent m-2 rounded-lg space-y-4 animate-fade-in-down">
-                            {renderGunSatiri('cuma', 'Cuma')}
-                            {renderGunSatiri('cumartesi', 'Cumartesi')}
-                            {renderGunSatiri('pazar', 'Pazar')}
-                            {renderGunSatiri('pazartesi', 'Pazartesi')}
-                            {renderGunSatiri('sali', 'Salı')}
-                            {renderGunSatiri('carsamba', 'Çarşamba')}
-                            {renderGunSatiri('persembe', 'Perşembe')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-6 border-t border-slate-200 mt-8">
-                    <h3 className="font-bold text-slate-700 pb-2 mb-2">Ek Açıklama / Not</h3>
-                    <textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-4 focus:border-blue-500 min-h-[100px] shadow-sm" placeholder="Yönetime iletmek istediğiniz ek bir not... (Örn: Arabam bozuldu vb.)"></textarea>
-                  </div>
-                  
-                  <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg mt-4 text-lg disabled:opacity-70">
-                    {mazeretKaydediliyor ? 'Kaydediliyor...' : 'Müsaitlik Durumumu Kaydet'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (aktifEkran === 'giris') {
-    return (
-      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl overflow-hidden">
-          <div className="bg-blue-900 p-8 text-center flex flex-col items-center justify-center space-y-1"><h1 className="text-3xl font-black text-white">İZMİR</h1></div>
-          <div className="p-8">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Sisteme Giriş Yapın</h2>
-            {girisHatasi && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200 text-center">{girisHatasi}</div>}
-            <div className="space-y-6">
-              <div><input type="text" inputMode="numeric" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-center font-mono tracking-widest text-lg" disabled={girisYukleniyor} /></div>
-              <button type="button" onClick={girisYap} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg" disabled={girisYukleniyor}>{girisYukleniyor ? 'Giriş Yapılıyor...' : "Giriş Yap"}</button>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
   return null;
 }
