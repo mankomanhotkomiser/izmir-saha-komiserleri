@@ -73,6 +73,29 @@ export default function Home() {
     return d.getTime()
   }
 
+  // SAYFA YENİLENDİĞİNDE OTOMATİK GİRİŞ YAP (YENİ EKLENDİ)
+  useEffect(() => {
+    const kayitliId = localStorage.getItem('izmirKomiserId')
+    if (kayitliId) {
+      otomatikGirisYap(kayitliId)
+    }
+  }, [])
+
+  const otomatikGirisYap = async (id: string) => {
+    try {
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).single()
+      if (data && !error) {
+        setSeciliKomiser(data)
+        await komiserDetayGetir(data)
+        setAktifEkran('dashboard')
+      } else {
+        localStorage.removeItem('izmirKomiserId')
+      }
+    } catch (err) {
+      console.error("Otomatik giriş başarısız", err)
+    }
+  }
+
   useEffect(() => {
     let aktif = true;
     async function arkaPlaniHazirla() {
@@ -126,7 +149,11 @@ export default function Home() {
     try {
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', temizId).single()
       if (error || !data) { setGirisHatasi("Bu ID numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
+      
       setSeciliKomiser(data)
+      // HAFIZAYA KAYDET (YENİ EKLENDİ)
+      localStorage.setItem('izmirKomiserId', data.komiser_id)
+
       await komiserDetayGetir(data)
       setAktifEkran('dashboard') 
     } catch (err) { setGirisHatasi("Bağlantı sorunu oluştu, tekrar deneyin.") } 
@@ -154,6 +181,9 @@ export default function Home() {
       pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
     })
     skorFormunuSifirla();
+    
+    // ÇIKIŞ YAPINCA HAFIZAYI SİL (YENİ EKLENDİ)
+    localStorage.removeItem('izmirKomiserId')
   }
 
   const komiserDetayGetir = async (komiser: any) => {
@@ -404,7 +434,6 @@ export default function Home() {
       );
     }
 
-    // AÇILIR KUTU (DATALIST) İÇİN A'DAN Z'YE SIRALI LİSTELER
     const siraliKomiserler = [...tumKomiserler].sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR'));
     const siraliSahalar = Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
     const siraliTakimlar = Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
@@ -423,7 +452,6 @@ export default function Home() {
             {aramaTuruAcik && (
               <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-700 space-y-4 animate-fade-in-down">
                 
-                {/* 1. SAHA KOMİSERİ DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Saha Komiseri Adı</label>
                   <input 
@@ -439,7 +467,6 @@ export default function Home() {
                   </datalist>
                 </div>
 
-                {/* 2. SAHA DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Saha Adı</label>
                   <input 
@@ -455,7 +482,6 @@ export default function Home() {
                   </datalist>
                 </div>
 
-                {/* 3. TAKIM DATALIST */}
                 <div>
                   <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım Adı</label>
                   <input 
@@ -471,7 +497,6 @@ export default function Home() {
                   </datalist>
                 </div>
 
-                {/* TEMİZLE BUTONU */}
                 {(aramaKomiser || aramaSaha || aramaTakim) && (
                   <div className="pt-2 text-right">
                     <button 
@@ -499,7 +524,6 @@ export default function Home() {
                         {mac.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac.misafir_takim}
                       </span>
                     </div>
-                    {/* DİNÇER HOCANIN İSTEDİĞİ ORJİNAL KART DETAYLARI EKLENDİ */}
                     <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <div className="flex flex-col">
                         <span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span>
