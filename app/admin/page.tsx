@@ -4,13 +4,23 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import { toPng } from 'html-to-image' 
 
+// VERCEL ÇÖKME HATASINI ÇÖZEN MOTOR BURAYA EKLENDİ!
+const detayliRaporGosterilirMi = (kategori: any) => {
+  if (!kategori) return true;
+  const kat = String(kategori).toLocaleUpperCase('tr-TR');
+  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ')) {
+      return false; 
+  }
+  return true; 
+}
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [hata, setHatasi] = useState('')
   
   const [tumMaclar, setTumMaclar] = useState<any[]>([])
-  const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) // YENİ: Sicil için tüm sezonun maçları
+  const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) 
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -22,9 +32,9 @@ export default function AdminPage() {
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
   const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
-  const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) // YENİ: Sicil Akordiyonu
+  const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
 
-  const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') // YENİ: Sicili İncelenen Komiser
+  const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') 
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,12 +80,6 @@ export default function AdminPage() {
 
   const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
-  const isProfLig = (kategori: any) => {
-    if (!kategori) return false;
-    const kat = String(kategori).toLocaleUpperCase('tr-TR');
-    return kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ');
-  }
-
   useEffect(() => {
     if (girisYapildi) { veriGetir() }
   }, [girisYapildi])
@@ -97,7 +101,7 @@ export default function AdminPage() {
         } else { veriKaldimi = false }
       }
 
-      setSezonlukMaclar(maclarVerisi); // SİCİL İÇİN TÜM SEZONU HAFIZAYA AL
+      setSezonlukMaclar(maclarVerisi);
 
       const { data: komiserlerData } = await supabase.from('komiserler').select('*')
       if (komiserlerData) setTumKomiserler(komiserlerData)
@@ -540,7 +544,6 @@ export default function AdminPage() {
                 )}
             </section>
 
-            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
                 <button
