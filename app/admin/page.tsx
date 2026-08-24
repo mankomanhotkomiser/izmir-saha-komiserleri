@@ -7,7 +7,6 @@ export default function AdminPanel() {
   const [yetkili, setYetkili] = useState(false)
   const [hata, setHata] = useState(false)
 
-  // 3 ANA SEKMELİ KOMUTA MERKEZİ
   const [adminModu, setAdminModu] = useState<'radar' | 'skorlar' | 'sicil'>('radar')
 
   const [maclar, setMaclar] = useState<any[]>([])       
@@ -20,7 +19,6 @@ export default function AdminPanel() {
   
   const [radarArama, setRadarArama] = useState('')
 
-  // AKORDİYON STATE'LERİ
   const [acikBekleyenId, setAcikBekleyenId] = useState<string | null>(null)
   const [acikOnayliId, setAcikOnayliId] = useState<string | null>(null)
   const [acikMazeretId, setAcikMazeretId] = useState<string | null>(null)
@@ -128,7 +126,6 @@ export default function AdminPanel() {
     }
   }, [yetkili])
 
-  // GÖREV KATEGORİLERİ VE ARAMA FİLTRESİ
   const gorevliKomiserIdleri = Array.from(new Set(maclar.map(m => m?.komiser_id).filter(Boolean)));
   let bekleyenKomiserler: any[] = [];
   let onayliKomiserler: any[] = [];
@@ -145,17 +142,18 @@ export default function AdminPanel() {
     else bekleyenKomiserler.push(komiserObjesi);
   });
 
-  // ARAMA FİLTRESİ
+  // ÇÖKME KORUMALI ARAMA FİLTRESİ
   if (radarArama.trim() !== '') {
     const aramaMetni = radarArama.toLocaleLowerCase('tr-TR');
     
     const sirketFiltre = (komiserListesi: any[]) => {
       return komiserListesi.filter(k => {
-        if (k.isim.toLocaleLowerCase('tr-TR').includes(aramaMetni) || String(k.id).includes(aramaMetni)) return true;
+        if ((k.isim || '').toLocaleLowerCase('tr-TR').includes(aramaMetni) || String(k.id).includes(aramaMetni)) return true;
         const macEslesti = k.maclar.some((m: any) => 
-          m.ev_sahibi?.toLocaleLowerCase('tr-TR').includes(aramaMetni) || 
-          m.misafir_takim?.toLocaleLowerCase('tr-TR').includes(aramaMetni) ||
-          m.kategori_adi?.toLocaleLowerCase('tr-TR').includes(aramaMetni)
+          (m.ev_sahibi || '').toLocaleLowerCase('tr-TR').includes(aramaMetni) || 
+          (m.misafir_takim || '').toLocaleLowerCase('tr-TR').includes(aramaMetni) ||
+          (m.kategori_adi || '').toLocaleLowerCase('tr-TR').includes(aramaMetni) ||
+          (m.saha || '').toLocaleLowerCase('tr-TR').includes(aramaMetni)
         );
         return macEslesti;
       });
@@ -175,9 +173,9 @@ export default function AdminPanel() {
   const bildirenIdler = aktifMazeretler.map(m => m.komiser_id);
   const bildirmeyenList = komiserler.filter(k => !bildirenIdler.includes(k.komiser_id));
 
-  // GÜNCELLENEN: SKOR & SAHA RAPORLARI HESAPLAMALARI (Hava muhalefeti ve saha sorunu Turuncuya (Teknik) düşer)
+  // GÜNCELLENEN RAPOR HESAPLAMALARI
   const emniyetlikMaclar = maclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay');
-  const teknikOlayMaclar = maclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu' || m.mac_durumu === 'takimlar_cikmadi'));
+  const teknikOlayMaclar = maclar.filter(m => m.skor_girildi && m.olay_durumu !== 'emniyetlik_olay' && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu' || m.mac_durumu === 'takimlar_cikmadi'));
   const olaysizMaclar = maclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz' && m.mac_durumu !== 'takimlar_cikmadi');
   const bekleyenRaporlar = maclar.filter(m => !m.skor_girildi);
   
@@ -210,8 +208,8 @@ export default function AdminPanel() {
     return "Saha Komiseri"
   }
 
-  // ADMIN EKRANINDAKİ ORJİNAL VE DETAYLI RAPOR KARTI
-  const AdminRaporKarti = ({ mac }: { mac: any }) => {
+  // ADMIN RAPOR KARTI
+  const renderAdminRaporKarti = (mac: any) => {
     const komiserIsim = komiserler.find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Bilinmiyor";
     
     let borderRenk = 'border-slate-400';
@@ -289,7 +287,7 @@ export default function AdminPanel() {
 
             <div className="flex flex-col items-center mb-4">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Saha Olayları</span>
-              <span className={`px-6 py-2 rounded-lg font-bold border-2 text-center ${olayRenk}`}>
+              <span className={`px-6 py-2 rounded-lg font-bold border-2 ${olayRenk}`}>
                 {olayBaslik}
               </span>
             </div>
@@ -318,7 +316,8 @@ export default function AdminPanel() {
     )
   }
 
-  const OrjinalGorevKarti = ({ mac }: { mac: any }) => (
+  // ORJİNAL GÖREV KARTI (RADAR)
+  const renderOrjinalGorevKarti = (mac: any) => (
     <div className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4 mb-3">
       <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
         <span className="font-bold text-blue-950 text-lg md:text-xl">
@@ -438,7 +437,7 @@ export default function AdminPanel() {
                         {acikMi && (
                           <div className="p-4 bg-slate-800 border-t border-slate-700">
                             {komiser.maclar.map((mac: any) => (
-                              <OrjinalGorevKarti key={mac?.id} mac={mac} />
+                              <div key={mac?.id}>{renderOrjinalGorevKarti(mac)}</div>
                             ))}
                           </div>
                         )}
@@ -475,7 +474,7 @@ export default function AdminPanel() {
                         {acikMi && (
                           <div className="p-4 bg-slate-800 border-t border-slate-700">
                             {komiser.maclar.map((mac: any) => (
-                              <OrjinalGorevKarti key={mac?.id} mac={mac} />
+                              <div key={mac?.id}>{renderOrjinalGorevKarti(mac)}</div>
                             ))}
                           </div>
                         )}
@@ -572,7 +571,7 @@ export default function AdminPanel() {
         )}
 
         {/* ========================================================================= */}
-        {/* MOD 2: SAHA & SKOR RAPORLARI (YENİ VE ZENGİNLEŞTİRİLMİŞ FİŞLER) */}
+        {/* MOD 2: SAHA & SKOR RAPORLARI */}
         {/* ========================================================================= */}
         {adminModu === 'skorlar' && (
           <div className="space-y-8 animate-fade-in-down">
@@ -614,7 +613,7 @@ export default function AdminPanel() {
                             <span className="text-slate-500">{acikMi ? '▲' : '▼'}</span>
                           </div>
                         </button>
-                        {acikMi && <AdminRaporKarti mac={mac} />}
+                        {acikMi && renderAdminRaporKarti(mac)}
                       </div>
                     )
                   })}
@@ -665,7 +664,7 @@ export default function AdminPanel() {
                             <span className="text-slate-500">{acikMi ? '▲' : '▼'}</span>
                           </div>
                         </button>
-                        {acikMi && <AdminRaporKarti mac={mac} />}
+                        {acikMi && renderAdminRaporKarti(mac)}
                       </div>
                     )
                   })}
@@ -713,7 +712,7 @@ export default function AdminPanel() {
                             <span className="text-slate-500 text-xs">{acikMi ? '▲' : '▼'}</span>
                           </div>
                         </button>
-                        {acikMi && <AdminRaporKarti mac={mac} />}
+                        {acikMi && renderAdminRaporKarti(mac)}
                       </div>
                     )
                   })}

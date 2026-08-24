@@ -49,7 +49,6 @@ export default function Home() {
   const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
   const [mazeretNotu, setMazeretNotu] = useState('')
 
-  // GÜNCELLENEN SKOR BİLDİRİM STATE'LERİ
   const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
   const [evSkor, setEvSkor] = useState<string>('')
   const [misafirSkor, setMisafirSkor] = useState<string>('')
@@ -268,9 +267,6 @@ export default function Home() {
     finally { setMazeretKaydediliyor(false); }
   }
 
-  // ==========================================
-  // SKOR VE SAHA RAPORU MOTORU (GÜNCELLENEBİLİR VE 5 KATEGORİLİ)
-  // ==========================================
   const skorFormunuSifirla = () => {
     setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null);
   }
@@ -296,11 +292,9 @@ export default function Home() {
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) {
       alert("⚠️ Lütfen maçın skorunu giriniz."); return;
     }
-    // Emniyetlik ve Teknik olaylarda not zorunlu
     if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') {
       alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen Rapor Notu kısmına olayın detayını kısaca yazınız."); return;
     }
-    // Hava muhalefeti veya saha sorununda, maç "Oynandı" Olamaz uyarısı
     if ((olayDurumu === 'hava_muhalefeti' || olayDurumu === 'saha_sorunu') && macDurumu === 'oynandi') {
       const onay = window.confirm("Saha olaylarında 'Hava/Saha Sorunu' seçtiniz ama Maç Durumu 'Tamamlandı' görünüyor. Bu doğru mu?");
       if(!onay) return;
@@ -428,7 +422,7 @@ export default function Home() {
   }
 
   // ==========================================
-  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA
+  // HAFTALIK BÜLTEN ARAMA (BEMBEYAZ SAYFA ÇÖKME KORUMALI)
   // ==========================================
   if (aktifEkran === 'bultenArama') {
     let filtrelenmisMaclar = tumAktifMaclar;
@@ -442,20 +436,20 @@ export default function Home() {
     }
     if (aramaSaha.trim() !== '') {
       const q = aramaSaha.toLocaleLowerCase('tr-TR');
-      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => mac.saha?.toLocaleLowerCase('tr-TR').includes(q));
+      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => (mac.saha || '').toLocaleLowerCase('tr-TR').includes(q));
     }
     if (aramaTakim.trim() !== '') {
       const q = aramaTakim.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => 
-        mac.ev_sahibi?.toLocaleLowerCase('tr-TR').includes(q) || 
-        mac.misafir_takim?.toLocaleLowerCase('tr-TR').includes(q) ||
-        mac.kategori_adi?.toLocaleLowerCase('tr-TR').includes(q)
+        (mac.ev_sahibi || '').toLocaleLowerCase('tr-TR').includes(q) || 
+        (mac.misafir_takim || '').toLocaleLowerCase('tr-TR').includes(q) ||
+        (mac.kategori_adi || '').toLocaleLowerCase('tr-TR').includes(q)
       );
     }
 
-    const siraliKomiserler = [...tumKomiserler].sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR'));
-    const siraliSahalar = Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
-    const siraliTakimlar = Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+    const siraliKomiserler = [...tumKomiserler].sort((a, b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR'));
+    const siraliSahalar = Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
+    const siraliTakimlar = Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
 
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -524,7 +518,7 @@ export default function Home() {
   }
 
   // ==========================================
-  // SKOR VE SAHA RAPORU (DİJİTAL MAÇ KARTI - YENİ 5 KATEGORİLİ)
+  // SKOR VE SAHA RAPORU
   // ==========================================
   if (aktifEkran === 'skorRapor') {
     const tebellugEdilenMaclar = aktifMaclar.filter(m => m.tebellug_edildi === true);
@@ -577,7 +571,6 @@ export default function Home() {
                     {acikMi && (
                       <div className="p-4 border-t-2 border-slate-100 bg-slate-50 rounded-b-xl animate-fade-in-down">
                         
-                        {/* 1. MAÇ DURUMU (3 SEÇENEĞE DÜŞÜRÜLDÜ) */}
                         <div className="mb-5 flex flex-col items-center">
                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Maç Durumu</label>
                           <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full md:w-3/4 p-3 border-2 border-slate-300 rounded-lg font-bold text-slate-700 bg-white text-center appearance-none cursor-pointer">
@@ -587,7 +580,6 @@ export default function Home() {
                           </select>
                         </div>
 
-                        {/* 2. SKOR GİRİŞİ (TAKIMLAR ÇIKMADIYSA GİZLENİR) */}
                         {macDurumu !== 'takimlar_cikmadi' && (
                           <div className="mb-5 bg-white p-4 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-4 max-w-lg mx-auto">
                             <div className="flex-1 text-center">
@@ -608,7 +600,6 @@ export default function Home() {
                           </div>
                         )}
 
-                        {/* 3. SAHA VE OLAY DURUMU (5 KATEGORİ) */}
                         <div className="mb-5">
                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Saha Olayları</label>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
@@ -625,7 +616,6 @@ export default function Home() {
                             </button>
                           </div>
                           
-                          {/* YENİ: KÜÇÜK KUTULAR (HAVA/SAHA SORUNU) */}
                           <div className="grid grid-cols-2 gap-2 mt-2 max-w-lg mx-auto">
                             <button onClick={() => setOlayDurumu('hava_muhalefeti')} className={`p-2 rounded-lg font-bold border-2 transition-all text-xs flex items-center justify-center gap-2 ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-700 border-slate-800 text-white shadow-md' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
                               ☁️ Hava Muhalefeti
@@ -636,7 +626,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* 4. NOT / AÇIKLAMA */}
                         <div className="mb-5">
                           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex justify-between">
                             <span>Görev Raporu / Notlar</span>
@@ -671,7 +660,7 @@ export default function Home() {
   }
 
   // ==========================================
-  // GÖREV KARTLARI (BİLDİĞİMİZ EKMEL KANUNLARI)
+  // GÖREV KARTLARI
   // ==========================================
   if (aktifEkran === 'gorevKartlari') {
     return (
@@ -762,5 +751,101 @@ export default function Home() {
     )
   }
 
+  // MAZERET BİLDİRİMİ EKRANI
+  if (aktifEkran === 'mazeretBildir') {
+    return (
+      <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
+        <OrtakHeader geriButonuGoster={true} />
+        <div className="flex-1 w-full max-w-2xl mx-auto p-4 md:p-6 pb-20">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-blue-500">
+            {mazeretKaydedildi ? (
+              <div className="p-10 text-center animate-fade-in-down">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div>
+                <h2 className="text-2xl font-bold text-slate-800">Müsaitlik Durumu İletildi!</h2><p className="text-slate-500 mt-2">Merkezimize başarıyla kaydedildi. Ana ekrana yönlendiriliyorsunuz...</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-slate-50 p-6 border-b border-slate-200 text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
+                  <h2 className="text-xl font-bold text-slate-800">Haftalık Müsaitlik Durumu</h2><p className="text-slate-500 text-sm mt-1">Önümüzdeki TFF bülteni için görev tercihlerinizi belirleyin.</p>
+                </div>
+
+                <div className="p-6 space-y-8">
+                  <div className={`border rounded-xl p-4 flex items-start gap-4 transition-colors hover:bg-red-50 ${kompleYokum ? 'bg-red-50 border-red-500 ring-2 ring-red-200' : 'bg-white border-slate-200'}`}>
+                    <input type="checkbox" id="kompleYokum" checked={kompleYokum} onChange={(e) => { setKompleYokum(e.target.checked); if (e.target.checked) { setMazeretTipi(null); } }} className="mt-1 w-6 h-6 text-red-600 rounded cursor-pointer" />
+                    <label htmlFor="kompleYokum" className="cursor-pointer">
+                      <span className={`block font-bold text-lg ${kompleYokum ? 'text-red-700' : 'text-slate-700'}`}>Bu hafta görev alamayacağım.</span><span className="block text-sm mt-1 text-slate-500">İşaretlerseniz tüm hafta boyunca (hafta içi ve hafta sonu) kapalı görünürsünüz.</span>
+                    </label>
+                  </div>
+
+                  {!kompleYokum && (
+                    <div className="space-y-4 mt-8 animate-fade-in-down">
+                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'full' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
+                        <label className="flex items-start gap-4 p-4 cursor-pointer">
+                          <input type="radio" name="mazeret" checked={mazeretTipi === 'full'} onChange={() => setMazeretTipi('full')} className="w-6 h-6 text-blue-600 mt-0.5" />
+                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Tüm Hafta Müsaitim (7/24)</span><span className="text-sm text-slate-500 block mt-1">Günün her saati, haftanın 7 günü her maça açığım.</span></div>
+                        </label>
+                        {mazeretTipi === 'full' && (
+                          <div className="p-4 border-t border-blue-200 bg-white m-2 rounded-lg flex flex-wrap gap-6 animate-fade-in-down">
+                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelMerkez} onChange={e => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Merkez</label>
+                            <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700"><input type="checkbox" checked={genelDeplasman} onChange={e => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /> Deplasman</label>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={`border-2 rounded-xl transition-all ${mazeretTipi === 'secmeli' ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'}`}>
+                        <label className="flex items-start gap-4 p-4 cursor-pointer">
+                          <input type="radio" name="mazeret" checked={mazeretTipi === 'secmeli'} onChange={() => setMazeretTipi('secmeli')} className="w-6 h-6 text-blue-600 mt-0.5" />
+                          <div><span className="font-bold text-lg text-slate-800 block leading-tight">Seçmeli Müsaitlik</span><span className="text-sm text-slate-500 block mt-1">Sadece aşağıda seçeceğim gün ve saatlerde müsaitim.</span></div>
+                        </label>
+                        {mazeretTipi === 'secmeli' && (
+                          <div className="p-4 border-t border-blue-200 bg-transparent m-2 rounded-lg space-y-4 animate-fade-in-down">
+                            {renderGunSatiri('cuma', 'Cuma')}
+                            {renderGunSatiri('cumartesi', 'Cumartesi')}
+                            {renderGunSatiri('pazar', 'Pazar')}
+                            {renderGunSatiri('pazartesi', 'Pazartesi')}
+                            {renderGunSatiri('sali', 'Salı')}
+                            {renderGunSatiri('carsamba', 'Çarşamba')}
+                            {renderGunSatiri('persembe', 'Perşembe')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-6 border-t border-slate-200 mt-8">
+                    <h3 className="font-bold text-slate-700 pb-2 mb-2">Ek Açıklama / Not</h3>
+                    <textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full bg-white border border-slate-300 rounded-xl p-4 focus:border-blue-500 min-h-[100px] shadow-sm" placeholder="Yönetime iletmek istediğiniz ek bir not... (Örn: Arabam bozuldu vb.)"></textarea>
+                  </div>
+                  
+                  <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg mt-4 text-lg disabled:opacity-70">
+                    {mazeretKaydediliyor ? 'Kaydediliyor...' : 'Müsaitlik Durumumu Kaydet'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (aktifEkran === 'giris') {
+    return (
+      <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-blue-900 p-8 text-center flex flex-col items-center justify-center space-y-1"><h1 className="text-3xl font-black text-white">İZMİR</h1></div>
+          <div className="p-8">
+            <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Sisteme Giriş Yapın</h2>
+            {girisHatasi && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200 text-center">{girisHatasi}</div>}
+            <div className="space-y-6">
+              <div><input type="text" inputMode="numeric" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-center font-mono tracking-widest text-lg" disabled={girisYukleniyor} /></div>
+              <button type="button" onClick={girisYap} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg" disabled={girisYukleniyor}>{girisYukleniyor ? 'Giriş Yapılıyor...' : "Giriş Yap"}</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
   return null;
 }
