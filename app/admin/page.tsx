@@ -20,7 +20,7 @@ export default function AdminPage() {
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
-    else { setHatasi('Hatalı şifre. Karargaha giriş reddedildi.') }
+    else { setHatasi('Hatalı şifre. Operasyon Merkezine giriş reddedildi.') }
   }
 
   const cumaBul = (tarihMetni: string) => {
@@ -127,7 +127,7 @@ export default function AdminPage() {
         const dataURL = await toPng(element, { backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, style: { fontFamily: 'sans-serif' } });
         const link = document.createElement('a');
         link.href = dataURL;
-        link.download = `KARARGAH_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
+        link.download = `OPERASYON_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -143,7 +143,7 @@ export default function AdminPage() {
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700">
           <div className="text-center mb-8">
             <span className="text-5xl block mb-4">🛡️</span>
-            <h1 className="text-2xl font-black text-white tracking-widest uppercase">KARARGAH GİRİŞİ</h1>
+            <h1 className="text-2xl font-black text-white tracking-widest uppercase">OPERASYON MERKEZİ GİRİŞİ</h1>
             <p className="text-slate-400 text-sm mt-2">Sadece yetkili personel erişebilir.</p>
           </div>
           <form onSubmit={girisKontrol} className="space-y-6">
@@ -251,7 +251,7 @@ export default function AdminPage() {
                                 {isTffAcik && (
                                     <div className="p-4 overflow-x-auto bg-slate-300">
                                         
-                                        <div id={`admin-tff-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto">
+                                        <div id={`admin-tff-form-${mac.id}`} className="min-w-[700px] max-w-4xl w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto">
                                           <div className="border-[3px] border-double border-slate-600 p-4">
                                               
                                               <div className="flex flex-col items-center mb-6">
@@ -362,7 +362,7 @@ export default function AdminPage() {
                                                   <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 uppercase tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
                                                   <textarea 
                                                       readOnly
-                                                      value={safeRaporDetay?.tff_not || ''} 
+                                                      value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} 
                                                       className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2 pointer-events-none"
                                                   ></textarea>
                                               </div>
@@ -417,7 +417,7 @@ export default function AdminPage() {
           <div className="flex items-center gap-3">
             <span className="text-3xl hidden md:block">🇹🇷</span>
             <div>
-              <h1 className="font-black text-lg md:text-xl text-white tracking-widest uppercase">KARARGAH MERKEZİ</h1>
+              <h1 className="font-black text-lg md:text-xl text-white tracking-widest uppercase">İZMİR SAHA KOMİSERLERİ OPERASYON MERKEZİ</h1>
               <p className="text-slate-400 text-xs font-mono">TFF İZMİR SAHA KOMİSERLERİ ({globalAktifHaftaNo}. HAFTA OPERASYONU)</p>
             </div>
           </div>
@@ -437,7 +437,10 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative">
+            {/* TAM EKRAN (FULL WIDTH) DÜZENLEME BAŞLADI */}
+            
+            {/* 1. KIRMIZI KOD (EMNİYETLİK) */}
+            <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
                 <div className="bg-red-950/40 p-4 border-b border-red-900/30 flex justify-between items-center">
                     <h2 className="text-red-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">🚨</span> KIRMIZI KOD (EMNİYETLİK)</h2>
@@ -450,7 +453,8 @@ export default function AdminPage() {
                 </div>
             </section>
 
-            <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative">
+            {/* 2. DİĞER OLAYLAR (TEKNİK / SAHA) */}
+            <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                 <div className="bg-amber-950/20 p-4 border-b border-amber-900/30 flex justify-between items-center">
                     <h2 className="text-amber-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⚠️</span> DİĞER OLAYLAR (TEKNİK / SAHA)</h2>
@@ -463,31 +467,31 @@ export default function AdminPage() {
                 </div>
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col max-h-[600px]">
-                    <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
-                        <h2 className="text-green-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">✓</span> OLAYSIZ MÜSABAKALAR</h2>
-                        <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
-                    </div>
-                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
-                        {olaysizMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Henüz olaysız biten maç raporu yok.</div> ) : (
-                            olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)
-                        )}
-                    </div>
-                </section>
+            {/* 3. OLAYSIZ MÜSABAKALAR (ARTIK TAM EKRAN VE GENİŞ!) */}
+            <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-green-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">✓</span> OLAYSIZ MÜSABAKALAR</h2>
+                    <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
+                </div>
+                <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
+                    {olaysizMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Henüz olaysız biten maç raporu yok.</div> ) : (
+                        olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)
+                    )}
+                </div>
+            </section>
 
-                <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col max-h-[600px]">
-                    <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
-                        <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER</h2>
-                        <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
-                    </div>
-                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
-                        {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
-                            bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
-                        )}
-                    </div>
-                </section>
-            </div>
+            {/* 4. RAPOR BEKLENENLER (ARTIK TAM EKRAN!) */}
+            <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER</h2>
+                    <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
+                </div>
+                <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
+                    {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
+                        bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
+                    )}
+                </div>
+            </section>
 
           </div>
         )}
