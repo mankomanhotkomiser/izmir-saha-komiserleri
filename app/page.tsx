@@ -31,6 +31,7 @@ export default function Home() {
   const [aramaKomiser, setAramaKomiser] = useState('')
   const [aramaSaha, setAramaSaha] = useState('')
   const [aramaTakim, setAramaTakim] = useState('')
+  const [acikAramaMacId, setAcikAramaMacId] = useState<number | null>(null) // YENİ: ARAMA AKORDİYON STATE'İ
 
   const [macYukleniyor, setMacYukleniyor] = useState(false)
   
@@ -316,7 +317,6 @@ export default function Home() {
     }
   });
 
-  // UYARI İSTATİSTİKLERİ HESAPLAMA (DEVRİM)
   const eksikSkorSayisi = aktifMaclar.filter(m => m && !m.skor_girildi).length;
   const eksikDetayliSayisi = aktifMaclar.filter(m => m && m.skor_girildi && detayliRaporGosterilirMi(m.kategori_adi) && !m.tff_rapor_detaylari?.detayli_kaydedildi).length;
 
@@ -429,6 +429,7 @@ export default function Home() {
     }
   }
 
+  // TFF FOTMOB LOGOSU İLE PNG İNDİRME 
   const tffTutanakIndir = async (mac: any) => {
     const element = document.getElementById(`tff-form-${mac.id}`);
     if (element) {
@@ -456,7 +457,6 @@ export default function Home() {
     }
   }
 
-  // ZORUNLU RAPOR KONTROLLÜ GÖNDERİM MOTORU
   const skorRaporunuGonder = async (macId: number, kayitTuru: 'hizli' | 'detayli') => {
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) {
       alert("⚠️ Lütfen maçın skorunu giriniz."); return;
@@ -572,7 +572,6 @@ export default function Home() {
                 <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">Bu Sezon: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} Görev</span>
               </div>
               
-              {/* UYARI İKAZ IŞIKLARI - DEVRİM */}
               {(eksikSkorSayisi > 0 || eksikDetayliSayisi > 0) && (
                   <div className="mt-4 space-y-2 animate-fade-in-down">
                     {eksikSkorSayisi > 0 && (
@@ -619,6 +618,7 @@ export default function Home() {
     )
   }
 
+  // ARAMA EKRANI AKORDİYON DEVRİMİ
   if (aktifEkran === 'bultenArama') {
     const guvenliTumMaclar = Array.isArray(tumAktifMaclar) ? tumAktifMaclar : [];
     let filtrelenmisMaclar = guvenliTumMaclar;
@@ -662,47 +662,60 @@ export default function Home() {
               <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-700 space-y-4 animate-fade-in-down">
                 <div>
                   <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Saha Komiseri Adı</label>
-                  <input list="komiser-listesi" type="text" placeholder="Örn: Önder Aslan" value={aramaKomiser} onChange={(e) => setAramaKomiser(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors text-sm" />
-                  <datalist id="komiser-listesi">{siraliKomiserler.map((k, i) => <option key={i} value={k.ad_soyad || ''} />)}</datalist>
+                  <input list="komiser-listesi" type="text" placeholder="Komiser arayın..." value={aramaKomiser} onChange={(e) => setAramaKomiser(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 transition-colors text-sm" />
+                  <datalist id="komiser-listesi">{siraliKomiserler.map((k, i) => <option key={`kom-${i}`} value={k.ad_soyad || ''} />)}</datalist>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Saha Adı</label>
-                  <input list="saha-listesi" type="text" placeholder="Örn: Balçova Sahası" value={aramaSaha} onChange={(e) => setAramaSaha(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors text-sm" />
-                  <datalist id="saha-listesi">{siraliSahalar.map((saha, i) => <option key={i} value={saha as string} />)}</datalist>
+                  <input list="saha-listesi" type="text" placeholder="Saha arayın..." value={aramaSaha} onChange={(e) => setAramaSaha(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-amber-500 transition-colors text-sm" />
+                  <datalist id="saha-listesi">{siraliSahalar.map((saha, i) => <option key={`sah-${i}`} value={saha as string} />)}</datalist>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Takım veya Lig Adı</label>
-                  <input list="takim-listesi" type="text" placeholder="Örn: Göztepe veya U16" value={aramaTakim} onChange={(e) => setAramaTakim(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors text-sm" />
-                  <datalist id="takim-listesi">{siraliTakimlar.map((takim, i) => <option key={i} value={takim as string} />)}</datalist>
+                  <input list="takim-listesi" type="text" placeholder="Takım veya lig arayın..." value={aramaTakim} onChange={(e) => setAramaTakim(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-green-500 transition-colors text-sm" />
+                  <datalist id="takim-listesi">{siraliTakimlar.map((takim, i) => <option key={`tak-${i}`} value={takim as string} />)}</datalist>
                 </div>
 
                 {(aramaKomiser || aramaSaha || aramaTakim) && (
                   <div className="pt-2 text-right">
-                    <button onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); }} className="text-slate-400 hover:text-red-400 text-sm font-bold underline transition-colors">Filtreleri Temizle</button>
+                    <button onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikAramaMacId(null); }} className="text-slate-400 hover:text-red-400 text-sm font-bold underline transition-colors">Filtreleri Temizle</button>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filtrelenmisMaclar.length === 0 ? (
               <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500 font-bold text-sm">Aramanızla eşleşen müsabaka bulunamadı.</div>
             ) : (
-              filtrelenmisMaclar.map(mac => {
+              filtrelenmisMaclar.map((mac, idx) => {
                 const komiserIsim = (Array.isArray(tumKomiserler) ? tumKomiserler : []).find(k => k.komiser_id === mac.komiser_id)?.ad_soyad || "Komiser Atanmadı";
+                const isAcik = acikAramaMacId === mac.id;
                 return (
-                  <div key={mac.id} className="bg-white border-l-4 border-slate-800 shadow-md rounded-r-xl p-3 md:p-4">
-                    <div className="flex justify-between items-start mb-2 border-b border-slate-100 pb-2">
-                      <span className="font-bold text-blue-950 text-base md:text-xl leading-tight">{mac?.ev_sahibi || '-'} <span className="text-slate-400 font-medium mx-1 text-sm md:text-base">vs</span> {mac?.misafir_takim || '-'}</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-2 md:p-3 rounded-lg border border-slate-100">
-                      <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800 text-xs md:text-sm">{guvenliTarih(mac?.tarih)} - {guvenliSaat(mac?.saat)}</span></div>
-                      <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac?.saha || '-'}</span></div>
-                      <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac?.kategori_adi || '-'} <span className="text-[9px] md:text-xs font-normal text-slate-500 block sm:inline mt-0.5 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu || '-'})</span></span></div>
-                      <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700 text-xs md:text-sm">{gorevTuruBelirle(mac?.kategori_adi || '', mac?.mac_kodu || '')}</span></div>
-                      <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-300 col-span-1 sm:col-span-2 bg-white p-2 rounded border"><span className="text-[9px] md:text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider">Müsabaka Saha Komiseri</span><span className="font-black text-red-700 text-sm md:text-base">{komiserIsim}</span></div>
-                    </div>
+                  <div key={mac.id || `arama-${idx}`} className="bg-white border-l-4 border-slate-800 shadow-md rounded-r-xl overflow-hidden transition-all">
+                    <button onClick={() => setAcikAramaMacId(isAcik ? null : mac.id)} className="w-full text-left p-3 md:p-4 flex justify-between items-center hover:bg-slate-50 focus:outline-none">
+                        <div className="flex-1 pr-2">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">{mac?.mac_kodu || '-'}</span>
+                                <span className="text-blue-600 text-[10px] font-bold uppercase">{mac?.kategori_adi || '-'}</span>
+                            </div>
+                            <span className="font-bold text-blue-950 text-sm md:text-base leading-tight block">{mac?.ev_sahibi || '-'} <span className="text-slate-400 font-medium mx-1">vs</span> {mac?.misafir_takim || '-'}</span>
+                        </div>
+                        <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
+                    </button>
+                    
+                    {isAcik && (
+                        <div className="p-3 md:p-4 border-t border-slate-100 bg-slate-50 animate-fade-in-down">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm text-slate-700">
+                              <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800 text-xs md:text-sm">{guvenliTarih(mac?.tarih)} - {guvenliSaat(mac?.saat)}</span></div>
+                              <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac?.saha || '-'}</span></div>
+                              <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac?.kategori_adi || '-'} <span className="text-[9px] md:text-xs font-normal text-slate-500 block sm:inline mt-0.5 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu || '-'})</span></span></div>
+                              <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700 text-xs md:text-sm">{gorevTuruBelirle(mac?.kategori_adi || '', mac?.mac_kodu || '')}</span></div>
+                              <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-300 col-span-1 sm:col-span-2 bg-white p-2 rounded border"><span className="text-[9px] md:text-[10px] text-slate-500 mb-1 font-bold uppercase tracking-wider">Müsabaka Saha Komiseri</span><span className="font-black text-red-700 text-sm md:text-base">{komiserIsim}</span></div>
+                            </div>
+                        </div>
+                    )}
                   </div>
                 )
               })
@@ -740,7 +753,6 @@ export default function Home() {
                 const acikMi = acikSkorMacId === mac.id;
                 const raporGonderilmis = mac.skor_girildi === true;
 
-                // DEVRİM: PROFESYONEL VE GELİŞİM LİGİ KONTROLÜ
                 const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
                 const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
 
@@ -753,7 +765,6 @@ export default function Home() {
                 const komiserTamIsim = seciliKomiser?.ad_soyad || 'KOMİSER';
                 const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
 
-                // DURUM ROZETİ BELİRLEME (AKILLI SİSTEM)
                 let borderClass = 'border-slate-300';
                 let rozet = null;
                 if (!raporGonderilmis) {
@@ -779,7 +790,7 @@ export default function Home() {
                 }
 
                 return (
-                  <div key={mac.id || idx} className={`bg-white rounded-xl shadow-md border-2 transition-all ${borderClass}`}>
+                  <div key={mac.id || `skor-${idx}`} className={`bg-white rounded-xl shadow-md border-2 transition-all ${borderClass}`}>
                     
                     <button 
                       onClick={() => raporFormunuAc(mac)} 
@@ -865,14 +876,18 @@ export default function Home() {
                             ></textarea>
                           </div>
                           
-                          <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
-                             {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'SKORU GÜNCELLE' : 'HIZLI SKORU KARARGAHA İLET')}
-                          </button>
+                          {!detayliGoster && (
+                            <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                               {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'SKORU GÜNCELLE' : 'KARARGAHA İLET')}
+                            </button>
+                          )}
+                          {detayliGoster && (
+                            <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                               {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'HIZLI SKORU GÜNCELLE' : 'HIZLI SKORU KARARGAHA İLET')}
+                            </button>
+                          )}
                         </div>
 
-                        {/* ==================================================== */}
-                        {/* 2. AŞAMA: SADECE AMATÖR LİGLERDE ÇIKAN DETAYLI RAPOR */}
-                        {/* ==================================================== */}
                         {detayliGoster && (
                           <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
@@ -886,13 +901,7 @@ export default function Home() {
                                 <div className="border-[3px] border-double border-slate-600 p-4">
                                     
                                     <div className="flex flex-col items-center mb-6 relative">
-                                        <div className="w-14 h-14 rounded-full bg-[#E30A17] flex items-center justify-center mb-1">
-                                            <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M50 15C30.67 15 15 30.67 15 50C15 69.33 30.67 85 50 85C56 85 61.64 83.5 66.5 80.89C57.65 79.52 50.81 71.86 50.81 62.5C50.81 53.14 57.65 45.48 66.5 44.11C61.64 41.5 56 40 50 40Z" fill="white"/>
-                                                <polygon points="68,52 73,63 84,63 75,70 78,81 68,74 58,81 61,70 52,63 63,63" fill="white" transform="scale(0.5) translate(40, -10)" />
-                                            </svg>
-                                        </div>
-                                        <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
+                                        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/71.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
                                         <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                         <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
                                     </div>
@@ -941,20 +950,21 @@ export default function Home() {
                                         </div>
                                     </div>
 
+                                    {/* HAKEM İSİMLERİ TÜRKÇE KARAKTER VE ŞIK TASARIM */}
                                     <div className="grid grid-cols-2 gap-0 border border-black mb-6">
                                         <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
                                         <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                                         
                                         <div className="border-r border-black flex flex-col">
-                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">HAKEM</span> <input type="text" value={safeRaporDetay?.hakem || ''} onChange={e => raporDetayGuncelle('hakem', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="Zorunlu..." /></div>
-                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">1.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_1 || ''} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">2.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_2 || ''} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                            <div className="flex p-1.5 items-center"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input type="text" value={safeRaporDetay?.gozlemci || ''} onChange={e => raporDetayGuncelle('gozlemci', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">HAKEM</span> <input type="text" value={safeRaporDetay?.hakem || ''} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="Zorunlu..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_1 || ''} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_2 || ''} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="..." /></div>
+                                            <div className="flex p-1.5 items-center"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input type="text" value={safeRaporDetay?.gozlemci || ''} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="..." /></div>
                                         </div>
                                         
                                         <div className="flex flex-col">
-                                            <div className="flex border-b border-dashed border-black p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input type="text" value={safeRaporDetay?.saglik || ''} onChange={e => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                            <div className="flex p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input type="text" value={safeRaporDetay?.guvenlik || ''} onChange={e => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input type="text" value={safeRaporDetay?.saglik || ''} onChange={e => raporDetayGuncelle('saglik', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="..." /></div>
+                                            <div className="flex p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input type="text" value={safeRaporDetay?.guvenlik || ''} onChange={e => raporDetayGuncelle('guvenlik', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-xs outline-none bg-slate-50/50 border border-slate-200 pl-2 py-1 font-black text-blue-900 uppercase ml-2 rounded-sm" placeholder="..." /></div>
                                         </div>
                                     </div>
 
@@ -978,18 +988,18 @@ export default function Home() {
                                             </div>
                                         </div>
                                         {Array.from({ length: maxSatir }).map((_, idx) => (
-                                            <div key={idx} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
+                                            <div key={`ihrac-${idx}`} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
                                                 
                                                 <div className="grid grid-cols-12 border-r border-black relative">
-                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('ev', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
-                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('ev', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
-                                                    <div className="col-span-3 p-1"><input type="text" value={ihracEvListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('ev', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
+                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('ev', idx, 'forma', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-center outline-none bg-slate-50/50 border border-slate-200 py-1 font-bold text-blue-900 rounded-sm" placeholder="-" /></div>
+                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('ev', idx, 'isim', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-left outline-none bg-slate-50/50 border border-slate-200 pl-1 py-1 font-black text-blue-900 uppercase rounded-sm" placeholder="" /></div>
+                                                    <div className="col-span-3 p-1"><input type="text" value={ihracEvListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('ev', idx, 'lisans', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-center outline-none bg-slate-50/50 border border-slate-200 py-1 font-bold text-blue-900 rounded-sm" placeholder="" /></div>
                                                 </div>
 
                                                 <div className="grid grid-cols-12 relative">
-                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('mis', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
-                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('mis', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
-                                                    <div className="col-span-3 p-1"><input type="text" value={ihracMisListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('mis', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
+                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('mis', idx, 'forma', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-center outline-none bg-slate-50/50 border border-slate-200 py-1 font-bold text-blue-900 rounded-sm" placeholder="-" /></div>
+                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('mis', idx, 'isim', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-left outline-none bg-slate-50/50 border border-slate-200 pl-1 py-1 font-black text-blue-900 uppercase rounded-sm" placeholder="" /></div>
+                                                    <div className="col-span-3 p-1"><input type="text" value={ihracMisListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('mis', idx, 'lisans', e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full text-center outline-none bg-slate-50/50 border border-slate-200 py-1 font-bold text-blue-900 rounded-sm" placeholder="" /></div>
                                                 </div>
                                             </div>
                                         ))}
@@ -1004,7 +1014,7 @@ export default function Home() {
                                         <textarea 
                                             value={safeRaporDetay?.tff_not || ''} 
                                             onChange={e => raporDetayGuncelle('tff_not', e.target.value)} 
-                                            className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2"
+                                            className="w-full outline-none bg-slate-50/50 font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-slate-300 p-3 shadow-inner rounded-md"
                                             placeholder="Olayların detaylarını, varsa zamanı ve numaralarıyla birlikte yazınız..."
                                         ></textarea>
                                     </div>
