@@ -13,6 +13,9 @@ export default function AdminPage() {
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [yukleniyor, setYukleniyor] = useState(true)
 
+  // ESKİ SİSTEMDEKİ GİBİ KARTA TIKLAYINCA AÇILMASI İÇİN STATE
+  const [acikMacId, setAcikMacId] = useState<number | null>(null)
+
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
@@ -39,11 +42,23 @@ export default function AdminPage() {
     catch (e) { return tarihMetni; }
   }
 
-  const siralamaFiltresi = (a: any, b: any) => {
-    const datetimeA = new Date(`${a.tarih || '1970-01-01'}T${a.saat || '00:00:00'}`).getTime();
-    const datetimeB = new Date(`${b.tarih || '1970-01-01'}T${b.saat || '00:00:00'}`).getTime();
-    return datetimeA - datetimeB;
-  }
+  const getZaman = (mac: any) => {
+    if (!mac || !mac.tarih) return 0;
+    try {
+        const parcaTarih = mac.tarih.split('-');
+        let saat = 0, dakika = 0;
+        if (mac.saat) {
+            const parcaSaat = mac.saat.split(':');
+            saat = parseInt(parcaSaat[0] || '0', 10);
+            dakika = parseInt(parcaSaat[1] || '0', 10);
+        }
+        const d = new Date(parseInt(parcaTarih[0]), parseInt(parcaTarih[1])-1, parseInt(parcaTarih[2]), saat, dakika);
+        const timestamp = d.getTime();
+        return isNaN(timestamp) ? 0 : timestamp;
+    } catch (e) { return 0; }
+  };
+
+  const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
   useEffect(() => {
     if (girisYapildi) { veriGetir() }
@@ -78,7 +93,6 @@ export default function AdminPage() {
             const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
             const aktifHaftaMaclari = maclarVerisi.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
             
-            // TARİHE GÖRE SIRALA
             aktifHaftaMaclari.sort(siralamaFiltresi);
             setTumMaclar(aktifHaftaMaclari)
         }
@@ -90,6 +104,10 @@ export default function AdminPage() {
   const komiserIsmiBul = (id: string) => {
     const komiser = tumKomiserler.find(k => k.komiser_id === id)
     return komiser ? komiser.ad_soyad : 'Atanmamış'
+  }
+
+  const toggleMac = (id: number) => {
+    setAcikMacId(acikMacId === id ? null : id)
   }
 
   if (!girisYapildi) {
@@ -121,57 +139,90 @@ export default function AdminPage() {
   const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz')
   const bekleyenMaclar = tumMaclar.filter(m => !m.skor_girildi)
 
+  // ESKİ SİSTEM AKORDİYON KART TASARIMI
   const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' }) => {
-    let borderRenk = "border-slate-700";
-    let bgRenk = "bg-slate-800";
+    let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     
-    if (tip === 'emniyet') { borderRenk = "border-red-600/50"; bgRenk = "bg-red-950/20"; }
-    else if (tip === 'teknik') { borderRenk = "border-amber-500/50"; bgRenk = "bg-amber-950/20"; }
+    if (tip === 'emniyet') { 
+        renkSiniflari = { bg: "bg-red-950/20", border: "border-red-600", text: "text-red-500", badge: "bg-red-600 text-white" };
+    } else if (tip === 'teknik') { 
+        renkSiniflari = { bg: "bg-amber-950/20", border: "border-amber-500", text: "text-amber-500", badge: "bg-amber-600 text-white" };
+    } else if (tip === 'olaysiz') {
+        renkSiniflari = { bg: "bg-slate-800/80", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-900 text-white" };
+    }
+
+    const isAcik = acikMacId === mac.id;
 
     return (
-      <div className={`${bgRenk} border-l-4 ${borderRenk} shadow-md rounded-r-xl p-3 md:p-4 mb-3 transition-all hover:bg-slate-800/80 group`}>
-        <div className="flex justify-between items-start mb-2">
-            <div className="flex flex-col">
+      <div className={`mb-3 rounded-xl border-l-4 overflow-hidden shadow-md transition-all ${renkSiniflari.border}`}>
+        <button onClick={() => toggleMac(mac.id)} className={`w-full text-left p-4 flex justify-between items-center ${renkSiniflari.bg} hover:brightness-125 transition-all focus:outline-none`}>
+            
+            <div className="flex-1 pr-4">
                 <div className="flex items-center gap-2 mb-1">
-                  {tip === 'emniyet' && <span className="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">EMNİYETLİK</span>}
-                  {tip === 'teknik' && <span className="bg-amber-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{mac.olay_durumu.replace('_', ' ')}</span>}
-                  <span className="text-slate-400 text-[9px] font-mono">{mac.saha}</span>
+                  {tip !== 'olaysiz' && tip !== 'bekleyen' && (
+                      <span className={`${renkSiniflari.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
+                          {tip === 'emniyet' ? 'EMNİYETLİK' : mac.olay_durumu.replace('_', ' ')}
+                      </span>
+                  )}
+                  <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">{mac.kategori_adi}</span>
                 </div>
-                <h3 className="font-bold text-sm md:text-base text-white leading-tight">
+                <h3 className="font-bold text-sm md:text-base text-white leading-tight mb-1">
                     {mac.ev_sahibi} <span className="text-slate-500 mx-1 text-xs">vs</span> {mac.misafir_takim}
                 </h3>
+                {/* DİNÇER HOCAMIN İSTEDİĞİ: STAD ALTINDA TARİH/SAAT */}
+                <div className="text-[10px] text-slate-400 font-mono leading-snug">
+                    {mac.saha} <br/> 
+                    <span className="text-blue-300">{guvenliTarih(mac.tarih)} - {mac.saat?.substring(0,5)}</span>
+                </div>
             </div>
-            
-            <div className="flex flex-col items-end">
+
+            <div className="flex flex-col items-end pl-2">
                 {mac.skor_girildi ? (
                     mac.mac_durumu === 'oynandi' ? (
-                        <span className="font-black text-xl text-white tracking-widest bg-slate-900 px-3 py-1 rounded border border-slate-700 shadow-inner">
+                        <div className="text-xl font-black tracking-widest text-white bg-slate-900 px-3 py-1 rounded border border-slate-700 shadow-inner mb-2">
                             {mac.ev_sahibi_skor} - {mac.misafir_skor}
-                        </span>
+                        </div>
                     ) : (
-                        <span className="text-[10px] font-bold text-amber-400 uppercase text-right bg-slate-900 px-2 py-1 rounded border border-slate-700">
+                        <div className="text-[10px] font-bold text-amber-400 uppercase text-right bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
                             {mac.mac_durumu.replace(/_/g, ' ')}
-                        </span>
+                        </div>
                     )
                 ) : (
-                    <span className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700">BEKLİYOR</span>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">BEKLİYOR</div>
                 )}
+                <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
             </div>
-        </div>
+        </button>
 
-        {/* DİNÇER HOCAM BURAYI GÜNCELLEDİM (Saat ve Komiser Ortada) */}
-        <div className="flex flex-col">
-            <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">{mac.kategori_adi}</span>
-            <div className="text-[10px] text-slate-500 mb-2">{guvenliTarih(mac.tarih)} - {mac.saat?.substring(0,5)}</div>
-            <div className="mt-2 pt-2 border-t border-slate-700/50 text-center">
-                <span className="text-xs font-bold text-slate-300">KOMİSER: <span className="text-white uppercase">{komiserIsmiBul(mac.komiser_id)}</span></span>
-            </div>
-        </div>
-
-        {mac.rapor_notu && (
-            <div className="mt-3 p-3 bg-slate-900 rounded border border-slate-700/50">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Görev Raporu / Tutanak Notu</span>
-                <p className="text-xs text-slate-300 font-serif leading-relaxed italic">"{mac.rapor_notu}"</p>
+        {isAcik && (
+            <div className="p-4 bg-slate-900 border-t border-slate-700 animate-fade-in-down">
+                {mac.skor_girildi ? (
+                    <div className="space-y-4">
+                        <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                            <h4 className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Görev Raporu / Tutanak Notu</h4>
+                            <p className="text-sm text-slate-200 font-serif italic">"{mac.rapor_notu || 'Not girilmemiş.'}"</p>
+                        </div>
+                        {mac.tff_rapor_detaylari && (
+                            <div className="bg-blue-900/20 border border-blue-900/50 p-3 rounded-lg flex items-center justify-between">
+                                <span className="text-blue-400 text-xs font-bold flex items-center gap-2"><span className="text-lg">📄</span> DETAYLI TFF RAPORU EKLENMİŞ</span>
+                                <span className="text-[10px] text-slate-500">Sistemde Kayıtlı</span>
+                            </div>
+                        )}
+                        {/* DİNÇER HOCAMIN İSTEDİĞİ: KOMİSER İSMİ ORTADA */}
+                        <div className="pt-3 border-t border-slate-800 text-center mt-4">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">MÜSABAKA SAHA KOMİSERİ</span>
+                            <span className="text-sm font-black text-white bg-slate-800 px-4 py-1.5 rounded-full border border-slate-600">{komiserIsmiBul(mac.komiser_id)}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-4 text-slate-500 text-sm font-bold">
+                        Komiser henüz bu maçın skorunu girmedi.
+                        <div className="pt-4 mt-4 border-t border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">ATANAN KOMİSER</span>
+                            <span className="text-sm font-black text-white bg-slate-800 px-4 py-1.5 rounded-full border border-slate-600">{komiserIsmiBul(mac.komiser_id)}</span>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
       </div>
