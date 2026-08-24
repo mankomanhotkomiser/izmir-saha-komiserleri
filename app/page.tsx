@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 
-type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama';
+type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
@@ -12,6 +12,27 @@ const detayliRaporGosterilirMi = (kategori: any) => {
       return false; 
   }
   return true; 
+}
+
+// DEVRİM: KATEGORİ STANDARDİZASYON MOTORU
+const formatKategori = (rawKategori: any) => {
+    if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
+    let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
+    
+    if (kat.includes('GELİŞİM')) {
+        const gelisimMatch = kat.match(/U\s*(\d{2})/);
+        if (gelisimMatch) return `TFF U${gelisimMatch[1]} GELİŞİM LİGİ`;
+        return 'TFF GELİŞİM LİGİ';
+    }
+    if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
+    if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
+    
+    if (kat.match(/U\s*(\d{2})/) && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT')) {
+        const amatorMatch = kat.match(/U\s*(\d{2})/);
+        if (amatorMatch) return `İZMİR U${amatorMatch[1]} LİGİ`;
+    }
+    
+    return kat;
 }
 
 export default function Home() {
@@ -293,13 +314,12 @@ export default function Home() {
     )
   }
 
-  // --- ZIRHLI SIRALAMA VE FİLTRELEME MOTORU ---
   let gecerliAktifMaclar: any[] = [];
   const gecmisHaftalar: Record<number, any[]> = {};
 
   if (haftaReferanslari.length > 0 && seciliKomiser && Array.isArray(komiserMaclari)) {
     komiserMaclari.forEach(mac => {
-      if (!mac || !mac.tarih) return; // Bozuk verileri ayıkla
+      if (!mac || !mac.tarih) return; 
       const macCuma = cumaBul(mac.tarih);
       const macHaftaNo = haftaReferanslari.indexOf(macCuma) + 1;
       
@@ -312,7 +332,6 @@ export default function Home() {
     });
   }
 
-  // Zaman sırasına göre sağlam dizilim
   gecerliAktifMaclar.sort(siralamaFiltresi);
   Object.keys(gecmisHaftalar).forEach(haftaNo => {
       gecmisHaftalar[Number(haftaNo)].sort(siralamaFiltresi);
@@ -604,6 +623,14 @@ export default function Home() {
             </div>
           </button>
 
+          {/* DEVRİM: SEZONLUK İSTATİSTİKLER BUTONU EKLENDİ */}
+          <button onClick={() => setAktifEkran('istatistiklerim')} className="w-full mb-4 flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-indigo-800 border-2 border-indigo-700 hover:border-indigo-500 hover:bg-indigo-900 transition-all transform hover:scale-105">
+            <div className="text-left">
+              <h4 className="font-bold text-lg text-white">📊 Sezonluk İstatistiklerim</h4>
+              <p className="text-xs mt-1 text-indigo-200">Görev aldığınız liglerin ve sahaların detaylı istihbarat dökümü.</p>
+            </div>
+          </button>
+
           {mazeretAcik ? (
             <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-white border-2 border-red-200 hover:border-red-500 transition-all transform hover:scale-105">
               <div className="text-left">
@@ -613,6 +640,108 @@ export default function Home() {
           ) : (
             <button disabled className="w-full p-4 rounded-2xl bg-slate-100 opacity-60 cursor-not-allowed"><h4 className="font-bold text-sm text-slate-500 text-left">Sistem Kapalı</h4></button>
           )}
+        </div>
+      </main>
+    )
+  }
+
+  // YENİ EKRAN: KOMİSERİN KENDİ İSTATİSTİK (SİCİL) DOSYASI
+  if (aktifEkran === 'istatistiklerim') {
+    let amatorCount = 0;
+    let profCount = 0;
+    const amatorKategoriler: Record<string, number> = {};
+    const profKategoriler: Record<string, number> = {};
+    const sahalar: Record<string, number> = {};
+
+    const maclar = Array.isArray(komiserMaclari) ? komiserMaclari : [];
+    maclar.forEach(mac => {
+        if (!mac) return;
+        const isProf = !detayliRaporGosterilirMi(mac.kategori_adi);
+        const katAdi = formatKategori(mac.kategori_adi);
+        const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
+
+        if (isProf) {
+            profCount++;
+            profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1;
+        } else {
+            amatorCount++;
+            amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1;
+        }
+        sahalar[sahaAdi] = (sahalar[sahaAdi] || 0) + 1;
+    });
+
+    const siraliAmatorler = Object.entries(amatorKategoriler).sort((a,b) => b[1] - a[1]);
+    const siraliProflar = Object.entries(profKategoriler).sort((a,b) => b[1] - a[1]);
+    const siraliSahalar = Object.entries(sahalar).sort((a,b) => b[1] - a[1]);
+
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        <OrtakHeader geriButonuGoster={true} />
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+            <div className="bg-white rounded-xl p-4 md:p-6 border-t-4 border-indigo-600 shadow-lg">
+                <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-200 pb-4 mb-6 gap-4">
+                    <div className="text-center md:text-left">
+                        <h3 className="text-2xl font-black text-slate-800">{seciliKomiser?.ad_soyad || 'Komiser'}</h3>
+                        <span className="text-indigo-600 text-xs font-mono font-bold tracking-widest">SİCİL DOSYASI</span>
+                    </div>
+                    <div className="bg-indigo-100 px-6 py-2 rounded-lg shadow-sm border border-indigo-200 min-w-[150px]">
+                        <div className="text-[10px] text-indigo-800 font-bold uppercase tracking-wider text-center">Toplam Sezon Görevi</div>
+                        <div className="text-3xl font-black text-indigo-900 text-center">{maclar.length}</div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                        <h4 className="text-blue-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span>🛡️ Amatör Ligler</span>
+                            <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{amatorCount} Maç</span>
+                        </h4>
+                        <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                            {siraliAmatorler.length === 0 && <li className="text-xs text-slate-400 italic">Görev kaydı yok.</li>}
+                            {siraliAmatorler.map(([kat, count]) => (
+                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-xs border border-slate-100 shadow-sm">
+                                    <span className="text-slate-600 font-bold">{kat}</span>
+                                    <span className="font-black text-blue-600">{count}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                        <h4 className="text-purple-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span>🏆 Profesyonel / Gelişim</span>
+                            <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-xs">{profCount} Maç</span>
+                        </h4>
+                        <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                            {siraliProflar.length === 0 && <li className="text-xs text-slate-400 italic">Görev kaydı yok.</li>}
+                            {siraliProflar.map(([kat, count]) => (
+                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-xs border border-slate-100 shadow-sm">
+                                    <span className="text-slate-600 font-bold">{kat}</span>
+                                    <span className="font-black text-purple-600">{count}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <h4 className="text-emerald-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+                        <span className="text-lg">🏟️</span> GÖREV YAPTIĞINIZ SAHALAR
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                        {siraliSahalar.length === 0 && <span className="text-xs text-slate-400 italic">Görev kaydı yok.</span>}
+                        {siraliSahalar.map(([saha, count]) => (
+                            <div key={saha} className="flex justify-between items-center bg-white p-2.5 rounded border border-slate-100 shadow-sm">
+                                <span className="text-slate-700 text-[11px] font-bold truncate pr-2" title={saha}>{saha}</span>
+                                <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded font-black shrink-0">{count} Kez</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </div>
       </main>
     )
@@ -725,10 +854,9 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // SKOR VE TFF RESMİ SAHA RAPORU
-  // ==========================================
   if (aktifEkran === 'skorRapor') {
+    const tebellugEdilenMaclar = Array.isArray(gecerliAktifMaclar) ? gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true) : [];
+
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
         <OrtakHeader geriButonuGoster={true} />
@@ -738,14 +866,14 @@ export default function Home() {
             <p className="text-slate-500 text-xs md:text-sm mt-1">Hızlı skoru bildirebilir ve Amatör müsabakalar için detaylı rapor oluşturabilirsiniz.</p>
           </div>
 
-          {gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true).length === 0 ? (
+          {tebellugEdilenMaclar.length === 0 ? (
             <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500">
               <span className="text-4xl block mb-3">📋</span>
               <p className="text-sm font-bold">Raporlanacak aktif (tebellüğ edilmiş) göreviniz bulunmuyor.</p>
             </div>
           ) : (
             <div className="space-y-4 md:space-y-6">
-              {gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true).map((mac, idx) => {
+              {tebellugEdilenMaclar.map((mac, idx) => {
                 if(!mac) return null;
                 const acikMi = acikSkorMacId === mac.id;
                 const raporGonderilmis = mac.skor_girildi === true;
@@ -898,8 +1026,7 @@ export default function Home() {
                                 <div className="border-[3px] border-double border-slate-600 p-4">
                                     
                                     <div className="flex flex-col items-center mb-6 relative">
-                                        {/* FOTMOB'TAN TFF LOGOSU EKLENDİ */}
-                                        <img src="https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
+                                        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/71.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
                                         <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                         <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
                                     </div>
@@ -948,7 +1075,6 @@ export default function Home() {
                                         </div>
                                     </div>
 
-                                    {/* HAKEM İSİMLERİ TÜRKÇE KARAKTER VE ŞIK TASARIM */}
                                     <div className="grid grid-cols-2 gap-0 border border-black mb-6">
                                         <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
                                         <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
@@ -1054,85 +1180,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // GÖREV KARTLARI 
-  // ==========================================
-  if (aktifEkran === 'gorevKartlari') {
-    return (
-      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
-        <OrtakHeader geriButonuGoster={true} />
-        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
-          <div id="gorev-karti-alani" className="bg-slate-200 min-h-full">
-            <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-2 border-blue-900 flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="text-center md:text-left">
-                <h4 className="text-lg font-bold text-blue-900 tracking-wide uppercase">{seciliKomiser?.ad_soyad || '-'}</h4>
-                <p className="text-red-600 font-semibold mt-1">{globalAktifHaftaNo}. Hafta Görev Bülteni</p>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                <button onClick={tebellugKaydet} disabled={hepsiTebellugEdilmis || tebellugYukleniyor || gecerliAktifMaclar.length === 0} className={`text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 transition-colors ${hepsiTebellugEdilmis ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300' : gecerliAktifMaclar.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
-                  {tebellugYukleniyor ? 'İşleniyor...' : hepsiTebellugEdilmis ? '✓ Tebellüğ Edildi' : 'Tebellüğ Et (Görevleri Aldım)'}
-                </button>
-                <button onClick={kartiIndir} className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg shadow">İndir / Paylaş</button>
-              </div>
-            </div>
-
-            {macYukleniyor ? (
-              <div className="text-center text-blue-800 py-8 animate-pulse font-semibold">Görevleriniz aranıyor...</div>
-            ) : (
-              <>
-                <div className="mb-6">
-                  {gecerliAktifMaclar.length === 0 ? (
-                    <div className="text-center text-slate-500 py-8 bg-white rounded-xl text-sm font-bold">Aktif göreviniz bulunmuyor.</div>
-                  ) : (
-                    <div className="space-y-4">
-                      {gecerliAktifMaclar.map((mac, idx) => (
-                        <div key={mac.id || `gkart-${idx}`}>
-                          {renderOrjinalGorevKarti(mac)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {Object.keys(gecmisHaftalar).length > 0 && (
-                  <div className="mt-8 border-t-2 border-slate-300 pt-6">
-                    <button onClick={() => setArsivAcik(!arsivAcik)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-4 px-5 rounded-xl shadow-md flex justify-between items-center">
-                      <span className="text-sm md:text-base">Geçmiş Maç Arşivi</span><span className="text-xl">{arsivAcik ? '▲' : '▼'}</span>
-                    </button>
-                    {arsivAcik && (
-                      <div className="mt-4 space-y-4">
-                        {Object.keys(gecmisHaftalar).map(Number).sort((a, b) => b - a).map(haftaNo => (
-                          <div key={`hafta-${haftaNo}`} className="border border-slate-300 rounded-xl overflow-hidden shadow-sm">
-                            <button onClick={() => haftaToggle(haftaNo)} className="w-full bg-slate-300 text-slate-900 font-bold py-3 px-5 flex justify-between items-center text-xs md:text-sm">
-                              <span>{haftaNo}. Hafta Görevleri <span className="bg-slate-800 text-white text-[10px] md:text-xs px-2 py-1 rounded ml-2">{(gecmisHaftalar[haftaNo] || []).length} Görev</span></span>
-                              <span>{acikHaftalar.includes(haftaNo) ? '▲' : '▼'}</span>
-                            </button>
-                            {acikHaftalar.includes(haftaNo) && (
-                              <div className="p-2 md:p-4 bg-slate-100 space-y-4">
-                                {(gecmisHaftalar[haftaNo] || []).map((mac: any, idx: number) => (
-                                  <div key={mac.id || `gecmis-${idx}`} className="opacity-95">
-                                    {renderOrjinalGorevKarti(mac)}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  // ==========================================
-  // MAZERET BİLDİRİMİ EKRANI
-  // ==========================================
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
@@ -1206,9 +1253,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // GİRİŞ EKRANI
-  // ==========================================
   if (aktifEkran === 'giris') {
     return (
       <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">

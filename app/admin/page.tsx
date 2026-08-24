@@ -13,6 +13,27 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return true; 
 }
 
+// DEVRİM: KATEGORİ STANDARDİZASYON MOTORU
+const formatKategori = (rawKategori: any) => {
+    if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
+    let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
+    
+    if (kat.includes('GELİŞİM')) {
+        const gelisimMatch = kat.match(/U\s*(\d{2})/);
+        if (gelisimMatch) return `TFF U${gelisimMatch[1]} GELİŞİM LİGİ`;
+        return 'TFF GELİŞİM LİGİ';
+    }
+    if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
+    if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
+    
+    if (kat.match(/U\s*(\d{2})/) && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT')) {
+        const amatorMatch = kat.match(/U\s*(\d{2})/);
+        if (amatorMatch) return `İZMİR U${amatorMatch[1]} LİGİ`;
+    }
+    
+    return kat;
+}
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -122,7 +143,6 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // TİP ÇEVİRİCİ ZIRH EKLENDİ (Number vs String uyuşmazlığı çözüldü)
   const komiserIsmiBul = (id: any) => {
     const komiser = tumKomiserler.find(k => String(k.komiser_id) === String(id))
     return komiser ? komiser.ad_soyad : 'Atanmamış'
@@ -544,6 +564,7 @@ export default function AdminPage() {
                 )}
             </section>
 
+            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
                 <button
@@ -574,7 +595,6 @@ export default function AdminPage() {
                         {seciliSicilKomiserId && (
                             <div className="space-y-6">
                                 {(() => {
-                                    // DEVRİM: TİP ÇEVİRİCİ ZIRH İLE VERİLER ÇEKİLİYOR
                                     const maclar = sezonlukMaclar.filter(m => String(m.komiser_id) === String(seciliSicilKomiserId));
                                     let amatorCount = 0;
                                     let profCount = 0;
@@ -584,7 +604,7 @@ export default function AdminPage() {
 
                                     maclar.forEach(mac => {
                                         const isProf = !detayliRaporGosterilirMi(mac.kategori_adi);
-                                        const katAdi = mac.kategori_adi || 'BELİRTİLMEMİŞ LİG';
+                                        const katAdi = formatKategori(mac.kategori_adi); // ZIRHLI MOTOR BURADA
                                         const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
 
                                         if (isProf) {
