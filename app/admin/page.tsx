@@ -17,6 +17,12 @@ export default function AdminPage() {
   const [acikMacId, setAcikMacId] = useState<number | null>(null)
   const [acikTffMacId, setAcikTffMacId] = useState<number | null>(null) 
 
+  // ANA KATEGORİLER İÇİN AKORDİYON STATE'LERİ (Başlangıçta açık gelsin diye true yapıyoruz)
+  const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
+  const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
+  const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
+  const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
+
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
@@ -437,60 +443,90 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            {/* TAM EKRAN (FULL WIDTH) DÜZENLEME BAŞLADI */}
-            
-            {/* 1. KIRMIZI KOD (EMNİYETLİK) */}
+            {/* ANA KATEGORİ: KIRMIZI KOD */}
             <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                <div className="bg-red-950/40 p-4 border-b border-red-900/30 flex justify-between items-center">
+                <button 
+                  onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)}
+                  className="w-full bg-red-950/40 p-4 border-b border-red-900/30 flex justify-between items-center hover:bg-red-900/40 transition-colors focus:outline-none"
+                >
                     <h2 className="text-red-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">🚨</span> KIRMIZI KOD (EMNİYETLİK)</h2>
-                    <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">{emniyetlikMaclar.length} RAPOR</span>
-                </div>
-                <div className="p-4">
-                    {emniyetlikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı emniyetlik olay bulunmuyor.</div> ) : (
-                        emniyetlikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="emniyet" />)
-                    )}
-                </div>
+                    <div className="flex items-center gap-4">
+                        <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">{emniyetlikMaclar.length} RAPOR</span>
+                        <span className="text-red-500 text-lg leading-none">{kategoriKirmiziAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriKirmiziAcik && (
+                    <div className="p-4 animate-fade-in-down">
+                        {emniyetlikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı emniyetlik olay bulunmuyor.</div> ) : (
+                            emniyetlikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="emniyet" />)
+                        )}
+                    </div>
+                )}
             </section>
 
-            {/* 2. DİĞER OLAYLAR (TEKNİK / SAHA) */}
+            {/* ANA KATEGORİ: DİSİPLİN VE TEKNİK OLAYLAR */}
             <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-                <div className="bg-amber-950/20 p-4 border-b border-amber-900/30 flex justify-between items-center">
-                    <h2 className="text-amber-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⚠️</span> DİĞER OLAYLAR (TEKNİK / SAHA)</h2>
-                    <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{teknikMaclar.length} RAPOR</span>
-                </div>
-                <div className="p-4">
-                    {teknikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı teknik/saha olayı bulunmuyor.</div> ) : (
-                        teknikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="teknik" />)
-                    )}
-                </div>
+                <button 
+                  onClick={() => setKategoriDisiplinAcik(!kategoriDisiplinAcik)}
+                  className="w-full bg-amber-950/20 p-4 border-b border-amber-900/30 flex justify-between items-center hover:bg-amber-900/30 transition-colors focus:outline-none"
+                >
+                    <h2 className="text-amber-500 font-black tracking-widest uppercase flex items-center gap-2 text-left leading-tight"><span className="text-xl">⚠️</span> DİSİPLİN VE TEKNİK OLAYLAR <span className="hidden sm:inline text-xs text-amber-500/70 lowercase">(Hakeme hakaret, ihraç, itiraz vb.)</span></h2>
+                    <div className="flex items-center gap-4 shrink-0 pl-2">
+                        <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{teknikMaclar.length} RAPOR</span>
+                        <span className="text-amber-500 text-lg leading-none">{kategoriDisiplinAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriDisiplinAcik && (
+                    <div className="p-4 animate-fade-in-down">
+                        {teknikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı teknik/disiplin olayı bulunmuyor.</div> ) : (
+                            teknikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="teknik" />)
+                        )}
+                    </div>
+                )}
             </section>
 
-            {/* 3. OLAYSIZ MÜSABAKALAR (ARTIK TAM EKRAN VE GENİŞ!) */}
+            {/* ANA KATEGORİ: OLAYSIZ MÜSABAKALAR */}
             <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
-                <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                <button 
+                  onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)}
+                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                >
                     <h2 className="text-green-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">✓</span> OLAYSIZ MÜSABAKALAR</h2>
-                    <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
-                </div>
-                <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
-                    {olaysizMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Henüz olaysız biten maç raporu yok.</div> ) : (
-                        olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)
-                    )}
-                </div>
+                    <div className="flex items-center gap-4">
+                        <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
+                        <span className="text-green-500 text-lg leading-none">{kategoriOlaysizAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriOlaysizAcik && (
+                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
+                        {olaysizMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Henüz olaysız biten maç raporu yok.</div> ) : (
+                            olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)
+                        )}
+                    </div>
+                )}
             </section>
 
-            {/* 4. RAPOR BEKLENENLER (ARTIK TAM EKRAN!) */}
+            {/* ANA KATEGORİ: RAPOR BEKLENENLER */}
             <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
-                <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                <button 
+                  onClick={() => setKategoriBekleyenAcik(!kategoriBekleyenAcik)}
+                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                >
                     <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER</h2>
-                    <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
-                </div>
-                <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
-                    {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
-                        bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
-                    )}
-                </div>
+                    <div className="flex items-center gap-4">
+                        <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
+                        <span className="text-slate-400 text-lg leading-none">{kategoriBekleyenAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriBekleyenAcik && (
+                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
+                        {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
+                            bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
+                        )}
+                    </div>
+                )}
             </section>
 
           </div>
