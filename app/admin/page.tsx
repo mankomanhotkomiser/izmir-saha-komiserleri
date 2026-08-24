@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import { toPng } from 'html-to-image' 
 
-// VERCEL ÇÖKME HATASINI ÇÖZEN MOTOR BURAYA EKLENDİ!
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
   const kat = String(kategori).toLocaleUpperCase('tr-TR');
@@ -123,8 +122,9 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  const komiserIsmiBul = (id: string) => {
-    const komiser = tumKomiserler.find(k => k.komiser_id === id)
+  // TİP ÇEVİRİCİ ZIRH EKLENDİ (Number vs String uyuşmazlığı çözüldü)
+  const komiserIsmiBul = (id: any) => {
+    const komiser = tumKomiserler.find(k => String(k.komiser_id) === String(id))
     return komiser ? komiser.ad_soyad : 'Atanmamış'
   }
 
@@ -565,7 +565,7 @@ export default function AdminPage() {
                                 className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors text-sm font-bold"
                             >
                                 <option value="">-- BİR KOMİSER SEÇİNİZ --</option>
-                                {[...tumKomiserler].sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR')).map(k => (
+                                {[...tumKomiserler].sort((a,b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR')).map(k => (
                                     <option key={`sicil-${k.komiser_id}`} value={k.komiser_id}>{k.ad_soyad} (ID: {k.komiser_id})</option>
                                 ))}
                             </select>
@@ -574,7 +574,8 @@ export default function AdminPage() {
                         {seciliSicilKomiserId && (
                             <div className="space-y-6">
                                 {(() => {
-                                    const maclar = sezonlukMaclar.filter(m => m.komiser_id === seciliSicilKomiserId);
+                                    // DEVRİM: TİP ÇEVİRİCİ ZIRH İLE VERİLER ÇEKİLİYOR
+                                    const maclar = sezonlukMaclar.filter(m => String(m.komiser_id) === String(seciliSicilKomiserId));
                                     let amatorCount = 0;
                                     let profCount = 0;
                                     const amatorKategoriler: Record<string, number> = {};
