@@ -5,6 +5,16 @@ import { toPng } from 'html-to-image'
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama';
 
+// DEVRİM: AMATÖR / PROFESYONEL AYRIM MOTORU
+const detayliRaporGosterilirMi = (kategori: any) => {
+  if (!kategori) return true;
+  const kat = String(kategori).toLocaleUpperCase('tr-TR');
+  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ')) {
+      return false; // Profesyonel/Gelişim ise GİZLE
+  }
+  return true; // Amatör ise GÖSTER
+}
+
 export default function Home() {
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   
@@ -376,7 +386,6 @@ export default function Home() {
     }
   }
 
-  // DİNÇER HOCAMIN EMRİ: AYNA MANTIĞI EMNİYETTE ÇALIŞMAYACAK
   const handleHizliNotChange = (val: string) => {
       setRaporNotu(val);
       if (olayDurumu !== 'emniyetlik_olay') {
@@ -386,7 +395,6 @@ export default function Home() {
 
   const raporDetayGuncelle = (alan: string, deger: any) => { setRaporDetay(prev => ({ ...prev, [alan]: deger })); }
 
-  // SINIRSIZ İHRAÇ EKLEME ÇÖZÜMÜ
   const ihracSatirEkle = (takim: 'ev' | 'mis') => {
       const alan = takim === 'ev' ? 'ihrac_ev' : 'ihrac_mis';
       const mevcutListe = Array.isArray(raporDetay[alan as keyof typeof defaultRaporDetay]) ? raporDetay[alan as keyof typeof defaultRaporDetay] as any[] : [];
@@ -417,7 +425,7 @@ export default function Home() {
     }
   }
 
-  // PNG İNDİRME HATASI ÇÖZÜLDÜ (SVG BAYRAK)
+  // TFF LOGOSU SVG DÜZENLEMESİ İLE ÇÖZÜLDÜ
   const tffTutanakIndir = async (mac: any) => {
     const element = document.getElementById(`tff-form-${mac.id}`);
     if (element) {
@@ -551,7 +559,7 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-blue-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800">Görev Kartım</h4><p className="text-xs text-center mt-2 text-slate-500">Atanan maçlarınızı görün ve görevi tebellüğ edin.</p></button>
-            <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-green-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800 text-center">Skor & Saha Raporu</h4><p className="text-xs text-center mt-2 text-slate-500">Hızlı skoru bildirin ve detaylı müsabaka raporu oluşturun.</p></button>
+            <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-md bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-green-200 transition-all transform hover:scale-105"><h4 className="font-bold text-lg text-slate-800 text-center">Skor & Saha Raporu</h4><p className="text-xs text-center mt-2 text-slate-500">Müsabaka sonucunu ve raporunu merkeze iletin.</p></button>
           </div>
 
           <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-slate-800 border-2 border-slate-700 hover:border-slate-500 hover:bg-slate-900 transition-all transform hover:scale-105">
@@ -670,7 +678,7 @@ export default function Home() {
   }
 
   // ==========================================
-  // SKOR VE TFF RESMİ SAHA RAPORU
+  // SKOR VE TFF RESMİ SAHA RAPORU (AYNALI VE KATEGORİ SEÇİCİ)
   // ==========================================
   if (aktifEkran === 'skorRapor') {
     const tebellugEdilenMaclar = Array.isArray(aktifMaclar) ? aktifMaclar.filter(m => m?.tebellug_edildi === true) : [];
@@ -681,7 +689,7 @@ export default function Home() {
         <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
           <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-4 border-green-700 text-center">
             <h4 className="text-xl font-black text-green-800 tracking-wide uppercase">SKOR VE SAHA RAPORU</h4>
-            <p className="text-slate-500 text-xs md:text-sm mt-1">Hızlı skoru bildirebilir ve isterseniz detaylı müsabaka raporu oluşturabilirsiniz.</p>
+            <p className="text-slate-500 text-xs md:text-sm mt-1">Hızlı skoru bildirebilir ve Amatör müsabakalar için detaylı rapor oluşturabilirsiniz.</p>
           </div>
 
           {tebellugEdilenMaclar.length === 0 ? (
@@ -694,6 +702,9 @@ export default function Home() {
               {tebellugEdilenMaclar.map(mac => {
                 const acikMi = acikSkorMacId === mac?.id;
                 const raporGonderilmis = mac?.skor_girildi === true;
+
+                // DEVRİM: PROFESYONEL VE GELİŞİM LİGİ KONTROLÜ
+                const detayliGoster = detayliRaporGosterilirMi(mac?.kategori_adi);
 
                 const safeRaporDetay = raporDetay || defaultRaporDetay;
                 const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
@@ -738,7 +749,7 @@ export default function Home() {
                         <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 mb-6 relative overflow-hidden">
                           <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                           <h4 className="font-black text-blue-900 border-b border-slate-200 pb-2 mb-4 text-sm md:text-base flex items-center gap-2">
-                            <span className="text-xl">⚡</span> HIZLI SKOR BİLDİRİMİ
+                            <span className="text-xl">⚡</span> {detayliGoster ? '1. AŞAMA: HIZLI SKOR BİLDİRİMİ' : 'MÜSABAKA SKOR VE OLAY BİLDİRİMİ'}
                           </h4>
                           
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
@@ -795,163 +806,181 @@ export default function Home() {
                             ></textarea>
                           </div>
                           
-                          <button onClick={() => skorRaporunuGonder(mac?.id)} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
-                             {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'HIZLI SKORU GÜNCELLE' : 'HIZLI SKORU KARARGAHA İLET')}
-                          </button>
+                          {/* EĞER PROFESYONEL MAÇ İSE TEK BUTON GÖRÜNÜR */}
+                          {!detayliGoster && (
+                            <button onClick={() => skorRaporunuGonder(mac?.id)} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                               {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'SKORU GÜNCELLE' : 'KARARGAHA İLET')}
+                            </button>
+                          )}
+                          {detayliGoster && (
+                            <button onClick={() => skorRaporunuGonder(mac?.id)} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                               {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? 'HIZLI SKORU GÜNCELLE' : 'HIZLI SKORU KARARGAHA İLET')}
+                            </button>
+                          )}
                         </div>
 
-                        <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                          <h4 className="font-black text-red-800 border-b border-slate-200 pb-2 mb-4 text-center text-sm md:text-base uppercase tracking-wider">
-                            DETAYLI MÜSABAKA RAPORU
-                          </h4>
+                        {/* ==================================================== */}
+                        {/* 2. AŞAMA: SADECE AMATÖR LİGLERDE ÇIKAN DETAYLI RAPOR */}
+                        {/* ==================================================== */}
+                        {detayliGoster && (
+                          <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+                            <h4 className="font-black text-red-800 border-b border-slate-200 pb-2 mb-4 text-center text-sm md:text-base uppercase tracking-wider">
+                              DETAYLI MÜSABAKA RAPORU
+                            </h4>
 
-                          <div className="mb-6 overflow-x-auto pb-4">
-                            <div id={`tff-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto">
-                              <div className="border-[3px] border-double border-slate-600 p-4">
-                                  <div className="flex flex-col items-center mb-6">
-                                      <div className="w-16 h-16 rounded-full bg-[#E30A17] flex items-center justify-center mb-2 border border-slate-300 shadow-sm">
-                                          <span className="text-white text-3xl font-black">C★</span>
-                                      </div>
-                                      <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
-                                  </div>
+                            <div className="mb-6 overflow-x-auto pb-4">
+                              <div id={`tff-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto">
+                                <div className="border-[3px] border-double border-slate-600 p-4">
+                                    
+                                    <div className="flex flex-col items-center mb-6 relative">
+                                        <div className="w-14 h-14 rounded-full bg-[#E30A17] flex items-center justify-center mb-1">
+                                            <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M50 15C30.67 15 15 30.67 15 50C15 69.33 30.67 85 50 85C56 85 61.64 83.5 66.5 80.89C57.65 79.52 50.81 71.86 50.81 62.5C50.81 53.14 57.65 45.48 66.5 44.11C61.64 41.5 56 40 50 40Z" fill="white"/>
+                                                <polygon points="68,52 73,63 84,63 75,70 78,81 68,74 58,81 61,70 52,63 63,63" fill="white" transform="scale(0.5) translate(40, -10)" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
+                                        <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                        <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
+                                    </div>
 
-                                  <div className="grid grid-cols-2 gap-0 border border-black mb-6">
-                                      <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed">
-                                          <div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div>
-                                      </div>
-                                      <div className="p-2 border-b border-dashed border-black">
-                                          <div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase">{mac?.mac_kodu || '-'}</span></div>
-                                      </div>
-                                      <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
-                                      <div className="p-2 border-b border-dashed border-black">
-                                          <div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs uppercase text-right truncate w-3/4">{mac?.saha || '-'}</span></div>
-                                      </div>
-                                      
-                                      <div className="flex border-b border-dashed border-black border-r">
-                                        <div className="p-2 w-3/4 flex flex-col justify-center border-r border-dashed border-black">
-                                            <div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate">{mac?.ev_sahibi || '-'}</span></div>
+                                    <div className="grid grid-cols-2 gap-0 border border-black mb-6">
+                                        <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed">
+                                            <div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div>
                                         </div>
-                                        <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
-                                            <span className="text-[10px] font-bold mb-1">SKOR</span>
-                                            <span className="font-black text-lg">{evSkor || '-'}</span>
+                                        <div className="p-2 border-b border-dashed border-black">
+                                            <div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase">{mac?.mac_kodu || '-'}</span></div>
                                         </div>
-                                      </div>
-                                      <div className="p-2 border-b border-dashed border-black">
-                                          <div className="flex justify-between items-center"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs">{guvenliTarih(mac?.tarih)}</span></div>
-                                      </div>
-
-                                      <div className="flex border-b border-black border-r">
-                                        <div className="p-2 w-3/4 flex flex-col justify-center border-r border-dashed border-black">
-                                            <div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate">{mac?.misafir_takim || '-'}</span></div>
+                                        <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
+                                        <div className="p-2 border-b border-dashed border-black">
+                                            <div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs uppercase text-right truncate w-3/4">{mac?.saha || '-'}</span></div>
                                         </div>
-                                        <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
-                                            <span className="font-black text-lg">{misafirSkor || '-'}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="flex flex-col border-b border-black">
-                                        <div className="p-2 flex justify-between items-center border-b border-dashed border-black">
-                                          <span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs">{guvenliSaat(mac?.saat)}</span>
-                                        </div>
-                                        <div className="p-2 flex justify-between items-center">
-                                          <span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3">{mac?.kategori_adi || '-'}</span>
-                                        </div>
-                                      </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-0 border border-black mb-6">
-                                      <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
-                                      <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
-                                      
-                                      <div className="border-r border-black flex flex-col">
-                                          <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">HAKEM</span> <input type="text" value={safeRaporDetay?.hakem || ''} onChange={e => raporDetayGuncelle('hakem', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                          <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">1.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_1 || ''} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                          <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">2.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_2 || ''} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                          <div className="flex p-1.5 items-center"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input type="text" value={safeRaporDetay?.gozlemci || ''} onChange={e => raporDetayGuncelle('gozlemci', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                      </div>
-                                      
-                                      <div className="flex flex-col">
-                                          <div className="flex border-b border-dashed border-black p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input type="text" value={safeRaporDetay?.saglik || ''} onChange={e => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                          <div className="flex p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input type="text" value={safeRaporDetay?.guvenlik || ''} onChange={e => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
-                                      </div>
-                                  </div>
-
-                                  <h3 className="text-center font-black tracking-widest text-sm mb-2 border-b-2 border-black w-32 mx-auto pb-1">İ H R A Ç L A R</h3>
-                                  
-                                  <div className="border border-black mb-6">
-                                      <div className="grid grid-cols-2 text-center text-xs font-bold border-b border-black">
-                                          <div className="p-1.5 border-r border-black bg-slate-100/50">EV SAHİBİ KULÜP</div>
-                                          <div className="p-1.5 bg-slate-100/50">MİSAFİR KULÜP</div>
-                                      </div>
-                                      <div className="grid grid-cols-2 text-center text-[10px] font-bold border-b border-black bg-slate-50">
-                                          <div className="grid grid-cols-12 border-r border-black">
-                                              <div className="col-span-2 p-1 border-r border-dashed border-black">FORMA NO</div>
-                                              <div className="col-span-7 p-1 border-r border-dashed border-black">ADI SOYADI</div>
-                                              <div className="col-span-3 p-1">LİSANS NO</div>
+                                        
+                                        <div className="flex border-b border-dashed border-black border-r">
+                                          <div className="p-2 w-3/4 flex flex-col justify-center border-r border-dashed border-black">
+                                              <div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate">{mac?.ev_sahibi || '-'}</span></div>
                                           </div>
-                                          <div className="grid grid-cols-12">
-                                              <div className="col-span-2 p-1 border-r border-dashed border-black">FORMA NO</div>
-                                              <div className="col-span-7 p-1 border-r border-dashed border-black">ADI SOYADI</div>
-                                              <div className="col-span-3 p-1">LİSANS NO</div>
+                                          <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
+                                              <span className="text-[10px] font-bold mb-1">SKOR</span>
+                                              <span className="font-black text-lg">{evSkor || '-'}</span>
                                           </div>
-                                      </div>
-                                      {Array.from({ length: maxSatir }).map((_, idx) => (
-                                          <div key={idx} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
-                                              
-                                              <div className="grid grid-cols-12 border-r border-black relative">
-                                                  <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('ev', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
-                                                  <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('ev', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
-                                                  <div className="col-span-3 p-1"><input type="text" value={ihracEvListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('ev', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
-                                              </div>
+                                        </div>
+                                        <div className="p-2 border-b border-dashed border-black">
+                                            <div className="flex justify-between items-center"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs">{guvenliTarih(mac?.tarih)}</span></div>
+                                        </div>
 
-                                              <div className="grid grid-cols-12 relative">
-                                                  <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('mis', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
-                                                  <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('mis', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
-                                                  <div className="col-span-3 p-1"><input type="text" value={ihracMisListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('mis', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
-                                              </div>
+                                        <div className="flex border-b border-black border-r">
+                                          <div className="p-2 w-3/4 flex flex-col justify-center border-r border-dashed border-black">
+                                              <div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate">{mac?.misafir_takim || '-'}</span></div>
                                           </div>
-                                      ))}
-                                      <div className="grid grid-cols-2 text-center border-t border-black bg-slate-50 tff-no-print" data-html2canvas-ignore>
-                                          <button onClick={() => ihracSatirEkle('ev')} className="p-1.5 border-r border-black text-blue-600 font-bold text-xs hover:bg-blue-100">+ Ev Sahibi İhraç Ekle</button>
-                                          <button onClick={() => ihracSatirEkle('mis')} className="p-1.5 text-blue-600 font-bold text-xs hover:bg-blue-100">+ Misafir İhraç Ekle</button>
-                                      </div>
-                                  </div>
+                                          <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
+                                              <span className="font-black text-lg">{misafirSkor || '-'}</span>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col border-b border-black">
+                                          <div className="p-2 flex justify-between items-center border-b border-dashed border-black">
+                                            <span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs">{guvenliSaat(mac?.saat)}</span>
+                                          </div>
+                                          <div className="p-2 flex justify-between items-center">
+                                            <span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3">{mac?.kategori_adi || '-'}</span>
+                                          </div>
+                                        </div>
+                                    </div>
 
-                                  <div className="mb-8">
-                                      <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 uppercase tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
-                                      <textarea 
-                                          value={safeRaporDetay?.tff_not || ''} 
-                                          onChange={e => raporDetayGuncelle('tff_not', e.target.value)} 
-                                          className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2"
-                                          placeholder="Olayların detaylarını, varsa zamanı ve numaralarıyla birlikte yazınız..."
-                                      ></textarea>
-                                  </div>
+                                    <div className="grid grid-cols-2 gap-0 border border-black mb-6">
+                                        <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
+                                        <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
+                                        
+                                        <div className="border-r border-black flex flex-col">
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">HAKEM</span> <input type="text" value={safeRaporDetay?.hakem || ''} onChange={e => raporDetayGuncelle('hakem', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">1.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_1 || ''} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">2.YR.HAKEM</span> <input type="text" value={safeRaporDetay?.y_hakem_2 || ''} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex p-1.5 items-center"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input type="text" value={safeRaporDetay?.gozlemci || ''} onChange={e => raporDetayGuncelle('gozlemci', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col">
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input type="text" value={safeRaporDetay?.saglik || ''} onChange={e => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                            <div className="flex p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input type="text" value={safeRaporDetay?.guvenlik || ''} onChange={e => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" placeholder="..." /></div>
+                                        </div>
+                                    </div>
 
-                                  <div className="flex justify-between items-end px-4 mt-8 pt-4">
-                                      <div className="text-xs font-bold">
-                                          Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{new Date().toLocaleDateString('tr-TR')}</span>
-                                      </div>
-                                      <div className="text-center">
-                                          <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
-                                          <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
-                                          <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
-                                      </div>
-                                  </div>
+                                    <h3 className="text-center font-black tracking-widest text-sm mb-2 border-b-2 border-black w-32 mx-auto pb-1">İ H R A Ç L A R</h3>
+                                    
+                                    <div className="border border-black mb-6">
+                                        <div className="grid grid-cols-2 text-center text-xs font-bold border-b border-black">
+                                            <div className="p-1.5 border-r border-black bg-slate-100/50">EV SAHİBİ KULÜP</div>
+                                            <div className="p-1.5 bg-slate-100/50">MİSAFİR KULÜP</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 text-center text-[10px] font-bold border-b border-black bg-slate-50">
+                                            <div className="grid grid-cols-12 border-r border-black">
+                                                <div className="col-span-2 p-1 border-r border-dashed border-black">FORMA NO</div>
+                                                <div className="col-span-7 p-1 border-r border-dashed border-black">ADI SOYADI</div>
+                                                <div className="col-span-3 p-1">LİSANS NO</div>
+                                            </div>
+                                            <div className="grid grid-cols-12">
+                                                <div className="col-span-2 p-1 border-r border-dashed border-black">FORMA NO</div>
+                                                <div className="col-span-7 p-1 border-r border-dashed border-black">ADI SOYADI</div>
+                                                <div className="col-span-3 p-1">LİSANS NO</div>
+                                            </div>
+                                        </div>
+                                        {Array.from({ length: maxSatir }).map((_, idx) => (
+                                            <div key={idx} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
+                                                
+                                                <div className="grid grid-cols-12 border-r border-black relative">
+                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('ev', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
+                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracEvListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('ev', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
+                                                    <div className="col-span-3 p-1"><input type="text" value={ihracEvListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('ev', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
+                                                </div>
+
+                                                <div className="grid grid-cols-12 relative">
+                                                    <div className="col-span-2 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.forma || ''} onChange={e => ihracGuncelle('mis', idx, 'forma', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="-" /></div>
+                                                    <div className="col-span-7 p-1 border-r border-dashed border-black"><input type="text" value={ihracMisListesi[idx]?.isim || ''} onChange={e => ihracGuncelle('mis', idx, 'isim', e.target.value)} className="w-full text-left outline-none bg-transparent px-1 uppercase" placeholder="" /></div>
+                                                    <div className="col-span-3 p-1"><input type="text" value={ihracMisListesi[idx]?.lisans || ''} onChange={e => ihracGuncelle('mis', idx, 'lisans', e.target.value)} className="w-full text-center outline-none bg-transparent" placeholder="" /></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="grid grid-cols-2 text-center border-t border-black bg-slate-50 tff-no-print" data-html2canvas-ignore>
+                                            <button onClick={() => ihracSatirEkle('ev')} className="p-1.5 border-r border-black text-blue-600 font-bold text-xs hover:bg-blue-100">+ Ev Sahibi İhraç Ekle</button>
+                                            <button onClick={() => ihracSatirEkle('mis')} className="p-1.5 text-blue-600 font-bold text-xs hover:bg-blue-100">+ Misafir İhraç Ekle</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-8">
+                                        <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 uppercase tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
+                                        <textarea 
+                                            value={safeRaporDetay?.tff_not || ''} 
+                                            onChange={e => raporDetayGuncelle('tff_not', e.target.value)} 
+                                            className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2"
+                                            placeholder="Olayların detaylarını, varsa zamanı ve numaralarıyla birlikte yazınız..."
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex justify-between items-end px-4 mt-8 pt-4">
+                                        <div className="text-xs font-bold">
+                                            Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{new Date().toLocaleDateString('tr-TR')}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
+                                            <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
+                                            <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
+                                        </div>
+                                    </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
-                            <button onClick={() => tffTutanakIndir(mac)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2">
-                              📸 FOTOĞRAF (PNG) OLARAK İNDİR
-                            </button>
-                            <button onClick={() => skorRaporunuGonder(mac?.id)} disabled={skorKaydediliyor} className="flex-1 bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2 disabled:opacity-70">
-                              {skorKaydediliyor ? 'KAYDEDİLİYOR...' : '💾 DETAYLI RAPORU KARARGAHA İLET'}
-                            </button>
+                            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
+                              <button onClick={() => tffTutanakIndir(mac)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2">
+                                📸 FOTOĞRAF (PNG) OLARAK İNDİR
+                              </button>
+                              <button onClick={() => skorRaporunuGonder(mac?.id)} disabled={skorKaydediliyor} className="flex-1 bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2 disabled:opacity-70">
+                                {skorKaydediliyor ? 'KAYDEDİLİYOR...' : '💾 DETAYLI RAPORU KARARGAHA İLET'}
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                       </div>
                     )}
@@ -965,6 +994,9 @@ export default function Home() {
     )
   }
 
+  // ==========================================
+  // MAZERET BİLDİRİMİ EKRANI
+  // ==========================================
   if (aktifEkran === 'mazeretBildir') {
     return (
       <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
@@ -1038,6 +1070,9 @@ export default function Home() {
     )
   }
 
+  // ==========================================
+  // GİRİŞ EKRANI
+  // ==========================================
   if (aktifEkran === 'giris') {
     return (
       <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
