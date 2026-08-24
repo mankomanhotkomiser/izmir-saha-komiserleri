@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [hata, setHatasi] = useState('')
   
   const [tumMaclar, setTumMaclar] = useState<any[]>([])
+  const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) // YENİ: Sicil için tüm sezonun maçları
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -17,11 +18,13 @@ export default function AdminPage() {
   const [acikMacId, setAcikMacId] = useState<number | null>(null)
   const [acikTffMacId, setAcikTffMacId] = useState<number | null>(null) 
 
-  // ANA KATEGORİLER İÇİN AKORDİYON STATE'LERİ (Başlangıçta açık gelsin diye true yapıyoruz)
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
   const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
+  const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) // YENİ: Sicil Akordiyonu
+
+  const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') // YENİ: Sicili İncelenen Komiser
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,6 +70,12 @@ export default function AdminPage() {
 
   const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
+  const isProfLig = (kategori: any) => {
+    if (!kategori) return false;
+    const kat = String(kategori).toLocaleUpperCase('tr-TR');
+    return kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ');
+  }
+
   useEffect(() => {
     if (girisYapildi) { veriGetir() }
   }, [girisYapildi])
@@ -87,6 +96,8 @@ export default function AdminPage() {
           if (data.length < limit) veriKaldimi = false; else sayfa++;
         } else { veriKaldimi = false }
       }
+
+      setSezonlukMaclar(maclarVerisi); // SİCİL İÇİN TÜM SEZONU HAFIZAYA AL
 
       const { data: komiserlerData } = await supabase.from('komiserler').select('*')
       if (komiserlerData) setTumKomiserler(komiserlerData)
@@ -244,7 +255,7 @@ export default function AdminPage() {
                             <p className="text-sm text-slate-200 font-serif italic">"{mac.rapor_notu || 'Not girilmemiş.'}"</p>
                         </div>
                         
-                        {mac.tff_rapor_detaylari && (
+                        {mac.tff_rapor_detaylari && mac.tff_rapor_detaylari.detayli_kaydedildi && (
                             <div className="bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden">
                                 <button 
                                     onClick={() => toggleTff(mac.id)} 
@@ -260,10 +271,14 @@ export default function AdminPage() {
                                         <div id={`admin-tff-form-${mac.id}`} className="min-w-[700px] max-w-4xl w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto">
                                           <div className="border-[3px] border-double border-slate-600 p-4">
                                               
-                                              <div className="flex flex-col items-center mb-6">
-                                                  <div className="w-16 h-16 rounded-full bg-[#E30A17] flex items-center justify-center mb-2 border border-slate-300 shadow-sm">
-                                                      <span className="text-white text-3xl font-black">C★</span>
+                                              <div className="flex flex-col items-center mb-6 relative">
+                                                  <div className="w-14 h-14 rounded-full bg-[#E30A17] flex items-center justify-center mb-1">
+                                                      <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                          <path d="M50 15C30.67 15 15 30.67 15 50C15 69.33 30.67 85 50 85C56 85 61.64 83.5 66.5 80.89C57.65 79.52 50.81 71.86 50.81 62.5C50.81 53.14 57.65 45.48 66.5 44.11C61.64 41.5 56 40 50 40Z" fill="white"/>
+                                                          <polygon points="68,52 73,63 84,63 75,70 78,81 68,74 58,81 61,70 52,63 63,63" fill="white" transform="scale(0.5) translate(40, -10)" />
+                                                      </svg>
                                                   </div>
+                                                  <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                                   <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                                   <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
                                               </div>
@@ -286,7 +301,7 @@ export default function AdminPage() {
                                                     </div>
                                                     <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
                                                         <span className="text-[10px] font-bold mb-1">SKOR</span>
-                                                        <span className="font-black text-lg">{mac.ev_sahibi_skor || '-'}</span>
+                                                        <span className="font-black text-lg">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</span>
                                                     </div>
                                                   </div>
                                                   <div className="p-2 border-b border-dashed border-black">
@@ -298,7 +313,7 @@ export default function AdminPage() {
                                                         <div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate">{mac?.misafir_takim || '-'}</span></div>
                                                     </div>
                                                     <div className="p-2 w-1/4 flex flex-col items-center justify-center bg-slate-100/30">
-                                                        <span className="font-black text-lg">{mac.misafir_skor || '-'}</span>
+                                                        <span className="font-black text-lg">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span>
                                                     </div>
                                                   </div>
                                                   
@@ -317,15 +332,15 @@ export default function AdminPage() {
                                                   <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                                                   
                                                   <div className="border-r border-black flex flex-col">
-                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
-                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">1.YR.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
-                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center"><span className="text-[10px] font-bold w-20">2.YR.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
-                                                      <div className="flex p-1.5 items-center"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
+                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                                                      <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
                                                   </div>
                                                   
                                                   <div className="flex flex-col">
-                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input readOnly type="text" value={safeRaporDetay?.saglik || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
-                                                      <div className="flex p-1.5 items-center h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input readOnly type="text" value={safeRaporDetay?.guvenlik || ''} className="w-full text-xs outline-none bg-transparent font-bold uppercase ml-2" /></div>
+                                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input readOnly type="text" value={safeRaporDetay?.saglik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                                                      <div className="flex p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input readOnly type="text" value={safeRaporDetay?.guvenlik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
                                                   </div>
                                               </div>
 
@@ -443,7 +458,6 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            {/* ANA KATEGORİ: KIRMIZI KOD */}
             <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
                 <button 
@@ -465,7 +479,6 @@ export default function AdminPage() {
                 )}
             </section>
 
-            {/* ANA KATEGORİ: DİSİPLİN VE TEKNİK OLAYLAR */}
             <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative w-full">
                 <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                 <button 
@@ -487,7 +500,6 @@ export default function AdminPage() {
                 )}
             </section>
 
-            {/* ANA KATEGORİ: OLAYSIZ MÜSABAKALAR */}
             <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
                 <button 
                   onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)}
@@ -508,7 +520,6 @@ export default function AdminPage() {
                 )}
             </section>
 
-            {/* ANA KATEGORİ: RAPOR BEKLENENLER */}
             <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
                 <button 
                   onClick={() => setKategoriBekleyenAcik(!kategoriBekleyenAcik)}
@@ -524,6 +535,137 @@ export default function AdminPage() {
                     <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
                         {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
                             bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
+                        )}
+                    </div>
+                )}
+            </section>
+
+            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
+            <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
+                <button
+                  onClick={() => setKategoriSicilAcik(!kategoriSicilAcik)}
+                  className="w-full bg-indigo-950/40 p-4 border-b border-indigo-900/30 flex justify-between items-center hover:bg-indigo-900/40 transition-colors focus:outline-none"
+                >
+                    <h2 className="text-indigo-400 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">👥</span> PERSONEL İSTİHBARAT VE SİCİL DAİRESİ</h2>
+                    <div className="flex items-center gap-4">
+                        <span className="text-indigo-400 text-lg leading-none">{kategoriSicilAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriSicilAcik && (
+                    <div className="p-4 md:p-6 animate-fade-in-down">
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">İncelenecek Saha Komiseri</label>
+                            <select
+                                value={seciliSicilKomiserId}
+                                onChange={(e) => setSeciliSicilKomiserId(e.target.value)}
+                                className="w-full bg-slate-800 border-2 border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors text-sm font-bold"
+                            >
+                                <option value="">-- BİR KOMİSER SEÇİNİZ --</option>
+                                {[...tumKomiserler].sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR')).map(k => (
+                                    <option key={`sicil-${k.komiser_id}`} value={k.komiser_id}>{k.ad_soyad} (ID: {k.komiser_id})</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {seciliSicilKomiserId && (
+                            <div className="space-y-6">
+                                {(() => {
+                                    const maclar = sezonlukMaclar.filter(m => m.komiser_id === seciliSicilKomiserId);
+                                    let amatorCount = 0;
+                                    let profCount = 0;
+                                    const amatorKategoriler: Record<string, number> = {};
+                                    const profKategoriler: Record<string, number> = {};
+                                    const sahalar: Record<string, number> = {};
+
+                                    maclar.forEach(mac => {
+                                        const isProf = !detayliRaporGosterilirMi(mac.kategori_adi);
+                                        const katAdi = mac.kategori_adi || 'BELİRTİLMEMİŞ LİG';
+                                        const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
+
+                                        if (isProf) {
+                                            profCount++;
+                                            profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1;
+                                        } else {
+                                            amatorCount++;
+                                            amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1;
+                                        }
+                                        sahalar[sahaAdi] = (sahalar[sahaAdi] || 0) + 1;
+                                    });
+
+                                    const siraliAmatorler = Object.entries(amatorKategoriler).sort((a,b) => b[1] - a[1]);
+                                    const siraliProflar = Object.entries(profKategoriler).sort((a,b) => b[1] - a[1]);
+                                    const siraliSahalar = Object.entries(sahalar).sort((a,b) => b[1] - a[1]);
+
+                                    return (
+                                        <div className="bg-slate-800 rounded-xl p-4 md:p-6 border border-slate-700 shadow-inner">
+                                            <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-700 pb-4 mb-6 gap-4">
+                                                <div className="text-center md:text-left">
+                                                    <h3 className="text-2xl font-black text-white">{komiserIsmiBul(seciliSicilKomiserId)}</h3>
+                                                    <span className="text-indigo-400 text-xs font-mono font-bold tracking-widest">ID: {seciliSicilKomiserId}</span>
+                                                </div>
+                                                <div className="bg-indigo-600 px-6 py-2 rounded-lg shadow-md border border-indigo-500 min-w-[150px]">
+                                                    <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider text-center">Toplam Sezon Görevi</div>
+                                                    <div className="text-3xl font-black text-white text-center">{maclar.length}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div className="bg-slate-900 border border-slate-600 rounded-lg p-4 relative overflow-hidden">
+                                                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                                                    <h4 className="text-blue-400 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                                                        <span>🛡️ Amatör Ligler</span>
+                                                        <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{amatorCount} Maç</span>
+                                                    </h4>
+                                                    <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                                                        {siraliAmatorler.length === 0 && <li className="text-xs text-slate-500 italic">Görev kaydı yok.</li>}
+                                                        {siraliAmatorler.map(([kat, count]) => (
+                                                            <li key={kat} className="flex justify-between items-center bg-slate-800 p-2 rounded text-xs border border-slate-700">
+                                                                <span className="text-slate-300 font-semibold">{kat}</span>
+                                                                <span className="font-black text-blue-400">{count}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+
+                                                <div className="bg-slate-900 border border-slate-600 rounded-lg p-4 relative overflow-hidden">
+                                                    <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                                                    <h4 className="text-purple-400 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                                                        <span>🏆 Profesyonel / Gelişim</span>
+                                                        <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-xs">{profCount} Maç</span>
+                                                    </h4>
+                                                    <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                                                        {siraliProflar.length === 0 && <li className="text-xs text-slate-500 italic">Görev kaydı yok.</li>}
+                                                        {siraliProflar.map(([kat, count]) => (
+                                                            <li key={kat} className="flex justify-between items-center bg-slate-800 p-2 rounded text-xs border border-slate-700">
+                                                                <span className="text-slate-300 font-semibold">{kat}</span>
+                                                                <span className="font-black text-purple-400">{count}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-900 border border-slate-600 rounded-lg p-4 relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                                <h4 className="text-emerald-400 font-bold text-sm tracking-wider uppercase mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                                                    <span className="text-lg">🏟️</span> GÖREV YAPILAN SAHALAR
+                                                </h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                                    {siraliSahalar.length === 0 && <span className="text-xs text-slate-500 italic">Görev kaydı yok.</span>}
+                                                    {siraliSahalar.map(([saha, count]) => (
+                                                        <div key={saha} className="flex justify-between items-center bg-slate-800 p-2.5 rounded border border-slate-700 hover:border-emerald-500/50 transition-colors">
+                                                            <span className="text-slate-300 text-[11px] font-bold truncate pr-2" title={saha}>{saha}</span>
+                                                            <span className="bg-emerald-900/50 text-emerald-400 text-[10px] px-2 py-1 rounded font-black shrink-0">{count} Kez</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    );
+                                })()}
+                            </div>
                         )}
                     </div>
                 )}
