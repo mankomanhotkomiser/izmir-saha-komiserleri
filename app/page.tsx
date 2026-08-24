@@ -70,9 +70,12 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const kayitliId = localStorage.getItem('izmirKomiserId')
-    if (kayitliId) {
-      otomatikGirisYap(kayitliId)
+    // Sayfa yüklenirken, sadece client tarafında localStorage kontrolü yapıyoruz.
+    if (typeof window !== 'undefined') {
+      const kayitliId = localStorage.getItem('izmirKomiserId')
+      if (kayitliId) {
+        otomatikGirisYap(kayitliId)
+      }
     }
   }, [])
 
@@ -91,11 +94,13 @@ export default function Home() {
     }
   }
 
+  // BEMBEYAZ SAYFA HATASININ ÇÖZÜMÜ BURADA:
+  // useEffect içinde patlama riskini azaltmak için try-catch bloğunu çok daha korumalı hale getirdim.
   useEffect(() => {
     let aktif = true;
     async function arkaPlaniHazirla() {
       try {
-        let tumMaclar: any[] = []
+        let tumMaclarGecici: any[] = []
         let sayfa = 0
         const limit = 1000
         let veriKaldimi = true
@@ -104,32 +109,43 @@ export default function Home() {
           const { data, error } = await supabase.from('musabakalar').select('*').range(sayfa * limit, (sayfa + 1) * limit - 1)
           if (error) break;
           if (data && data.length > 0) {
-            tumMaclar = [...tumMaclar, ...data]
+            tumMaclarGecici = [...tumMaclarGecici, ...data]
             if (data.length < limit) veriKaldimi = false
             else { sayfa++; await new Promise(res => setTimeout(res, 50)) }
           } else veriKaldimi = false
         }
         
-        if (tumMaclar && tumMaclar.length > 0 && aktif) {
-          const cumalar = tumMaclar.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
+        if (tumMaclarGecici && tumMaclarGecici.length > 0 && aktif) {
+          const cumalar = tumMaclarGecici.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
           const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
-          setHaftaReferanslari(essizCumalar)
-          const aktifHaftaNo = essizCumalar.length
-          setGlobalAktifHaftaNo(aktifHaftaNo)
+          
+          if(essizCumalar.length > 0) {
+            setHaftaReferanslari(essizCumalar)
+            const aktifHaftaNo = essizCumalar.length
+            setGlobalAktifHaftaNo(aktifHaftaNo)
 
-          const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
-          const aktifHaftaMaclari = tumMaclar.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
-          setTumAktifMaclar(aktifHaftaMaclari)
+            const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
+            const aktifHaftaMaclari = tumMaclarGecici.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
+            setTumAktifMaclar(aktifHaftaMaclari || [])
+          }
         }
 
         const { data: komiserlerData } = await supabase.from('komiserler').select('*')
-        if (komiserlerData && aktif) setTumKomiserler(komiserlerData)
+        if (komiserlerData && aktif) setTumKomiserler(komiserlerData || [])
 
-      } catch (err: any) { console.error("Arka plan yükleme hatası:", err) }
+      } catch (err: any) { 
+        console.error("Arka plan yükleme hatası:", err) 
+      }
     }
-    arkaPlaniHazirla()
+    
+    // Arka planı sadece dashboard'a (veya sisteme) giriş yaptıysa hazırlayalım,
+    // Yoksa login ekranında gereksiz yere çalışıp siteyi kasmasın.
+    if(aktifEkran !== 'giris') {
+       arkaPlaniHazirla();
+    }
+
     return () => { aktif = false; }
-  }, [])
+  }, [aktifEkran])
 
   const mazeretKapisiAcikMi = () => true; 
   const mazeretAcik = mazeretKapisiAcikMi();
@@ -422,10 +438,10 @@ export default function Home() {
   }
 
   // ==========================================
-  // HAFTALIK BÜLTEN ARAMA (BEMBEYAZ SAYFA ÇÖKME KORUMALI)
+  // YENİ EKRAN: HAFTALIK BÜLTEN ARAMA (BEMBEYAZ SAYFA ÇÖKME KORUMALI)
   // ==========================================
   if (aktifEkran === 'bultenArama') {
-    let filtrelenmisMaclar = tumAktifMaclar;
+    let filtrelenmisMaclar = tumAktifMaclar || [];
 
     if (aramaKomiser.trim() !== '') {
       const q = aramaKomiser.toLocaleLowerCase('tr-TR');
@@ -447,9 +463,17 @@ export default function Home() {
       );
     }
 
-    const siraliKomiserler = [...tumKomiserler].sort((a, b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR'));
-    const siraliSahalar = Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
-    const siraliTakimlar = Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
+    const siraliKomiserler = tumKomiserler && tumKomiserler.length > 0 
+      ? [...tumKomiserler].sort((a, b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR'))
+      : [];
+      
+    const siraliSahalar = tumAktifMaclar && tumAktifMaclar.length > 0 
+      ? Array.from(new Set(tumAktifMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'))
+      : [];
+      
+    const siraliTakimlar = tumAktifMaclar && tumAktifMaclar.length > 0 
+      ? Array.from(new Set([...tumAktifMaclar.map(m => m.ev_sahibi), ...tumAktifMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'))
+      : [];
 
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -659,9 +683,6 @@ export default function Home() {
     )
   }
 
-  // ==========================================
-  // GÖREV KARTLARI
-  // ==========================================
   if (aktifEkran === 'gorevKartlari') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -691,16 +712,8 @@ export default function Home() {
                   ) : (
                     <div className="space-y-4">
                       {aktifMaclar.map((mac) => (
-                        <div key={mac?.id} className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-4">
-                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
-                            <span className="font-bold text-blue-950 text-lg md:text-xl">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div>
-                            <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800">{mac?.saha}</span></div>
-                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span></div>
-                            <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span></div>
-                          </div>
+                        <div key={mac?.id}>
+                          {renderOrjinalGorevKarti(mac)}
                         </div>
                       ))}
                     </div>
@@ -723,16 +736,8 @@ export default function Home() {
                             {acikHaftalar.includes(haftaNo) && (
                               <div className="p-4 bg-slate-100 space-y-4">
                                 {gecmisHaftalar[haftaNo].map((mac: any) => (
-                                  <div key={mac?.id} className="bg-white border-l-4 border-slate-500 shadow-sm rounded-r-xl p-4 opacity-95 relative">
-                                    <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
-                                      <span className="font-bold text-slate-700 text-lg md:text-xl leading-tight">{mac?.ev_sahibi} <span className="text-slate-400 font-medium mx-1 text-base">vs</span> {mac?.misafir_takim}</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                      <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Tarih & Saat</span> <span className="font-bold text-slate-700">{mac?.tarih ? new Date(mac.tarih).toLocaleDateString('tr-TR') : ""} - {mac?.saat ? mac.saat.substring(0, 5) : ""}</span></div>
-                                      <div className="flex flex-col"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Saha</span> <span className="font-bold text-slate-700">{mac?.saha}</span></div>
-                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Kategori / Lig</span> <span className="font-bold text-slate-700">{mac?.kategori_adi} <span className="text-xs font-normal text-slate-500 block sm:inline mt-1 sm:mt-0 sm:ml-1">(Kod: {mac?.mac_kodu})</span></span></div>
-                                      <div className="flex flex-col mt-2 pt-3 border-t border-slate-200"><span className="text-xs text-slate-400 mb-1 font-semibold uppercase tracking-wider">Atanan Görev</span> <span className="font-extrabold text-slate-700">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span></div>
-                                    </div>
+                                  <div key={mac?.id} className="opacity-95">
+                                    {renderOrjinalGorevKarti(mac)}
                                   </div>
                                 ))}
                               </div>
