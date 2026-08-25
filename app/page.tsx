@@ -8,13 +8,12 @@ type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazere
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
   const kat = String(kategori).toLocaleUpperCase('tr-TR');
-  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ')) {
+  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ') || kat.includes('BÖLGESEL') || kat.includes('BAL')) {
       return false; 
   }
   return true; 
 }
 
-// DEVRİM: KATEGORİ STANDARDİZASYON MOTORU
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
@@ -114,7 +113,7 @@ export default function Home() {
   const cumaBul = (tarihMetni: string) => {
     if (!tarihMetni) return 0
     try {
-      const parcalar = tarihMetni.split('-')
+      const parcalar = String(tarihMetni).split('-')
       if (parcalar.length !== 3) return 0
       const d = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]))
       const gun = d.getDay()
@@ -274,12 +273,25 @@ export default function Home() {
     setMacYukleniyor(false)
   }
 
+  // ZIRHLI UNVAN HİYERARŞİSİ (YENİ KURAL)
   const gorevTuruBelirle = (kategori: any, macKodu: any) => {
     const kat = String(kategori || "").toUpperCase()
     const kod = String(macKodu || "").toUpperCase()
+    
+    if (kod.includes('DENETÇİ') || kat.includes('BAL') || kat.includes('BÖLGESEL')) return "BAL Ligi Denetçisi"
     if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri"
-    if (kat.includes('U17') || kat.includes('U19') || kat.includes('PAF')) return "Denetçi"
-    if (kat.includes('GELİŞİM') && (kat.includes('U13') || kat.includes('U14') || kat.includes('U15') || kat.includes('U16'))) return "Saha Komiseri / Denetçi"
+    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('3. LİG') || kat.includes('2. LİG')) return "Saha Komiseri"
+    
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT')) {
+        if (kat.includes('U17') || kat.includes('U19') || kat.includes('PAF')) {
+            return "Gelişim Denetçi"
+        }
+        if (kat.includes('U13') || kat.includes('U14') || kat.includes('U15') || kat.includes('U16') || kat.includes('14') || kat.includes('15')) {
+            return "Gelişim Denetçi / Saha Komiseri"
+        }
+        return "Gelişim Denetçi / Saha Komiseri"
+    }
+    
     return "Saha Komiseri"
   }
 
@@ -623,7 +635,6 @@ export default function Home() {
             </div>
           </button>
 
-          {/* DEVRİM: SEZONLUK İSTATİSTİKLER BUTONU EKLENDİ */}
           <button onClick={() => setAktifEkran('istatistiklerim')} className="w-full mb-4 flex items-center justify-between p-4 md:p-6 rounded-2xl shadow-md bg-indigo-800 border-2 border-indigo-700 hover:border-indigo-500 hover:bg-indigo-900 transition-all transform hover:scale-105">
             <div className="text-left">
               <h4 className="font-bold text-lg text-white">📊 Sezonluk İstatistiklerim</h4>
@@ -645,7 +656,79 @@ export default function Home() {
     )
   }
 
-  // YENİ EKRAN: KOMİSERİN KENDİ İSTATİSTİK (SİCİL) DOSYASI
+  if (aktifEkran === 'gorevKartlari') {
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        <OrtakHeader geriButonuGoster={true} />
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+          <div id="gorev-karti-alani" className="bg-slate-200 min-h-full">
+            <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-2 border-blue-900 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="text-center md:text-left">
+                <h4 className="text-lg font-bold text-blue-900 tracking-wide uppercase">{seciliKomiser?.ad_soyad || '-'}</h4>
+                <p className="text-red-600 font-semibold mt-1">{globalAktifHaftaNo}. Hafta Görev Bülteni</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button onClick={tebellugKaydet} disabled={hepsiTebellugEdilmis || tebellugYukleniyor || gecerliAktifMaclar.length === 0} className={`text-sm font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 transition-colors ${hepsiTebellugEdilmis ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300' : gecerliAktifMaclar.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}>
+                  {tebellugYukleniyor ? 'İşleniyor...' : hepsiTebellugEdilmis ? '✓ Tebellüğ Edildi' : 'Tebellüğ Et (Görevleri Aldım)'}
+                </button>
+                <button onClick={kartiIndir} className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg shadow">İndir / Paylaş</button>
+              </div>
+            </div>
+
+            {macYukleniyor ? (
+              <div className="text-center text-blue-800 py-8 animate-pulse font-semibold">Görevleriniz aranıyor...</div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  {gecerliAktifMaclar.length === 0 ? (
+                    <div className="text-center text-slate-500 py-8 bg-white rounded-xl text-sm font-bold">Aktif göreviniz bulunmuyor.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {gecerliAktifMaclar.map((mac, idx) => (
+                        <div key={mac.id || `gkart-${idx}`}>
+                          {renderOrjinalGorevKarti(mac)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {Object.keys(gecmisHaftalar).length > 0 && (
+                  <div className="mt-8 border-t-2 border-slate-300 pt-6">
+                    <button onClick={() => setArsivAcik(!arsivAcik)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-4 px-5 rounded-xl shadow-md flex justify-between items-center">
+                      <span className="text-sm md:text-base">Geçmiş Maç Arşivi</span><span className="text-xl">{arsivAcik ? '▲' : '▼'}</span>
+                    </button>
+                    {arsivAcik && (
+                      <div className="mt-4 space-y-4">
+                        {Object.keys(gecmisHaftalar).map(Number).sort((a, b) => b - a).map(haftaNo => (
+                          <div key={`hafta-${haftaNo}`} className="border border-slate-300 rounded-xl overflow-hidden shadow-sm">
+                            <button onClick={() => haftaToggle(haftaNo)} className="w-full bg-slate-300 text-slate-900 font-bold py-3 px-5 flex justify-between items-center text-xs md:text-sm">
+                              <span>{haftaNo}. Hafta Görevleri <span className="bg-slate-800 text-white text-[10px] md:text-xs px-2 py-1 rounded ml-2">{(gecmisHaftalar[haftaNo] || []).length} Görev</span></span>
+                              <span>{acikHaftalar.includes(haftaNo) ? '▲' : '▼'}</span>
+                            </button>
+                            {acikHaftalar.includes(haftaNo) && (
+                              <div className="p-2 md:p-4 bg-slate-100 space-y-4">
+                                {(gecmisHaftalar[haftaNo] || []).map((mac: any, idx: number) => (
+                                  <div key={mac.id || `gecmis-${idx}`} className="opacity-95">
+                                    {renderOrjinalGorevKarti(mac)}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (aktifEkran === 'istatistiklerim') {
     let amatorCount = 0;
     let profCount = 0;

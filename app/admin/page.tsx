@@ -7,13 +7,12 @@ import { toPng } from 'html-to-image'
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
   const kat = String(kategori).toLocaleUpperCase('tr-TR');
-  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ')) {
+  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ') || kat.includes('BÖLGESEL') || kat.includes('BAL')) {
       return false; 
   }
   return true; 
 }
 
-// DEVRİM: KATEGORİ STANDARDİZASYON MOTORU
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
@@ -65,7 +64,7 @@ export default function AdminPage() {
   const cumaBul = (tarihMetni: string) => {
     if (!tarihMetni) return 0
     try {
-      const parcalar = tarihMetni.split('-')
+      const parcalar = String(tarihMetni).split('-')
       if (parcalar.length !== 3) return 0
       const d = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]))
       const gun = d.getDay()
@@ -85,10 +84,10 @@ export default function AdminPage() {
   const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
-        const parcaTarih = mac.tarih.split('-');
+        const parcaTarih = String(mac.tarih).split('-');
         let saat = 0, dakika = 0;
         if (mac.saat) {
-            const parcaSaat = mac.saat.split(':');
+            const parcaSaat = String(mac.saat).split(':');
             saat = parseInt(parcaSaat[0] || '0', 10);
             dakika = parseInt(parcaSaat[1] || '0', 10);
         }
@@ -238,7 +237,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2 mb-1">
                   {tip !== 'olaysiz' && tip !== 'bekleyen' && (
                       <span className={`${renkSiniflari.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
-                          {tip === 'emniyet' ? 'EMNİYETLİK' : mac.olay_durumu.replace('_', ' ')}
+                          {tip === 'emniyet' ? 'EMNİYETLİK' : (mac.olay_durumu || '').replace('_', ' ')}
                       </span>
                   )}
                   <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">{mac.kategori_adi}</span>
@@ -260,7 +259,7 @@ export default function AdminPage() {
                         </div>
                     ) : (
                         <div className="text-[10px] font-bold text-amber-400 uppercase text-right bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
-                            {mac.mac_durumu.replace(/_/g, ' ')}
+                            {(mac.mac_durumu || '').replace(/_/g, ' ')}
                         </div>
                     )
                 ) : (
@@ -564,7 +563,6 @@ export default function AdminPage() {
                 )}
             </section>
 
-            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
                 <button
@@ -604,7 +602,7 @@ export default function AdminPage() {
 
                                     maclar.forEach(mac => {
                                         const isProf = !detayliRaporGosterilirMi(mac.kategori_adi);
-                                        const katAdi = formatKategori(mac.kategori_adi); // ZIRHLI MOTOR BURADA
+                                        const katAdi = formatKategori(mac.kategori_adi); 
                                         const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
 
                                         if (isProf) {
