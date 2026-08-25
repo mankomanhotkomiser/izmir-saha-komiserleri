@@ -50,7 +50,7 @@ export default function AdminPage() {
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
-  const [kategoriTebellugAcik, setKategoriTebellugAcik] = useState(true) // YENİ EKLENDİ
+  const [kategoriTebellugAcik, setKategoriTebellugAcik] = useState(true)
   const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
 
@@ -202,16 +202,25 @@ export default function AdminPage() {
     )
   }
 
-  // DEVRİM: FİLTRELEME MANTIKLARI YENİLENDİ
   const emniyetlikMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay')
   const teknikMaclar = tumMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu'))
   const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz')
-  
-  // YENİ TEBELLÜĞ FİLTRELERİ
-  const tebellugBekleyenMaclar = tumMaclar.filter(m => !m.tebellug_edildi)
   const bekleyenMaclar = tumMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi)
 
-  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'tebellug' }) => {
+  // DEVRİM: KOMİSER BAZLI TEBELLÜĞ LİSTESİ OLUŞTURUCU
+  const tebellugBekleyenKomiserler = Array.from(
+    tumMaclar.filter(m => !m.tebellug_edildi)
+    .reduce((map, mac) => {
+        if (!map.has(mac.komiser_id)) {
+            map.set(mac.komiser_id, { id: mac.komiser_id, isim: komiserIsmiBul(mac.komiser_id), count: 0 });
+        }
+        map.get(mac.komiser_id).count++;
+        return map;
+    }, new Map())
+    .values()
+  ).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
+
+  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' }) => {
     let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     
     if (tip === 'emniyet') { 
@@ -220,8 +229,6 @@ export default function AdminPage() {
         renkSiniflari = { bg: "bg-amber-950/20", border: "border-amber-500", text: "text-amber-500", badge: "bg-amber-600 text-white" };
     } else if (tip === 'olaysiz') {
         renkSiniflari = { bg: "bg-slate-800/80", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-900 text-white" };
-    } else if (tip === 'tebellug') { // YENİ MOR RENK KODU
-        renkSiniflari = { bg: "bg-purple-950/30", border: "border-purple-500", text: "text-purple-400", badge: "bg-purple-600 text-white" };
     }
 
     const isAcik = acikMacId === mac.id;
@@ -242,14 +249,13 @@ export default function AdminPage() {
             
             <div className="flex-1 pr-4">
                 <div className="flex items-center flex-wrap gap-2 mb-2">
-                  {tip !== 'olaysiz' && tip !== 'bekleyen' && tip !== 'tebellug' && (
+                  {tip !== 'olaysiz' && tip !== 'bekleyen' && (
                       <span className={`${renkSiniflari.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
                           {tip === 'emniyet' ? 'EMNİYETLİK' : (mac.olay_durumu || '').replace('_', ' ')}
                       </span>
                   )}
                   <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">{mac.kategori_adi}</span>
                   
-                  {/* YENİ: KART ÜSTÜ TEBELLÜĞ ROZETİ */}
                   {mac.tebellug_edildi ? (
                       <span className="text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1">✓ TEBELLÜĞ EDİLDİ</span>
                   ) : (
@@ -279,7 +285,7 @@ export default function AdminPage() {
                     )
                 ) : (
                     <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
-                        {tip === 'tebellug' ? 'ATANDI' : 'RAPOR BEKLİYOR'}
+                        RAPOR BEKLİYOR
                     </div>
                 )}
                 <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
@@ -312,12 +318,8 @@ export default function AdminPage() {
                                           <div className="border-[3px] border-double border-slate-600 p-4">
                                               
                                               <div className="flex flex-col items-center mb-6 relative">
-                                                  <div className="w-14 h-14 rounded-full bg-[#E30A17] flex items-center justify-center mb-1">
-                                                      <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                          <path d="M50 15C30.67 15 15 30.67 15 50C15 69.33 30.67 85 50 85C56 85 61.64 83.5 66.5 80.89C57.65 79.52 50.81 71.86 50.81 62.5C50.81 53.14 57.65 45.48 66.5 44.11C61.64 41.5 56 40 50 40Z" fill="white"/>
-                                                          <polygon points="68,52 73,63 84,63 75,70 78,81 68,74 58,81 61,70 52,63 63,63" fill="white" transform="scale(0.5) translate(40, -10)" />
-                                                      </svg>
-                                                  </div>
+                                                  {/* WIKIPEDIA LOGOSU EKLENDİ VE CORS HATASI ÇÖZÜLDÜ */}
+                                                  <img src="https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
                                                   <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                                   <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                                   <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
@@ -498,108 +500,120 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
-                <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                <button 
-                  onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)}
-                  className="w-full bg-red-950/40 p-4 border-b border-red-900/30 flex justify-between items-center hover:bg-red-900/40 transition-colors focus:outline-none"
-                >
-                    <h2 className="text-red-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">🚨</span> KIRMIZI KOD (EMNİYETLİK)</h2>
-                    <div className="flex items-center gap-4">
-                        <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">{emniyetlikMaclar.length} RAPOR</span>
-                        <span className="text-red-500 text-lg leading-none">{kategoriKirmiziAcik ? '▲' : '▼'}</span>
-                    </div>
-                </button>
-                {kategoriKirmiziAcik && (
-                    <div className="p-4 animate-fade-in-down">
-                        {emniyetlikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı emniyetlik olay bulunmuyor.</div> ) : (
-                            emniyetlikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="emniyet" />)
-                        )}
-                    </div>
-                )}
-            </section>
+            {/* SIFIRSA GİZLENECEK KISIMLAR DEVRİMİ */}
+            {emniyetlikMaclar.length > 0 && (
+                <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+                    <button 
+                      onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)}
+                      className="w-full bg-red-950/40 p-4 border-b border-red-900/30 flex justify-between items-center hover:bg-red-900/40 transition-colors focus:outline-none"
+                    >
+                        <h2 className="text-red-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">🚨</span> KIRMIZI KOD (EMNİYETLİK)</h2>
+                        <div className="flex items-center gap-4">
+                            <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">{emniyetlikMaclar.length} RAPOR</span>
+                            <span className="text-red-500 text-lg leading-none">{kategoriKirmiziAcik ? '▲' : '▼'}</span>
+                        </div>
+                    </button>
+                    {kategoriKirmiziAcik && (
+                        <div className="p-4 animate-fade-in-down">
+                            {emniyetlikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="emniyet" />)}
+                        </div>
+                    )}
+                </section>
+            )}
 
-            <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative w-full">
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-                <button 
-                  onClick={() => setKategoriDisiplinAcik(!kategoriDisiplinAcik)}
-                  className="w-full bg-amber-950/20 p-4 border-b border-amber-900/30 flex justify-between items-center hover:bg-amber-900/30 transition-colors focus:outline-none"
-                >
-                    <h2 className="text-amber-500 font-black tracking-widest uppercase flex items-center gap-2 text-left leading-tight"><span className="text-xl">⚠️</span> DİSİPLİN VE TEKNİK OLAYLAR <span className="hidden sm:inline text-xs text-amber-500/70 lowercase">(Hakeme hakaret, ihraç, itiraz vb.)</span></h2>
-                    <div className="flex items-center gap-4 shrink-0 pl-2">
-                        <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{teknikMaclar.length} RAPOR</span>
-                        <span className="text-amber-500 text-lg leading-none">{kategoriDisiplinAcik ? '▲' : '▼'}</span>
-                    </div>
-                </button>
-                {kategoriDisiplinAcik && (
-                    <div className="p-4 animate-fade-in-down">
-                        {teknikMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Kayıtlı teknik/disiplin olayı bulunmuyor.</div> ) : (
-                            teknikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="teknik" />)
-                        )}
-                    </div>
-                )}
-            </section>
+            {teknikMaclar.length > 0 && (
+                <section className="bg-slate-900 border border-amber-900/50 rounded-xl overflow-hidden shadow-xl relative w-full">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                    <button 
+                      onClick={() => setKategoriDisiplinAcik(!kategoriDisiplinAcik)}
+                      className="w-full bg-amber-950/20 p-4 border-b border-amber-900/30 flex justify-between items-center hover:bg-amber-900/30 transition-colors focus:outline-none"
+                    >
+                        <h2 className="text-amber-500 font-black tracking-widest uppercase flex items-center gap-2 text-left leading-tight"><span className="text-xl">⚠️</span> DİSİPLİN VE TEKNİK OLAYLAR <span className="hidden sm:inline text-xs text-amber-500/70 lowercase">(Hakeme hakaret, ihraç, vb.)</span></h2>
+                        <div className="flex items-center gap-4 shrink-0 pl-2">
+                            <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">{teknikMaclar.length} RAPOR</span>
+                            <span className="text-amber-500 text-lg leading-none">{kategoriDisiplinAcik ? '▲' : '▼'}</span>
+                        </div>
+                    </button>
+                    {kategoriDisiplinAcik && (
+                        <div className="p-4 animate-fade-in-down">
+                            {teknikMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="teknik" />)}
+                        </div>
+                    )}
+                </section>
+            )}
 
-            <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
-                <button 
-                  onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)}
-                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
-                >
-                    <h2 className="text-green-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">✓</span> OLAYSIZ MÜSABAKALAR</h2>
-                    <div className="flex items-center gap-4">
-                        <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
-                        <span className="text-green-500 text-lg leading-none">{kategoriOlaysizAcik ? '▲' : '▼'}</span>
-                    </div>
-                </button>
-                {kategoriOlaysizAcik && (
-                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
-                        {olaysizMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Henüz olaysız biten maç raporu yok.</div> ) : (
-                            olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)
-                        )}
-                    </div>
-                )}
-            </section>
+            {olaysizMaclar.length > 0 && (
+                <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                    <button 
+                      onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)}
+                      className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                    >
+                        <h2 className="text-green-500 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">✓</span> OLAYSIZ MÜSABAKALAR</h2>
+                        <div className="flex items-center gap-4">
+                            <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">{olaysizMaclar.length} MAÇ</span>
+                            <span className="text-green-500 text-lg leading-none">{kategoriOlaysizAcik ? '▲' : '▼'}</span>
+                        </div>
+                    </button>
+                    {kategoriOlaysizAcik && (
+                        <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
+                            {olaysizMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="olaysiz" />)}
+                        </div>
+                    )}
+                </section>
+            )}
 
-            {/* YENİ: TEBELLÜĞ BEKLEYENLER BÖLÜMÜ */}
-            <section className="bg-slate-900 border border-purple-900/50 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
-                <button 
-                  onClick={() => setKategoriTebellugAcik(!kategoriTebellugAcik)}
-                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
-                >
-                    <h2 className="text-purple-400 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">📩</span> TEBELLÜĞ BEKLEYENLER</h2>
-                    <div className="flex items-center gap-4">
-                        <span className="bg-purple-900/50 text-purple-300 border border-purple-700 text-xs font-bold px-2 py-1 rounded">{tebellugBekleyenMaclar.length} MAÇ</span>
-                        <span className="text-purple-500 text-lg leading-none">{kategoriTebellugAcik ? '▲' : '▼'}</span>
-                    </div>
-                </button>
-                {kategoriTebellugAcik && (
-                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
-                        {tebellugBekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm personeller görevlerini tebellüğ etmiş.</div> ) : (
-                            tebellugBekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="tebellug" />)
-                        )}
-                    </div>
-                )}
-            </section>
+            {/* YENİ: TEBELLÜĞ BEKLEYENLER KİŞİ BAZLI YAPILDI VE SIFIRSA GİZLENDİ */}
+            {tebellugBekleyenKomiserler.length > 0 && (
+                <section className="bg-slate-900 border border-purple-900/50 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                    <button 
+                      onClick={() => setKategoriTebellugAcik(!kategoriTebellugAcik)}
+                      className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                    >
+                        <h2 className="text-purple-400 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">📩</span> TEBELLÜĞ (GÖREV ONAYI) BEKLEYEN PERSONEL</h2>
+                        <div className="flex items-center gap-4">
+                            <span className="bg-purple-900/50 text-purple-300 border border-purple-700 text-xs font-bold px-2 py-1 rounded">{tebellugBekleyenKomiserler.length} PERSONEL</span>
+                            <span className="text-purple-500 text-lg leading-none">{kategoriTebellugAcik ? '▲' : '▼'}</span>
+                        </div>
+                    </button>
+                    {kategoriTebellugAcik && (
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 animate-fade-in-down">
+                            {tebellugBekleyenKomiserler.map((komiser: any) => (
+                                <div key={komiser.id} className="bg-slate-800 border border-purple-800/50 rounded-lg p-3 flex justify-between items-center shadow-sm hover:bg-slate-700 transition-colors">
+                                    <div>
+                                        <h4 className="font-bold text-slate-200 text-sm">{komiser.isim}</h4>
+                                        <span className="text-purple-400 text-[10px] font-mono">ID: {komiser.id}</span>
+                                    </div>
+                                    <div className="bg-purple-900/60 text-purple-300 px-2 py-1 rounded text-xs font-bold border border-purple-700/50 text-center">
+                                        {komiser.count} Görev <br/> Bekliyor
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
 
-            <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
-                <button 
-                  onClick={() => setKategoriBekleyenAcik(!kategoriBekleyenAcik)}
-                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
-                >
-                    <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER <span className="hidden sm:inline text-xs text-slate-500 lowercase">(Görev tebellüğ edilmiş ancak skor girilmemiş)</span></h2>
-                    <div className="flex items-center gap-4">
-                        <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
-                        <span className="text-slate-400 text-lg leading-none">{kategoriBekleyenAcik ? '▲' : '▼'}</span>
-                    </div>
-                </button>
-                {kategoriBekleyenAcik && (
-                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
-                        {bekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm görevlerin raporları girilmiş.</div> ) : (
-                            bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)
-                        )}
-                    </div>
-                )}
-            </section>
+            {/* RAPOR BEKLEYENLER SIFIRSA GİZLENDİ */}
+            {bekleyenMaclar.length > 0 && (
+                <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                    <button 
+                      onClick={() => setKategoriBekleyenAcik(!kategoriBekleyenAcik)}
+                      className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                    >
+                        <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR (SKOR) BEKLEYENLER <span className="hidden md:inline text-xs text-slate-500 lowercase ml-1">(Görev alınmış ancak henüz skor işlenmemiş)</span></h2>
+                        <div className="flex items-center gap-4">
+                            <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
+                            <span className="text-slate-400 text-lg leading-none">{kategoriBekleyenAcik ? '▲' : '▼'}</span>
+                        </div>
+                    </button>
+                    {kategoriBekleyenAcik && (
+                        <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
+                            {bekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="bekleyen" />)}
+                        </div>
+                    )}
+                </section>
+            )}
 
             {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">

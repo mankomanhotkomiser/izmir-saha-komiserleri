@@ -273,13 +273,13 @@ export default function Home() {
     setMacYukleniyor(false)
   }
 
-  // ZIRHLI UNVAN HİYERARŞİSİ (YENİ KURAL)
   const gorevTuruBelirle = (kategori: any, macKodu: any) => {
     const kat = String(kategori || "").toUpperCase()
     const kod = String(macKodu || "").toUpperCase()
     
     if (kod.includes('DENETÇİ') || kat.includes('BAL') || kat.includes('BÖLGESEL')) return "BAL Ligi Denetçisi"
     if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri"
+    
     if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('3. LİG') || kat.includes('2. LİG')) return "Saha Komiseri"
     
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT')) {
@@ -461,6 +461,7 @@ export default function Home() {
     }
   }
 
+  // WIKIPEDIA LOGOSU EKLENDİ - CORS HATASI ÇÖZÜLDÜ
   const tffTutanakIndir = async (mac: any) => {
     const element = document.getElementById(`tff-form-${mac.id}`);
     if (element) {
@@ -1109,7 +1110,8 @@ export default function Home() {
                                 <div className="border-[3px] border-double border-slate-600 p-4">
                                     
                                     <div className="flex flex-col items-center mb-6 relative">
-                                        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/71.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
+                                        <img src="https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
+                                        <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                         <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                         <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
                                     </div>
