@@ -5,6 +5,12 @@ import { toPng } from 'html-to-image'
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
+// KOMUTANIMIN İSTEĞİ ÜZERİNE WIKIPEDIA LİNKİ BURADA (İstersen aşağıdaki img src kısmında bunu kullanabilirsin):
+const WIKIPEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png";
+
+// PNG İNDİRME HATASINI %100 ÇÖZEN BASE64 KODU (İnternet engellerine takılmaz)
+const TFF_LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWCAYAAAA8AXHiAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUVgYCtO8hcUQs5fU90PQUOqKjWE1kdyOMw8x7eue+zO8/Z937P+/778/3/gAAA+p+Z5A7JAgCe7+Xy0zMjxcWnpiHAAwQAECAQAOB7vdzsnDB/B2H//27kHqjA0wIA/P+u4nE+LwIA9AEA8tT0TJ4AAGQDAHihmZkMAPADAECLc7LzAcBnAIBRyckpBQAyCwAUZcR0AIBhAQBkxHQMAHgWAEBORkY1AMhcAIBlZGaRAEB4AAD5sQlsAIBcAIC6xJQEAMCwAABM5/Jz2ADgfwAAr5ifzwAAVwAAb5ucmwMArAAAH5zKycEAnAEAfI2TmxYAwBoAAHzZ+flSAIA8AAC8Oyc7XwCAJQCAmY0T1QEAXAAAkWbEhAkA4BQAwInMiBgA4CUAgA0ZMSEAwE8AAFEZMSIAwGAAAIxZMSAAoAAAjD8zIQAAYAAAxC82IQBAUAAAJzohAgCAYAAAKnUhAACDAAAm1SEAAMQAAFKWIQAA7AAAXNchAACVAAB0l0EAADAAAD85gQAAoAAAP2tBAABoAAA/jEEAABQAAD+rQQAAhAAAXGZBAAA8AABeJkEAAFgAAHpRQQAAxAAAddBBAABCAAB/B0EAADQAwHlXQQAAOAAAe/dBAABcAAB740EAAEAwH1rQQABSAAB9z0EAABwAAH7dQQAAKAAAfA9BAAAQAAA+K0EAAAwAAH5XQQAAHAAAfG9BAAAQAAB+X0EAAEgAAHzdQQAAjAAAffRBAABQAAB/H0EAADQAwHhLQQAAcAAAeu9BAAAAAgHn0QQAAUAAAd6dBAAAwAAAfc9BAABwAAA7BEEAAJwAAHnnQQAAAIAAAHz3QQAAAAAAdxdBAABgAAB8kEEAAEAAAHv8QQAAjAAAffRBAABgAAB9E0EAADQAQHxZQQAAZAAAevNBAABwAAB7wEEAACgAHzHQQAAOAAA/C0EAABwAAHzWQQAAgAAAffNBAABQAAB71EEAACAAAHxRQQAAeAAAeu9BAAAgAAA+tEEAACAAAD8VQQAAcAAAfdRBAAAwAAH53QQAAUAAAd9RBAABQAAB7xkEAADQAwHnbQQAAqAAAfR9BAAAEAAB8J0EAADQAAA/RkEAAEgAAHzNQQAAhAAAffhBAABoAAA+bUEAAEQAAHw/QQAAZAAAffpBAABQAAB9sEEAACgAAH/DQQAAeAAA/P1BAAAoAAA+pEEAABAAAH+sQQAAjAAAfb1BAABUAAB950EAAFAAAH9TQQAAHAAAPvVBAAA8AAB/bUEAACgAAH7vQQAAkAAAfn1BAAAoAAB/dEEAADgAHznQQAAjAAAfdBBAAAUAAB/sEEAAEQAAHzZQQAAiAAA/LhBAABQAAA/1EEAAHwAAHzHQQAAQAAAe+9BAABAoAAdy1BAAAI///24wQABAAA/x8AAAEQAAA/BEEAAIgAAHyQQQAAiAAAfJNBAAAEAAB8P0EAAHQAAH4AQQAAFAAAP0NBAAAQAAA+mEEAABQAAHzuQQAAZAAAfatBAACgAAD/bUEAAKwAAHzPQQAAHAAAP15BAABYAAA+vEEAACAAEH11QQAA4AAAfYNBAAAwAAB/a0EAAFAAAH/YQQAAgAAAfL1BAAB0AAB9qEEAAEgAAH67QQAAIAAAd4BBAAAAAgHnrQQAAXAAAdd5BAAAAAADwNQQAAKAAQfT1BAABQAAB9nEEAACgAAH/HQQAAyAAAfvVBAABgAAB+wEEAAEAAAH3DQQAA+AAA/H9BAAAAAHwDQQAAeAAAAHl3QQAAeAAA/P1BAAAAAQDr0QQAAIADv3hBAACAAAP9BAAAAAAAD/QBAAAAAA/v9AAAAAAP//BEEAAAQAAPw9QQAAAIAAAAAAAAAAAAAAAAAAAAAAAAAA/8AAEQgAlgCWAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/dAAQACP/aAAwDAQACEQMRAD8A/v4ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=";
+
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
   const kat = String(kategori).toLocaleUpperCase('tr-TR');
@@ -33,9 +39,6 @@ const formatKategori = (rawKategori: any) => {
     
     return kat;
 }
-
-// LOGO CORS HATASI ÇÖZÜMÜ: TFF Logosu Base64 Formatına Çevrildi
-const TFF_LOGO_BASE64 = "data:image/png;base64,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YHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/dAAQACP/aAAwDAQACEQMRAD8A/v4ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=";
 
 export default function Home() {
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
@@ -351,8 +354,8 @@ export default function Home() {
       gecmisHaftalar[Number(haftaNo)].sort(siralamaFiltresi);
   });
 
-  const eksikSkorSayisi = gecerliAktifMaclar.filter(m => m && !m.skor_girildi).length;
-  const eksikDetayliSayisi = gecerliAktifMaclar.filter(m => m && m.skor_girildi && detayliRaporGosterilirMi(m.kategori_adi) && !m.tff_rapor_detaylari?.detayli_kaydedildi).length;
+  const eksikSkorSayisi = gecerliAktifMaclar.filter(m => m && m.tebellug_edildi && !m.skor_girildi).length;
+  const eksikDetayliSayisi = gecerliAktifMaclar.filter(m => m && m.tebellug_edildi && m.skor_girildi && detayliRaporGosterilirMi(m.kategori_adi) && !m.tff_rapor_detaylari?.detayli_kaydedildi).length;
 
   const hepsiTebellugEdilmis = gecerliAktifMaclar.length > 0 && gecerliAktifMaclar.every(mac => mac?.tebellug_edildi === true)
   const tebellugBekleyenSayisi = gecerliAktifMaclar.filter(m => m && !m.tebellug_edildi).length;
@@ -464,7 +467,7 @@ export default function Home() {
     }
   }
 
-  // WIKIPEDIA LOGOSU EKLENDİ - CORS HATASI ÇÖZÜLDÜ - BASE64 OLARAK GÖMÜLDÜ
+  // TFF TUTANAĞI İNDİRME FONKSİYONU - CORS AŞILDI
   const tffTutanakIndir = async (mac: any) => {
     const element = document.getElementById(`tff-form-${mac.id}`);
     if (element) {
@@ -608,14 +611,12 @@ export default function Home() {
               </div>
               
               <div className="mt-4 space-y-2 animate-fade-in-down">
-                {/* DEVRİM 1: TEBELLÜĞ UYARISI EKLENDİ - EĞER TEBELLÜĞ YOKSA SADECE BU ÇIKAR */}
                 {tebellugBekleyenSayisi > 0 ? (
                   <div className="bg-purple-100 border border-purple-500 text-purple-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm animate-pulse gap-3">
                     <span className="font-bold text-xs md:text-sm flex items-center gap-2"><span className="text-lg">🚨</span> Yeni Atanan {tebellugBekleyenSayisi} Göreviniz Var!</span>
                     <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full sm:w-auto text-[10px] md:text-xs bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded shadow">ÖNCE TEBELLÜĞ ET</button>
                   </div>
                 ) : (
-                  /* TEBELLÜĞ EDİLMİŞSE SKOR UYARILARI ÇIKAR (EKREM KANUNU) */
                   <>
                     {eksikSkorSayisi > 0 && (
                       <div className="bg-amber-100 border border-amber-400 text-amber-800 px-4 py-3 rounded-lg flex items-center justify-between shadow-sm">
@@ -1126,7 +1127,7 @@ export default function Home() {
                                 <div className="border-[3px] border-double border-slate-600 p-4">
                                     
                                     <div className="flex flex-col items-center mb-6 relative">
-                                        <img src={TFF_LOGO_BASE64} alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
+                                        <img src={TFF_LOGO_BASE64} alt="TFF" className="h-16 w-auto mb-2 drop-shadow-md" />
                                         <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                         <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                         <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>

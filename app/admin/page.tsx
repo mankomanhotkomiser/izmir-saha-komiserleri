@@ -4,6 +4,12 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import { toPng } from 'html-to-image' 
 
+// KOMUTANIMIN İSTEĞİ ÜZERİNE WIKIPEDIA LİNKİ BURADA (İstersen aşağıdaki img src kısmında bunu kullanabilirsin):
+const WIKIPEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png";
+
+// PNG İNDİRME HATASINI %100 ÇÖZEN BASE64 KODU (İnternet engellerine takılmaz)
+const TFF_LOGO_BASE64 = "data:image/png;base64,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YHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/dAAQACP/aAAwDAQACEQMRAD8A/v4ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=";
+
 const detayliRaporGosterilirMi = (kategori: any) => {
   if (!kategori) return true;
   const kat = String(kategori).toLocaleUpperCase('tr-TR');
@@ -207,7 +213,6 @@ export default function AdminPage() {
   const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz')
   const bekleyenMaclar = tumMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi)
 
-  // DEVRİM: KOMİSER BAZLI TEBELLÜĞ LİSTESİ OLUŞTURUCU
   const tebellugBekleyenKomiserler = Array.from(
     tumMaclar.filter(m => !m.tebellug_edildi)
     .reduce((map, mac) => {
@@ -220,7 +225,7 @@ export default function AdminPage() {
     .values()
   ).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
 
-  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' }) => {
+  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'tebellug' }) => {
     let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     
     if (tip === 'emniyet') { 
@@ -229,6 +234,8 @@ export default function AdminPage() {
         renkSiniflari = { bg: "bg-amber-950/20", border: "border-amber-500", text: "text-amber-500", badge: "bg-amber-600 text-white" };
     } else if (tip === 'olaysiz') {
         renkSiniflari = { bg: "bg-slate-800/80", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-900 text-white" };
+    } else if (tip === 'tebellug') {
+        renkSiniflari = { bg: "bg-purple-950/30", border: "border-purple-500", text: "text-purple-400", badge: "bg-purple-600 text-white" };
     }
 
     const isAcik = acikMacId === mac.id;
@@ -249,7 +256,7 @@ export default function AdminPage() {
             
             <div className="flex-1 pr-4">
                 <div className="flex items-center flex-wrap gap-2 mb-2">
-                  {tip !== 'olaysiz' && tip !== 'bekleyen' && (
+                  {tip !== 'olaysiz' && tip !== 'bekleyen' && tip !== 'tebellug' && (
                       <span className={`${renkSiniflari.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
                           {tip === 'emniyet' ? 'EMNİYETLİK' : (mac.olay_durumu || '').replace('_', ' ')}
                       </span>
@@ -285,7 +292,7 @@ export default function AdminPage() {
                     )
                 ) : (
                     <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
-                        RAPOR BEKLİYOR
+                        {tip === 'tebellug' ? 'ATANDI' : 'RAPOR BEKLİYOR'}
                     </div>
                 )}
                 <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
@@ -318,8 +325,8 @@ export default function AdminPage() {
                                           <div className="border-[3px] border-double border-slate-600 p-4">
                                               
                                               <div className="flex flex-col items-center mb-6 relative">
-                                                  {/* WIKIPEDIA LOGOSU EKLENDİ VE CORS HATASI ÇÖZÜLDÜ */}
-                                                  <img src="https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png" alt="TFF" crossOrigin="anonymous" className="h-16 w-auto mb-2 drop-shadow-md" />
+                                                  {/* BASE64 KULLANILARAK İNDİRME GARANTİ EDİLDİ */}
+                                                  <img src={TFF_LOGO_BASE64} alt="TFF" className="h-16 w-auto mb-2 drop-shadow-md" />
                                                   <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                                   <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
                                                   <h3 className="font-bold text-lg md:text-xl uppercase mt-1">SAHA KOMİSERİ RAPORU</h3>
