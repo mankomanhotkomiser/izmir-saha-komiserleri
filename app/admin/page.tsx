@@ -50,6 +50,7 @@ export default function AdminPage() {
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
+  const [kategoriTebellugAcik, setKategoriTebellugAcik] = useState(true) // YENİ EKLENDİ
   const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
 
@@ -201,12 +202,16 @@ export default function AdminPage() {
     )
   }
 
+  // DEVRİM: FİLTRELEME MANTIKLARI YENİLENDİ
   const emniyetlikMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay')
   const teknikMaclar = tumMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu'))
   const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz')
-  const bekleyenMaclar = tumMaclar.filter(m => !m.skor_girildi)
+  
+  // YENİ TEBELLÜĞ FİLTRELERİ
+  const tebellugBekleyenMaclar = tumMaclar.filter(m => !m.tebellug_edildi)
+  const bekleyenMaclar = tumMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi)
 
-  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' }) => {
+  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'tebellug' }) => {
     let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     
     if (tip === 'emniyet') { 
@@ -215,6 +220,8 @@ export default function AdminPage() {
         renkSiniflari = { bg: "bg-amber-950/20", border: "border-amber-500", text: "text-amber-500", badge: "bg-amber-600 text-white" };
     } else if (tip === 'olaysiz') {
         renkSiniflari = { bg: "bg-slate-800/80", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-900 text-white" };
+    } else if (tip === 'tebellug') { // YENİ MOR RENK KODU
+        renkSiniflari = { bg: "bg-purple-950/30", border: "border-purple-500", text: "text-purple-400", badge: "bg-purple-600 text-white" };
     }
 
     const isAcik = acikMacId === mac.id;
@@ -234,18 +241,26 @@ export default function AdminPage() {
         <button onClick={() => toggleMac(mac.id)} className={`w-full text-left p-4 flex justify-between items-center ${renkSiniflari.bg} hover:brightness-125 transition-all focus:outline-none`}>
             
             <div className="flex-1 pr-4">
-                <div className="flex items-center gap-2 mb-1">
-                  {tip !== 'olaysiz' && tip !== 'bekleyen' && (
+                <div className="flex items-center flex-wrap gap-2 mb-2">
+                  {tip !== 'olaysiz' && tip !== 'bekleyen' && tip !== 'tebellug' && (
                       <span className={`${renkSiniflari.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
                           {tip === 'emniyet' ? 'EMNİYETLİK' : (mac.olay_durumu || '').replace('_', ' ')}
                       </span>
                   )}
                   <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">{mac.kategori_adi}</span>
+                  
+                  {/* YENİ: KART ÜSTÜ TEBELLÜĞ ROZETİ */}
+                  {mac.tebellug_edildi ? (
+                      <span className="text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1">✓ TEBELLÜĞ EDİLDİ</span>
+                  ) : (
+                      <span className="text-[9px] bg-purple-900/40 text-purple-300 border border-purple-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1 animate-pulse">⏳ TEBELLÜĞ BEKLİYOR</span>
+                  )}
+
                 </div>
                 <h3 className="font-bold text-sm md:text-base text-white leading-tight mb-1">
                     {mac.ev_sahibi} <span className="text-slate-500 mx-1 text-xs">vs</span> {mac.misafir_takim}
                 </h3>
-                <div className="text-[10px] text-slate-400 font-mono leading-snug">
+                <div className="text-[10px] text-slate-400 font-mono leading-snug mt-2">
                     {mac.saha} <br/> 
                     <span className="text-blue-300">{guvenliTarih(mac.tarih)} - {mac.saat?.substring(0,5)}</span>
                 </div>
@@ -263,7 +278,9 @@ export default function AdminPage() {
                         </div>
                     )
                 ) : (
-                    <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">BEKLİYOR</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
+                        {tip === 'tebellug' ? 'ATANDI' : 'RAPOR BEKLİYOR'}
+                    </div>
                 )}
                 <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
             </div>
@@ -543,12 +560,33 @@ export default function AdminPage() {
                 )}
             </section>
 
+            {/* YENİ: TEBELLÜĞ BEKLEYENLER BÖLÜMÜ */}
+            <section className="bg-slate-900 border border-purple-900/50 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
+                <button 
+                  onClick={() => setKategoriTebellugAcik(!kategoriTebellugAcik)}
+                  className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
+                >
+                    <h2 className="text-purple-400 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">📩</span> TEBELLÜĞ BEKLEYENLER</h2>
+                    <div className="flex items-center gap-4">
+                        <span className="bg-purple-900/50 text-purple-300 border border-purple-700 text-xs font-bold px-2 py-1 rounded">{tebellugBekleyenMaclar.length} MAÇ</span>
+                        <span className="text-purple-500 text-lg leading-none">{kategoriTebellugAcik ? '▲' : '▼'}</span>
+                    </div>
+                </button>
+                {kategoriTebellugAcik && (
+                    <div className="p-4 overflow-y-auto flex-1 custom-scrollbar animate-fade-in-down">
+                        {tebellugBekleyenMaclar.length === 0 ? ( <div className="text-center py-6 text-slate-500 text-sm font-bold">Tüm personeller görevlerini tebellüğ etmiş.</div> ) : (
+                            tebellugBekleyenMaclar.map(mac => <RaporDurumKarti key={mac.id} mac={mac} tip="tebellug" />)
+                        )}
+                    </div>
+                )}
+            </section>
+
             <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
                 <button 
                   onClick={() => setKategoriBekleyenAcik(!kategoriBekleyenAcik)}
                   className="w-full bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center hover:bg-slate-700/80 transition-colors focus:outline-none sticky top-0 z-10"
                 >
-                    <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER</h2>
+                    <h2 className="text-slate-300 font-black tracking-widest uppercase flex items-center gap-2"><span className="text-xl">⏳</span> RAPOR BEKLENENLER <span className="hidden sm:inline text-xs text-slate-500 lowercase">(Görev tebellüğ edilmiş ancak skor girilmemiş)</span></h2>
                     <div className="flex items-center gap-4">
                         <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded">{bekleyenMaclar.length} MAÇ</span>
                         <span className="text-slate-400 text-lg leading-none">{kategoriBekleyenAcik ? '▲' : '▼'}</span>
@@ -563,6 +601,7 @@ export default function AdminPage() {
                 )}
             </section>
 
+            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
                 <button
