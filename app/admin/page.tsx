@@ -4,12 +4,10 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import { toPng } from 'html-to-image' 
 
-// --- LOGO LİNKLERİ (İstediğin logoyu buraya yapıştırabilirsin) ---
-const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png";
-const GELISIM_SOL_LOGO = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png";
-const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png"; 
-// ----------------------------------------------------------------
-
+// --- LOGO LİNKLERİ ---
+const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
+const GELISIM_SOL_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
+const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original"; 
 const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
