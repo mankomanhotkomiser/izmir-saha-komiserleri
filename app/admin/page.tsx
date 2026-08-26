@@ -4,10 +4,8 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import { toPng } from 'html-to-image' 
 
-// KOMUTANIMIN İSTEĞİ ÜZERİNE WIKIPEDIA LİNKİ BURADA (İstersen aşağıdaki img src kısmında bunu kullanabilirsin):
 const WIKIPEDIA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/tr/b/b8/T%C3%BCrkiye_Futbol_Federasyonu_logo.png";
 
-// PNG İNDİRME HATASINI %100 ÇÖZEN BASE64 KODU (İnternet engellerine takılmaz)
 const TFF_LOGO_BASE64 = "data:image/png;base64,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YHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/dAAQACP/aAAwDAQACEQMRAD8A/v4ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=";
 
 const detayliRaporGosterilirMi = (kategori: any) => {
@@ -250,6 +248,9 @@ export default function AdminPage() {
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
 
+    const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
+    const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
+
     return (
       <div className={`mb-3 rounded-xl border-l-4 overflow-hidden shadow-md transition-all ${renkSiniflari.border}`}>
         <button onClick={() => toggleMac(mac.id)} className={`w-full text-left p-4 flex justify-between items-center ${renkSiniflari.bg} hover:brightness-125 transition-all focus:outline-none`}>
@@ -279,23 +280,31 @@ export default function AdminPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col items-end pl-2">
+            {/* ADMİN ÇİFT KUTUCUK ENTEGRASYONU */}
+            <div className="flex flex-col items-end pl-2 gap-1.5 mt-2 sm:mt-0">
                 {mac.skor_girildi ? (
                     mac.mac_durumu === 'oynandi' ? (
-                        <div className="text-xl font-black tracking-widest text-white bg-slate-900 px-3 py-1 rounded border border-slate-700 shadow-inner mb-2">
+                        <div className="text-lg md:text-xl font-black tracking-widest text-white bg-slate-900 px-3 py-1 rounded border border-slate-700 shadow-inner">
                             {mac.ev_sahibi_skor} - {mac.misafir_skor}
                         </div>
                     ) : (
-                        <div className="text-[10px] font-bold text-amber-400 uppercase text-right bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
+                        <div className="text-[10px] font-bold text-amber-400 uppercase text-right bg-slate-900 px-2 py-1 rounded border border-slate-700">
                             {(mac.mac_durumu || '').replace(/_/g, ' ')}
                         </div>
                     )
                 ) : (
-                    <div className="text-[10px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded border border-slate-700 mb-2">
-                        {tip === 'tebellug' ? 'ATANDI' : 'RAPOR BEKLİYOR'}
+                    <div className={`text-[9px] md:text-[10px] font-bold uppercase px-2 py-1 rounded border text-center min-w-[110px] ${tip === 'tebellug' ? 'bg-slate-900 text-slate-500 border-slate-700' : 'bg-red-950/50 text-red-500 border-red-800 animate-pulse'}`}>
+                        {tip === 'tebellug' ? 'ATANDI' : '❌ SKOR BEKLİYOR'}
                     </div>
                 )}
-                <span className="text-slate-500 text-lg leading-none">{isAcik ? '▲' : '▼'}</span>
+
+                {detayliGoster && tip !== 'tebellug' && (
+                    <div className={`text-[9px] md:text-[10px] font-bold uppercase px-2 py-1 rounded border text-center min-w-[110px] ${detayliGonderilmis ? 'bg-green-900/50 text-green-400 border-green-800' : 'bg-red-950/50 text-red-500 border-red-800 animate-pulse'}`}>
+                        {detayliGonderilmis ? '✓ DETAYLI RAPOR' : '❌ DETAYLI EKSİK'}
+                    </div>
+                )}
+
+                <span className="text-slate-500 text-lg leading-none mt-1">{isAcik ? '▲' : '▼'}</span>
             </div>
         </button>
 
@@ -325,7 +334,6 @@ export default function AdminPage() {
                                           <div className="border-[3px] border-double border-slate-600 p-4">
                                               
                                               <div className="flex flex-col items-center mb-6 relative">
-                                                  {/* BASE64 KULLANILARAK İNDİRME GARANTİ EDİLDİ */}
                                                   <img src={TFF_LOGO_BASE64} alt="TFF" className="h-16 w-auto mb-2 drop-shadow-md" />
                                                   <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                                                   <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1">TÜRKİYE FUTBOL FEDERASYONU</h2>
@@ -507,7 +515,6 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            {/* SIFIRSA GİZLENECEK KISIMLAR DEVRİMİ */}
             {emniyetlikMaclar.length > 0 && (
                 <section className="bg-slate-900 border border-red-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full">
                     <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
@@ -570,7 +577,6 @@ export default function AdminPage() {
                 </section>
             )}
 
-            {/* YENİ: TEBELLÜĞ BEKLEYENLER KİŞİ BAZLI YAPILDI VE SIFIRSA GİZLENDİ */}
             {tebellugBekleyenKomiserler.length > 0 && (
                 <section className="bg-slate-900 border border-purple-900/50 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
                     <button 
@@ -601,7 +607,6 @@ export default function AdminPage() {
                 </section>
             )}
 
-            {/* RAPOR BEKLEYENLER SIFIRSA GİZLENDİ */}
             {bekleyenMaclar.length > 0 && (
                 <section className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col w-full">
                     <button 
@@ -622,7 +627,6 @@ export default function AdminPage() {
                 </section>
             )}
 
-            {/* ANA KATEGORİ: PERSONEL İSTİHBARAT VE SİCİL DAİRESİ */}
             <section className="bg-slate-900 border border-indigo-900/50 rounded-xl overflow-hidden shadow-2xl relative w-full mt-12">
                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
                 <button
