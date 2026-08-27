@@ -82,12 +82,15 @@ export default function Home() {
   const [arsivAcik, setArsivAcik] = useState(false)
   const [acikHaftalar, setAcikHaftalar] = useState<number[]>([])
   const [tebellugYukleniyor, setTebellugYukleniyor] = useState(false)
+  
+  // MAZERET STATE'LERİ
   const [mazeretKaydediliyor, setMazeretKaydediliyor] = useState(false)
   const [mazeretKaydedildi, setMazeretKaydedildi] = useState(false)
   const [kompleYokum, setKompleYokum] = useState(false)
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
+  const [mazeretNotu, setMazeretNotu] = useState('')
 
   const [acikSicilSaha, setAcikSicilSaha] = useState<string | null>(null)
   const [acikSicilTffMacId, setAcikSicilTffMacId] = useState<number | null>(null)
@@ -99,7 +102,7 @@ export default function Home() {
   })
 
   const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
-  const [mazeretNotu, setMazeretNotu] = useState('')
+  
   const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
   const [evSkor, setEvSkor] = useState<string>('')
   const [misafirSkor, setMisafirSkor] = useState<string>('')
@@ -634,7 +637,6 @@ export default function Home() {
       return (
           <div id={`${prefix}-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6">
               
-              {/* --- AMATÖR LİG FORMU --- */}
               {raporTuru === 'amator' && (
               <div className="border-[3px] border-double border-slate-600 p-4">
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
@@ -707,7 +709,6 @@ export default function Home() {
               </div>
               )}
 
-              {/* --- GELİŞİM LİGLERİ FORMU --- */}
               {raporTuru === 'gelisim' && (
               <div className="border-[3px] border-double border-slate-600 p-4 bg-white text-black font-sans">
                   <div className="flex items-center justify-between mb-4 border-b-2 border-red-600 pb-3">
@@ -827,7 +828,6 @@ export default function Home() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- */}
               {(safeRaporDetay?.ek_raporlar || []).map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       <div className="flex items-center justify-between mb-8 border-b-2 border-red-600 pb-4">
@@ -953,6 +953,85 @@ export default function Home() {
     )
   }
 
+  if (aktifEkran === 'mazeretBildir') {
+    const hedefHafta = globalAktifHaftaNo + 1;
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        {renderOrtakHeader(true)}
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-slate-200">
+            <div className="bg-slate-800 p-6 text-center text-white relative">
+              <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest">{hedefHafta}. HAFTA MAZERET VE MÜSAİTLİK BİLDİRİMİ</h2>
+              <p className="text-slate-300 text-xs md:text-sm mt-2">Lütfen önümüzdeki hafta için çalışma durumunuzu işaretleyiniz.</p>
+            </div>
+            <div className="p-4 md:p-8">
+              {mazeretKaydedildi ? (
+                <div className="text-center py-12 animate-fade-in-up">
+                  <span className="text-6xl block mb-4">✅</span>
+                  <h3 className="text-2xl font-black text-green-600 mb-2">Başarıyla İletildi!</h3>
+                  <p className="text-slate-500 font-bold">Mazeret durumunuz operasyon merkezine kaydedildi.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-red-50 border-2 border-red-200 rounded-xl overflow-hidden shadow-sm transition-all">
+                    <label className="flex items-center gap-3 p-4 md:p-5 cursor-pointer hover:bg-red-100/50 transition-colors">
+                      <input type="checkbox" checked={kompleYokum} onChange={e => { setKompleYokum(e.target.checked); if(e.target.checked) setMazeretTipi('yok'); else setMazeretTipi(null); }} className="w-6 h-6 text-red-600 rounded focus:ring-red-500 cursor-pointer" />
+                      <span className={`font-black text-lg md:text-xl uppercase tracking-wide ${kompleYokum ? 'text-red-700' : 'text-slate-600'}`}>Tüm Hafta Görev Alamayacağım</span>
+                    </label>
+                  </div>
+                  {!kompleYokum && (
+                    <div className="space-y-4 animate-fade-in-down">
+                      <div className={`border-2 rounded-xl overflow-hidden shadow-sm transition-all ${mazeretTipi === 'full' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+                        <label className="flex items-center gap-3 p-4 md:p-5 cursor-pointer hover:bg-slate-50 transition-colors">
+                          <input type="radio" name="mazeretTipi" checked={mazeretTipi === 'full'} onChange={() => setMazeretTipi('full')} className="w-6 h-6 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                          <span className={`font-black text-base md:text-lg uppercase tracking-wide ${mazeretTipi === 'full' ? 'text-emerald-700' : 'text-slate-600'}`}>Tüm Hafta (7/24) Müsaitim</span>
+                        </label>
+                        {mazeretTipi === 'full' && (
+                          <div className="p-4 border-t border-emerald-200 bg-white animate-fade-in-down">
+                            <p className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Tercih Ettiğiniz Görev Türü (En az birini seçiniz)</p>
+                            <div className="flex flex-wrap gap-6 bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-inner">
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={e => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-400" /><span className="font-bold text-slate-700">Merkez Görevleri</span></label>
+                              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={e => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-400" /><span className="font-bold text-slate-700">Deplasman Görevleri</span></label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className={`border-2 rounded-xl overflow-hidden shadow-sm transition-all ${mazeretTipi === 'secmeli' ? 'border-blue-500 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
+                        <label className="flex items-center gap-3 p-4 md:p-5 cursor-pointer hover:bg-slate-50 transition-colors">
+                          <input type="radio" name="mazeretTipi" checked={mazeretTipi === 'secmeli'} onChange={() => setMazeretTipi('secmeli')} className="w-6 h-6 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                          <span className={`font-black text-base md:text-lg uppercase tracking-wide ${mazeretTipi === 'secmeli' ? 'text-blue-700' : 'text-slate-600'}`}>Sadece Belirli Gün ve Saatlerde Müsaitim</span>
+                        </label>
+                        {mazeretTipi === 'secmeli' && (
+                          <div className="p-4 border-t border-blue-200 bg-slate-100 animate-fade-in-down">
+                            <p className="text-xs font-bold text-blue-800 mb-4 uppercase tracking-wider bg-blue-100 p-2 rounded border border-blue-200 text-center">Lütfen müsait olduğunuz günleri ve saat aralıklarını seçiniz.</p>
+                            {renderGunSatiri('cuma', 'Cuma')}
+                            {renderGunSatiri('cumartesi', 'Cumartesi')}
+                            {renderGunSatiri('pazar', 'Pazar')}
+                            {renderGunSatiri('pazartesi', 'Pazartesi')}
+                            {renderGunSatiri('sali', 'Salı')}
+                            {renderGunSatiri('carsamba', 'Çarşamba')}
+                            {renderGunSatiri('persembe', 'Perşembe')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="bg-white border-2 border-slate-200 rounded-xl p-4 md:p-5 shadow-sm">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Yönetime İletmek İstediğiniz Ek Not (Opsiyonel)</label>
+                    <textarea value={mazeretNotu} onChange={e => setMazeretNotu(e.target.value)} className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 transition-colors font-serif text-sm min-h-[100px] shadow-inner bg-slate-50" placeholder="Varsa mazeretinizle ilgili eklemek istediğiniz notu buraya yazabilirsiniz..."></textarea>
+                  </div>
+                  <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg transition-all text-sm md:text-base uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-70">
+                    {mazeretKaydediliyor ? 'KAYDEDİLİYOR...' : 'MAZERET / MÜSAİTLİK BİLDİRİMİNİ GÖNDER'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (aktifEkran === 'gorevKartlari') {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -1030,8 +1109,6 @@ export default function Home() {
     let amatorCount = 0; let profCount = 0;
     const amatorKategoriler: Record<string, number> = {};
     const profKategoriler: Record<string, number> = {};
-    
-    // SAHA VERİLERİ İÇİN AKILLI DEPO
     const sahaGruplari: Record<string, { gidisler: Set<string>, maclar: any[] }> = {};
 
     const maclar = Array.isArray(komiserMaclari) ? komiserMaclari : [];
@@ -1042,7 +1119,6 @@ export default function Home() {
         if (isProf) { profCount++; profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1; } 
         else { amatorCount++; amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1; }
         
-        // SAHA GRUPLANDIRMA (TARİH BAZLI)
         const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
         if (!sahaGruplari[sahaAdi]) { sahaGruplari[sahaAdi] = { gidisler: new Set(), maclar: [] }; }
         if (mac.tarih) sahaGruplari[sahaAdi].gidisler.add(mac.tarih);
@@ -1098,7 +1174,6 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* AÇILIR KAPANIR DETAYLI SAHA LİSTESİ VE CANLI TFF RAPORU (ARŞİV) */}
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm mt-6">
                     <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                     <h4 className="text-emerald-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center gap-2 border-b border-slate-200 pb-2"><span className="text-lg">🏟️</span> GÖREV YAPILAN SAHALAR VE DETAYLI ARŞİV</h4>
@@ -1114,7 +1189,7 @@ export default function Home() {
                                     <button onClick={() => setAcikSicilSaha(isSahaAcik ? null : saha)} className="w-full text-left p-3 flex justify-between items-center hover:bg-slate-50 transition-colors focus:outline-none">
                                         <div>
                                             <span className="text-slate-800 font-bold block">{saha}</span>
-                                            <span className="text-[10px] text-emerald-700 font-mono mt-1 block bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 inline-block">{gidisSayisi} Farklı Gün (Toplam {gorevSayisi} Görev)</span>
+                                            <span className="text-[10px] text-emerald-700 font-mono mt-1 block bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 inline-block">{gidisSayisi} Farklı Gün Gidildi (Toplam {gorevSayisi} Görev)</span>
                                         </div>
                                         <span className="text-slate-400 text-lg leading-none">{isSahaAcik ? '▲' : '▼'}</span>
                                     </button>
@@ -1152,7 +1227,6 @@ export default function Home() {
                                                             </div>
                                                         </div>
                                                         
-                                                        {/* DİREKT TFF RAPORU ÇEKİLİYOR */}
                                                         {isSicilTffAcik && detayliGonderilmis && (
                                                             <div className="mt-4 border-t border-slate-200 pt-4 animate-fade-in-down">
                                                                 <div className="p-4 overflow-x-auto bg-slate-200 rounded-lg">
