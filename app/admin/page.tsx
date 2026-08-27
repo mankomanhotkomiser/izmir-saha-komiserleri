@@ -265,6 +265,26 @@ export default function AdminPage() {
                   {mac.tebellug_edildi ? (<span className="text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1">✓ TEBELLÜĞ EDİLDİ</span>) : (<span className="text-[9px] bg-purple-900/40 text-purple-300 border border-purple-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1 animate-pulse">⏳ TEBELLÜĞ BEKLİYOR</span>)}
                 </div>
                 <h3 className="font-bold text-sm md:text-base text-white leading-tight mb-1">{mac.ev_sahibi} <span className="text-slate-500 mx-1 text-xs">vs</span> {mac.misafir_takim}</h3>
+
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+  <h3 className="font-bold text-lg md:text-xl text-white">{mac.ev_sahibi || '-'}</h3>
+
+  {mac.skor_girildi ? (
+    mac.mac_durumu === 'takimlar_cikmadi' ? (
+      <span className="bg-slate-700 text-slate-300 text-xs font-bold px-3 py-1 rounded border border-slate-600">ÇIKMADI</span>
+    ) : mac.mac_durumu === 'yarida_kaldi' ? (
+      <span className="bg-red-900/80 text-red-200 text-xs font-bold px-3 py-1 rounded border border-red-700">YARIDA KALDI</span>
+    ) : (
+      <div className="bg-green-600 text-white text-xl md:text-2xl font-black px-4 py-0.5 rounded shadow-lg border border-green-400 flex items-center justify-center min-w-[70px]">
+        {mac.ev_sahibi_skor} - {mac.misafir_skor}
+      </div>
+    )
+  ) : (
+    <span className="text-slate-500 text-sm font-black bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700">VS</span>
+  )}
+
+  <h3 className="font-bold text-lg md:text-xl text-white">{mac.misafir_takim || '-'}</h3>
+</div>
                 <div className="text-[10px] text-slate-400 font-mono leading-snug mt-2">{mac.saha} <br/> <span className="text-blue-300">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span></div>
             </div>
             <div className="flex flex-col items-end pl-2 gap-1.5 mt-2 sm:mt-0">
