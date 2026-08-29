@@ -16,11 +16,10 @@ const raporTurunuBelirle = (kategori: any) => {
     return 'amator';
 }
 
+// 🔥 SİBER HATA BURADAYDI! Gelişim liglerini gizliyordu. Artık sadece "yok" olan profesyonel ligleri gizleyecek!
 const detayliRaporGosterilirMi = (kategori: any) => {
-  if (!kategori) return true;
-  const kat = String(kategori).toLocaleUpperCase('tr-TR');
-  if (kat.includes('GELİŞİM') || kat.includes('TFF') || kat.includes('PROF') || kat.includes('KADIN') || kat.includes('ELİT') || kat.includes('AKADEMİ') || kat.includes('BÖLGESEL') || kat.includes('BAL')) return false; 
-  return true; 
+    const tur = raporTurunuBelirle(kategori);
+    return tur !== 'yok'; 
 }
 
 const guvenliTarih = (tarihMetni: string | null | undefined) => {
@@ -701,11 +700,19 @@ export default function AdminPage() {
     const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     
-    // 🔥 SİBER ÇEVİRİ DÜZELTİLDİ: Rapor paketi (JSON String) önce açılıp sonra içindeki 'detayli_kaydedildi' değerine bakılıyor.
-    let parsedDetay = typeof mac.tff_rapor_detaylari === 'string' 
-        ? JSON.parse(mac.tff_rapor_detaylari) 
-        : (mac.tff_rapor_detaylari || {});
-    const detayliGonderilmis = parsedDetay?.detayli_kaydedildi === true;
+    // 🔥 SİBER ÇEVİRİ ZEKASI: Paketi açıp içine bakıyoruz. En ufak bir veri varsa (hakem, detayli vs) rapor gelmiş demektir!
+    let parsedDetay = {};
+    if (mac.tff_rapor_detaylari) {
+        if (typeof mac.tff_rapor_detaylari === 'string') {
+            try { 
+                parsedDetay = JSON.parse(mac.tff_rapor_detaylari); 
+                if (typeof parsedDetay === 'string') parsedDetay = JSON.parse(parsedDetay);
+            } catch(e) { console.error("JSON Paketi Açılmadı:", e); }
+        } else if (typeof mac.tff_rapor_detaylari === 'object') {
+            parsedDetay = mac.tff_rapor_detaylari;
+        }
+    }
+    const detayliGonderilmis = parsedDetay && Object.keys(parsedDetay).length > 0;
     
     const macBittiMi = mac.skor_girildi === true && mac.mac_durumu !== 'iptal_edildi';
 
@@ -719,7 +726,7 @@ export default function AdminPage() {
                   {tip === 'iptal' && <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded animate-pulse">İPTAL EDİLDİ</span>}
                 </div>
                 
-                {/* SKORBORD TASARIMI (Aynı şekilde korundu) */}
+                {/* SKORBORD TASARIMI (MÜHÜRLÜ - DEĞİŞTİRİLMEDİ) */}
                 <div className="flex flex-col gap-1.5 w-full md:w-3/4 mb-3">
                   <div className="flex justify-between items-center rounded px-2 py-1 bg-slate-900/30">
                       <h3 className={`font-bold text-sm md:text-base uppercase pr-2 truncate w-full ${tip === 'iptal' ? 'text-red-400 line-through opacity-70' : 'text-white'}`}>{mac.ev_sahibi || '-'}</h3>
@@ -1121,10 +1128,18 @@ export default function AdminPage() {
                                                 const isAcik = acikSicilTffMacId === mac.id;
                                                 const skorMetni = mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Bekleniyor';
                                                 
-                                                let parsedDetay = typeof mac.tff_rapor_detaylari === 'string' 
-                                                    ? JSON.parse(mac.tff_rapor_detaylari) 
-                                                    : (mac.tff_rapor_detaylari || {});
-                                                const detayliGonderilmis = parsedDetay?.detayli_kaydedildi === true;
+                                                let parsedDetay = {};
+                                                if (mac.tff_rapor_detaylari) {
+                                                    if (typeof mac.tff_rapor_detaylari === 'string') {
+                                                        try { 
+                                                            parsedDetay = JSON.parse(mac.tff_rapor_detaylari); 
+                                                            if (typeof parsedDetay === 'string') parsedDetay = JSON.parse(parsedDetay);
+                                                        } catch(e) { }
+                                                    } else if (typeof mac.tff_rapor_detaylari === 'object') {
+                                                        parsedDetay = mac.tff_rapor_detaylari;
+                                                    }
+                                                }
+                                                const detayliGonderilmis = parsedDetay && Object.keys(parsedDetay).length > 0;
                                                 
                                                 return (
                                                     <div key={`sicil-${idx}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
