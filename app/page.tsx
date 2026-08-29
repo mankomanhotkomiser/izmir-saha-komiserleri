@@ -2,18 +2,17 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-const DERNEK_LOGO = "/logo.jpg"; // Türkiye Futbol Saha Komiserleri Derneği Logosu
+// 🔥 LOGO İÇİN KESİN ÇÖZÜM: Direkt TFF'nin şeffaf resmi logosunu webden çekiyoruz. Dosya yükleme derdi yok!
+const DERNEK_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original"; 
 
 export default function KomiserPage() {
   const [sicilNo, setSicilNo] = useState('')
-  const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [komiserBilgi, setKomiserBilgi] = useState<any>(null)
   const [maclar, setMaclar] = useState<any[]>([])
   const [yukleniyor, setYukleniyor] = useState(false)
   const [hata, setHata] = useState('')
 
-  // TFF Hakem listesi ve seçim durumları
   const [seciliMac, setSeciliMac] = useState<any>(null)
   const [raporModalAcik, setRaporModalAcik] = useState(false)
   const [hakem1, setHakem1] = useState('')
@@ -31,7 +30,6 @@ export default function KomiserPage() {
     setHata('')
     setYukleniyor(true)
 
-    // Plaka Zekası: Başına 35 ekleme kontrolü
     let girilenSicil = sicilNo.trim()
     if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) {
       girilenSicil = '35' + girilenSicil
@@ -45,7 +43,7 @@ export default function KomiserPage() {
         .single()
 
       if (error || !data) {
-        setHata('Sicil numarası veritabanında bulunamadı!')
+        setHata('Sicil numarası bulunamadı.')
         setYukleniyor(false)
         return
       }
@@ -54,7 +52,7 @@ export default function KomiserPage() {
       setGirisYapildi(true)
       maclariGetir(data.komiser_id)
     } catch (err: any) {
-      setHata('Giriş yapılırken sistem hatası oluştu.')
+      setHata('Sistem hatası oluştu.')
     }
     setYukleniyor(false)
   }
@@ -69,7 +67,6 @@ export default function KomiserPage() {
     if (data) setMaclar(data)
   }
 
-  // Kamuflaj Temizleyici: "TIKLA VE SEÇ..." ibaresini belgelerde gizler
   const temizleKamuflaj = (metin: string) => {
     if (!metin) return ''
     if (metin.toLocaleUpperCase('tr-TR').includes('TIKLA VE')) return ''
@@ -79,7 +76,7 @@ export default function KomiserPage() {
   const raporGonder = async () => {
     if (!seciliMac) return
     if (!hakem1 || hakem1.trim().length < 2 || hakem1.includes('TIKLA VE')) {
-      alert('⚠️ DİKKAT: Müsabaka Hakem adı girilmeden TFF Tutanak Raporu iletilemez!')
+      alert('⚠️ DİKKAT: Müsabaka Hakem adı girilmeden rapor iletilemez!')
       return
     }
 
@@ -106,63 +103,66 @@ export default function KomiserPage() {
         .eq('id', seciliMac.id)
 
       if (error) throw error
-      alert('✅ Müsabaka Raporu ve TFF Tutanağı Karargaha başarıyla iletildi!')
+      alert('✅ Rapor başarıyla iletildi!')
       setRaporModalAcik(false)
       maclariGetir(komiserBilgi.komiser_id)
     } catch (e: any) {
-      alert('Hata oluştu: ' + e.message)
+      alert('Hata: ' + e.message)
     }
   }
 
   if (!girisYapildi) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 font-sans text-slate-100">
-        <div className="bg-slate-900 border-2 border-slate-800 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-600 via-amber-500 to-blue-600"></div>
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* KIRMIZI - BEYAZ ARKA PLAN EFEKTİ */}
+        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
+        
+        <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
           
-          {/* DERNEK LOGO VE BAŞLIK ALANI */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center p-2 mb-4 shadow-xl">
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 bg-white rounded-full p-2 shadow-lg border border-slate-100 -mt-16 flex items-center justify-center">
               <img 
                 src={DERNEK_LOGO} 
-                onError={(e:any)=>{e.target.src="https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png"}} 
-                alt="TFSKD Logo" 
-                className="w-full h-full object-contain"
+                crossOrigin="anonymous"
+                alt="TFF Logo" 
+                className="w-[85%] h-[85%] object-contain"
               />
             </div>
-            <h1 className="text-base font-black tracking-wider text-slate-200 uppercase leading-snug">
-              TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
-            </h1>
-            <h2 className="text-sm font-bold text-red-500 tracking-widest uppercase mt-1">
-              İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ
-            </h2>
           </div>
 
-          <form onSubmit={girisYap} className="space-y-5 text-left">
+          <h1 className="text-sm font-black tracking-widest text-slate-800 uppercase leading-snug mb-1">
+            TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
+          </h1>
+          <h2 className="text-[11px] font-bold text-red-600 tracking-widest uppercase mb-8">
+            İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ
+          </h2>
+
+          <form onSubmit={girisYap} className="space-y-6">
+            {/* LİBELSİZ, TEMİZ VE MODERN GİRİŞ KUTUSU */}
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1">
-                Saha Komiseri Sicil No
-              </label>
               <input
                 type="text"
                 value={sicilNo}
                 onChange={(e) => setSicilNo(e.target.value)}
-                placeholder="Örn: 35262701 veya 262701"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-red-500 transition-colors"
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner"
                 required
               />
             </div>
             
-            {hata && <p className="text-red-500 text-xs font-bold text-center">{hata}</p>}
+            {hata && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg">{hata}</p>}
 
             <button
               type="submit"
               disabled={yukleniyor}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl uppercase tracking-widest shadow-lg transition-all disabled:opacity-50"
+              className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl uppercase tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
             >
               {yukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}
             </button>
           </form>
+        </div>
+        
+        <div className="absolute bottom-6 text-[10px] text-slate-400 font-medium tracking-widest uppercase text-center w-full z-10">
+          SahaKom-OS Türkiye © 2026<br/>Tüm Hakları Saklıdır
         </div>
       </div>
     )
@@ -170,15 +170,14 @@ export default function KomiserPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-200">
-      {/* HEADER / ÜST BAR */}
       <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
               src={DERNEK_LOGO} 
-              onError={(e:any)=>{e.target.src="https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png"}} 
-              alt="TFSKD Logo" 
-              className="w-10 h-10 object-contain rounded-full bg-slate-800 p-1 border border-slate-700"
+              crossOrigin="anonymous"
+              alt="Logo" 
+              className="w-10 h-10 object-contain rounded-full bg-white p-1 border border-slate-700"
             />
             <div>
               <h1 className="font-black text-xs md:text-sm text-white uppercase tracking-wider">
@@ -198,7 +197,6 @@ export default function KomiserPage() {
         </div>
       </header>
 
-      {/* GÖREV LİSTESİ */}
       <main className="max-w-4xl mx-auto p-4 space-y-4">
         <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 border-b border-slate-800 pb-2">
           📋 ATANAN MÜSABAKA GÖREVLERİNİZ ({maclar.length} MAÇ)
@@ -273,7 +271,7 @@ export default function KomiserPage() {
         )}
       </main>
 
-      {/* TFF RAPOR DÜZENLEME MODAL / BÖLÜMÜ */}
+      {/* TFF RAPOR DÜZENLEME MODAL */}
       {raporModalAcik && seciliMac && (
         <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-slate-900 border-2 border-emerald-500 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl">
@@ -284,7 +282,6 @@ export default function KomiserPage() {
               <button onClick={() => setRaporModalAcik(false)} className="text-slate-400 hover:text-white font-bold text-lg">✕</button>
             </div>
 
-            {/* SKOR GİRİŞİ */}
             <div className="grid grid-cols-2 gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 truncate">{seciliMac.ev_sahibi}</label>
@@ -308,7 +305,6 @@ export default function KomiserPage() {
               </div>
             </div>
 
-            {/* HAKEM VE GÖREVLİ İSİMLERİ (KAMUFLAJLI SEÇİM ALANI) */}
             <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
               <h4 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-800 pb-1">GÖREVLİ HAKEMLER VE PERSONEL</h4>
               
@@ -370,7 +366,6 @@ export default function KomiserPage() {
               </div>
             </div>
 
-            {/* OLAY KATEGORİSİ VE NOTLAR */}
             <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">MÜSABAKA OLAY DURUMU</label>
