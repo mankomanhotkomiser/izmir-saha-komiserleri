@@ -172,12 +172,12 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // ⚠️ HATANIN ÇÖZÜMÜ: Sadece MAÇ KODUNA değil, "Tarih + EvSahibi + Misafir" DNA'sına bakar.
+  // 🧬 DNA GÜNCELLEMESİ (Tarih + Saat + Kategori + Ev Sahibi + Misafir)
   const mukerrerleriTemizle = async () => {
-      if(!window.confirm("DİKKAT: Veritabanındaki çift kayıtlar (Aynı Tarih + Aynı Takımlar) taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
+      if(!window.confirm("DİKKAT: Veritabanındaki tam kopyalar (Aynı Tarih+Saat+Lig+Takımlar) taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
       setYukleniyor(true);
       try {
-          const { data, error } = await supabase.from('musabakalar').select('id, tarih, ev_sahibi, misafir_takim').order('id', { ascending: true });
+          const { data, error } = await supabase.from('musabakalar').select('id, tarih, saat, kategori_adi, ev_sahibi, misafir_takim').order('id', { ascending: true });
           if(error) throw error;
           
           const dnaMap = new Map();
@@ -185,7 +185,8 @@ export default function AdminPage() {
           
           data.forEach(m => {
               if(!m.ev_sahibi || !m.misafir_takim) return;
-              const anahtar = `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              // YENİ ZIRHLI DNA! Artık U14 ve U15 maçları karışmayacak.
+              const anahtar = `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
               if(dnaMap.has(anahtar)) {
                   silinecekIdler.push(m.id);
               } else {
@@ -271,6 +272,7 @@ export default function AdminPage() {
       }
   }
 
+  // 📡 GELİŞMİŞ EXCEL RADARI VE HAYALET MAÇ FİLTRESİ
   const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -284,7 +286,11 @@ export default function AdminPage() {
               if (jsonData.length === 0) { setExcelHata("Yüklediğiniz dosya boş veya okunamadı."); return; }
 
               const islenmisVeri = jsonData.map((row: any) => {
-                  let islenmisTarih = row['TARİH'] || row['Tarih'] || row['tarih'] || row['Tarih (YYYY-MM-DD)'] || '';
+                  // Radarı devreye sok: Tüm sütun başlıklarındaki boşlukları sil ve büyük harfe çevir
+                  const normRow: any = {};
+                  Object.keys(row).forEach(k => { normRow[k.trim().toLocaleUpperCase('tr-TR')] = row[k]; });
+
+                  let islenmisTarih = normRow['TARİH'] || normRow['TARIH'] || normRow['TARİH (YYYY-MM-DD)'] || '';
                   if (typeof islenmisTarih === 'number') {
                       const excelDate = new Date(Math.round((islenmisTarih - 25569) * 86400 * 1000));
                       islenmisTarih = excelDate.toISOString().split('T')[0];
@@ -296,7 +302,7 @@ export default function AdminPage() {
                        if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
                   }
 
-                  let islenmisSaat = row['SAAT'] || row['Saat'] || row['saat'] || '';
+                  let islenmisSaat = normRow['SAAT'] || '';
                   if (typeof islenmisSaat === 'number') {
                       const totalSeconds = Math.round(islenmisSaat * 86400);
                       const h = Math.floor(totalSeconds / 3600);
@@ -304,7 +310,7 @@ export default function AdminPage() {
                       islenmisSaat = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                   }
 
-                  const rawName = String(row['SAHA KOMİSERİ'] || row['Saha Komiseri'] || row['KOMİSER'] || row['Komiser'] || row['Komiser ID'] || row['TC'] || '').trim();
+                  const rawName = String(normRow['SAHA KOMİSERİ'] || normRow['KOMİSER'] || normRow['KOMİSER ID'] || normRow['TC'] || '').trim();
                   let finalKomiserId = rawName; 
                   
                   if (rawName && tumKomiserler && tumKomiserler.length > 0) {
@@ -314,17 +320,22 @@ export default function AdminPage() {
                   }
 
                   return {
-                      mac_kodu: String(row['M.KODU'] || row['M. Kodu'] || row['Maç Kodu'] || row['MAC KODU'] || row['KOD'] || ''),
+                      mac_kodu: String(normRow['M.KODU'] || normRow['M. KODU'] || normRow['MAÇ KODU'] || normRow['MAC KODU'] || normRow['KOD'] || normRow['MÜSABAKA NO'] || normRow['MUSABAKA NO'] || ''),
                       tarih: islenmisTarih,
                       saat: islenmisSaat,
-                      saha: String(row['STAD'] || row['Saha'] || row['SAHA'] || ''),
-                      kategori_adi: String(row['KATEGORİSİ'] || row['Kategori'] || row['KATEGORİ'] || ''),
-                      ev_sahibi: String(row['EV SAHİBİ TAKIM'] || row['Ev Sahibi'] || row['EV SAHİBİ'] || row['1.Takım'] || ''),
-                      misafir_takim: String(row['MİSAFİR TAKIM'] || row['Misafir'] || row['MİSAFİR'] || row['2.Takım'] || ''),
+                      saha: String(normRow['STAD'] || normRow['SAHA'] || normRow['STADYUM'] || ''),
+                      kategori_adi: String(normRow['KATEGORİSİ'] || normRow['KATEGORİ'] || normRow['KATEGORI'] || normRow['LİG'] || ''),
+                      ev_sahibi: String(normRow['EV SAHİBİ TAKIM'] || normRow['EV SAHİBİ'] || normRow['1.TAKIM'] || normRow['1. TAKIM'] || normRow['TAKIM 1'] || ''),
+                      misafir_takim: String(normRow['MİSAFİR TAKIM'] || normRow['MİSAFİR'] || normRow['2.TAKIM'] || normRow['2. TAKIM'] || normRow['TAKIM 2'] || ''),
                       komiser_id: finalKomiserId, 
                       raw_komiser_name: rawName 
                   }
-              }).filter(m => m.ev_sahibi && m.misafir_takim);
+              }).filter(m => {
+                  // HAYALET MAÇ FİLTRESİ: Takım isimleri boşsa veya BAY geçiyorsa listeye almaz.
+                  const ev = m.ev_sahibi.trim().toLocaleUpperCase('tr-TR');
+                  const misafir = m.misafir_takim.trim().toLocaleUpperCase('tr-TR');
+                  return ev && misafir && ev !== 'BAY' && misafir !== 'BAY';
+              });
 
               setYuklenenExcelVerisi(islenmisVeri);
               setExcelHata(null);
@@ -342,7 +353,7 @@ export default function AdminPage() {
       }
   }
 
-  // ⚠️ HATANIN ÇÖZÜMÜ 2: Yüklemede kalkanı M.KODU değil, Maç DNA'sı yaptık
+  // YÜKLEMEDEKİ DNA GÜNCELLEMESİ
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
       setExcelKaydediliyor(true);
@@ -358,11 +369,11 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          const { data: mevcutlar } = await supabase.from('musabakalar').select('tarih, ev_sahibi, misafir_takim');
-          const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`));
+          const { data: mevcutlar } = await supabase.from('musabakalar').select('tarih, saat, kategori_adi, ev_sahibi, misafir_takim');
+          const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`));
           
           const eklenecekler = dbVerisi.filter(m => {
-              const anahtar = `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              const anahtar = `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
               return !mevcutAnahtarlar.has(anahtar);
           });
 
