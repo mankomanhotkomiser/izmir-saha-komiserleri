@@ -78,7 +78,9 @@ export default function AdminPage() {
   const [yukleniyor, setYukleniyor] = useState(true)
 
   const [acikMacId, setAcikMacId] = useState<number | null>(null)
-  const [acikTffMacId, setAcikTffMacId] = useState<number | null>(null) 
+  
+  // 🔥 YENİ: TAM EKRAN TFF RAPOR MODALI İÇİN STATE
+  const [tamEkranRaporMac, setTamEkranRaporMac] = useState<any>(null)
 
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
@@ -89,7 +91,6 @@ export default function AdminPage() {
   
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
   const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') 
-  const [acikSicilTffMacId, setAcikSicilTffMacId] = useState<number | null>(null)
 
   const [excelModalAcik, setExcelModalAcik] = useState(false)
   const [yuklenenExcelVerisi, setYuklenenExcelVerisi] = useState<any[]>([])
@@ -229,8 +230,7 @@ export default function AdminPage() {
     return komiser ? komiser.ad_soyad : 'Atanmamış'
   }
 
-  const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); setAcikTffMacId(null); }
-  const toggleTff = (id: number) => { setAcikTffMacId(acikTffMacId === id ? null : id) }
+  const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); }
 
   const sessizMacGuncelle = (macId: number, yeniVeriler: any) => {
       setHaftalikGruplar(prev => {
@@ -439,14 +439,6 @@ export default function AdminPage() {
     }
   }
 
-  // 🔥 TIKLA VE SEÇ KAMUFLAJI
-  const temizHakem = (isim: any) => {
-      if (!isim) return '';
-      const s = String(isim).trim().toLocaleUpperCase('tr-TR');
-      if (s.includes('TIKLA VE')) return '';
-      return String(isim).trim();
-  };
-
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
@@ -498,10 +490,10 @@ export default function AdminPage() {
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       <div className="border-r border-black flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_1)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_2)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.gozlemci)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
                       </div>
                       <div className="flex flex-col">
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input readOnly type="text" value={safeRaporDetay?.saglik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
@@ -569,7 +561,6 @@ export default function AdminPage() {
                       </div>
                   </div>
 
-                  {/* 🔥 GELİŞİM LİGİ YENİ NİZAMİ SKORBORD KUTUSU */}
                   <div className="border-2 border-black text-xs font-bold mb-6">
                       <div className="grid grid-cols-6 border-b border-black">
                           <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
@@ -590,11 +581,11 @@ export default function AdminPage() {
                   <h3 className="font-bold text-sm mb-1 uppercase">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_1)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_2)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem_4)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.gozlemci)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
@@ -727,7 +718,7 @@ export default function AdminPage() {
     else if (tip === 'tebellug') { renkSiniflari = { bg: "bg-purple-950/30", border: "border-purple-500", text: "text-purple-400", badge: "bg-purple-600 text-white" }; }
     else if (tip === 'iptal') { renkSiniflari = { bg: "bg-red-950/10", border: "border-red-900/50", text: "text-red-600", badge: "bg-red-900 text-white opacity-60" }; }
 
-    const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
+    const isAcik = acikMacId === mac.id; 
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     
     let parsedDetay: any = {};
@@ -815,19 +806,10 @@ export default function AdminPage() {
              {detayliRaporGosterilirMi(mac.kategori_adi) && (tip === 'emniyet' || tip === 'teknik' || tip === 'olaysiz') && (
                  <div className="mt-4">
                     {detayliGonderilmis ? (
-                        <>
-                            <button onClick={() => toggleTff(mac.id)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
-                                📄 TFF RESMİ TUTANAĞINI {isTffAcik ? 'GİZLE' : 'GÖRÜNTÜLE'} {isTffAcik ? '▲' : '▼'}
-                            </button>
-                            {isTffAcik && (
-                                <div className="mt-4 border border-slate-700 rounded-lg overflow-hidden bg-slate-200">
-                                    <div className="p-4 overflow-x-auto">{renderTffRaporu(mac, 'admin')}</div>
-                                    <div className="bg-slate-800 p-3 border-t border-slate-700 flex justify-end">
-                                        <button onClick={() => tffTutanakIndir(mac, 'admin')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-widest shadow-lg flex items-center gap-2">📸 FOTOĞRAF (PNG) OLARAK İNDİR</button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                        /* 🔥 YENİ: BUTON ARTIK AŞAĞIYA DEĞİL, TAM EKRAN MODAL'A AÇIYOR */
+                        <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
+                            📄 TFF RESMİ TUTANAĞINI TAM EKRAN GÖRÜNTÜLE
+                        </button>
                     ) : (
                         <div className="bg-red-950/40 border border-red-900/50 text-red-400 p-3 rounded-lg text-center text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
                             🚨 KOMİSER DETAYLI TFF RAPORUNU HENÜZ GÖNDERMEDİ
@@ -935,8 +917,35 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
+        {/* 🔥 YENİ: TAM EKRAN TFF RAPOR MODALI (BÜYÜK A4 GÖRÜNÜM) 🔥 */}
+        {tamEkranRaporMac && (
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
+                    <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
+                        <h2 className="text-base md:text-lg font-black text-white tracking-widest uppercase flex items-center gap-2">
+                            📄 TFF RAPORU: {tamEkranRaporMac.ev_sahibi} vs {tamEkranRaporMac.misafir_takim}
+                        </h2>
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => tffTutanakIndir(tamEkranRaporMac, 'tam-ekran')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
+                                📸 PNG İNDİR
+                            </button>
+                            <button onClick={() => setTamEkranRaporMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-3xl leading-none transition-colors">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    {/* Bu div sayesinde rapor tam ortada jilet gibi A4 boyutunda durur */}
+                    <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar flex justify-center bg-slate-300">
+                        <div className="shadow-2xl">
+                            {renderTffRaporu(tamEkranRaporMac, 'tam-ekran')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {excelModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -1170,7 +1179,6 @@ export default function AdminPage() {
                                             if (komiserinMaclari.length === 0) return <div className="text-center text-slate-500 text-sm py-4">Bu komisere ait geçmiş görev kaydı bulunamadı.</div>;
                                             
                                             return komiserinMaclari.map((mac, idx) => {
-                                                const isAcik = acikSicilTffMacId === mac.id;
                                                 const skorMetni = mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Bekleniyor';
                                                 
                                                 let parsedDetay: any = {};
@@ -1198,22 +1206,13 @@ export default function AdminPage() {
                                                             <div className="flex flex-col gap-2 items-end">
                                                                 <span className={`px-2 py-1 rounded text-[10px] font-black ${mac.skor_girildi ? 'bg-green-900 text-green-300' : 'bg-slate-700 text-slate-400'}`}>{skorMetni}</span>
                                                                 {detayliGonderilmis && (
-                                                                    <button onClick={() => setAcikSicilTffMacId(isAcik ? null : mac.id)} className="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2 py-1 rounded text-[9px] font-bold uppercase transition-colors">
-                                                                        📄 RAPOR {isAcik ? '▲' : '▼'}
+                                                                    /* 🔥 YENİ: SİCİL KARTINDAKİ BUTON DA TAM EKRANI AÇIYOR */
+                                                                    <button onClick={() => setTamEkranRaporMac(mac)} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors shadow-sm">
+                                                                        📄 RAPORU AÇ
                                                                     </button>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {isAcik && detayliGonderilmis && (
-                                                            <div className="mt-3 border-t border-slate-700 pt-3 animate-fade-in-down">
-                                                                <div className="bg-slate-200 rounded p-2 overflow-x-auto">
-                                                                    {renderTffRaporu(mac, 'sicil')}
-                                                                </div>
-                                                                <div className="mt-3 flex justify-end">
-                                                                    <button onClick={() => tffTutanakIndir(mac, 'sicil')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-md flex items-center gap-2">📸 RAPORU PNG İNDİR</button>
-                                                                </div>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 )
                                             })
