@@ -52,7 +52,6 @@ const getZaman = (mac: any) => {
 
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
-// İŞTE VERCEL'İN PATLADIĞI, BENİM UNUTTUĞUM O İKİ LİSTE! EKLENDİ.
 const gelisimOrganizasyon = [
     { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
     { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
@@ -164,6 +163,12 @@ export default function AdminPage() {
   const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); setAcikTffMacId(null); }
   const toggleTff = (id: number) => { setAcikTffMacId(acikTffMacId === id ? null : id) }
 
+  // YENİ DÜZELTME: SESSİZ GÜNCELLEME (Ekranda başa zıplamayı önler)
+  const sessizMacGuncelle = (macId: number, yeniVeriler: any) => {
+      setTumMaclar(prev => prev.map(m => m.id === macId ? { ...m, ...yeniVeriler } : m));
+      setSezonlukMaclar(prev => prev.map(m => m.id === macId ? { ...m, ...yeniVeriler } : m));
+  };
+
   const islemYapAta = async (macId: number) => {
       const kId = atamaSelects[macId];
       if (!kId) { alert("Lütfen atanacak komiseri listeden seçiniz!"); return; }
@@ -171,7 +176,7 @@ export default function AdminPage() {
           const { error } = await supabase.from('musabakalar').update({ komiser_id: kId }).eq('id', macId);
           if (error) throw error;
           alert("✅ Müsabaka komutanlığınızca başarıyla atandı!");
-          veriGetir();
+          sessizMacGuncelle(macId, { komiser_id: kId }); // Sayfayı yenilemeden veriyi değiştirir
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
   }
 
@@ -184,7 +189,7 @@ export default function AdminPage() {
               alert("✅ Görev devri başarıyla tamamlandı!");
               setDegisimAcikMacId(null);
               setYeniKomiserId('');
-              veriGetir();
+              sessizMacGuncelle(macId, { komiser_id: yeniKomiserId, tebellug_edildi: false }); // F5 yapmadan sessizce değiştirir
           } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       }
   }
@@ -192,16 +197,17 @@ export default function AdminPage() {
   const macIptalEt = async (macId: number) => {
       if (window.confirm("⛔ DİKKAT: Bu maçı tamamen iptal etmek istediğinize emin misiniz? (Müsabaka komiserin ekranından silinir, görev istatistiğine yansımaz ve arşive kaldırılır)")) {
           try {
-              const { error } = await supabase.from('musabakalar').update({
+              const guncelVeri = {
                   mac_durumu: 'iptal_edildi',
                   olay_durumu: 'iptal',
                   skor_girildi: true, 
                   tebellug_edildi: true, 
                   rapor_notu: 'Müsabaka Yönetim (Karargah) Kararıyla İptal Edilmiştir.'
-              }).eq('id', macId);
+              };
+              const { error } = await supabase.from('musabakalar').update(guncelVeri).eq('id', macId);
               if (error) throw error;
               alert("✅ Müsabaka iptal edildi ve arşive kaldırıldı.");
-              veriGetir();
+              sessizMacGuncelle(macId, guncelVeri); // Sessiz iptal
           } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       }
   }
@@ -482,7 +488,6 @@ export default function AdminPage() {
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">I) ORGANİZASYON :</div>
                   <div className="mb-4 text-xs font-medium space-y-1">
                       <p className="mb-2">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
-                      {/* VERCEL TYPE HATASI TS7006 ÇÖZÜMÜ İÇİN `(soru: any)` EKLENDİ */}
                       {gelisimOrganizasyon.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
                       <p className="mt-4 mb-1">(b) Müsabaka sonu değerlendirmesi</p>
                       <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} className="w-full border-b border-dashed border-black bg-transparent outline-none resize-none h-10 pointer-events-none"></textarea>
@@ -536,7 +541,6 @@ export default function AdminPage() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) KUSURSUZ GÖRÜNÜMÜ --- */}
               {(safeRaporDetay?.ek_raporlar || []).map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       
@@ -600,6 +604,9 @@ export default function AdminPage() {
     const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
+    
+    // YENİ DÜZELTME: Maç tamamen bittiyse (skor girildiyse) iptal ve devir butonlarını gizle
+    const macBittiMi = mac.skor_girildi === true && mac.mac_durumu !== 'iptal_edildi';
 
     return (
       <div className={`mb-3 rounded-xl border-l-4 overflow-hidden shadow-md transition-all ${renkSiniflari.border}`}>
@@ -665,14 +672,15 @@ export default function AdminPage() {
                  </div>
              )}
 
-             {mac.mac_durumu !== 'iptal_edildi' && (
+             {/* YENİ DÜZELTME: BİTMİŞ MAÇLARDA DEĞİŞİKLİK VE İPTAL GİZLENDİ */}
+             {mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
                      <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
                  </div>
              )}
              
-             {degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && (
+             {degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down">
                      <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
                          <option value="">-- Devredilecek Yeni Komiseri Seçin --</option>
@@ -695,8 +703,17 @@ export default function AdminPage() {
   const iptalEdilenMaclar = tumMaclar.filter(m => m.mac_durumu === 'iptal_edildi')
   const bekleyenMaclar = tumMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi')
   
+  // YENİ DÜZELTME: TEBELLÜĞ LİSTESİNDE SİCİL VE TELEFON EKLENDİ
   const tebellugBekleyenKomiserler = Array.from(tumMaclar.filter(m => !m.tebellug_edildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null' && m.komiser_id !== '').reduce((map, mac) => {
-        if (!map.has(mac.komiser_id)) { map.set(mac.komiser_id, { id: mac.komiser_id, isim: komiserIsmiBul(mac.komiser_id), count: 0 }); }
+        if (!map.has(mac.komiser_id)) { 
+            const kData = tumKomiserler.find(k => String(k.komiser_id) === String(mac.komiser_id));
+            map.set(mac.komiser_id, { 
+                id: mac.komiser_id, 
+                isim: kData ? kData.ad_soyad : 'Atanmamış', 
+                telefon: kData ? kData.telefon : '',
+                count: 0 
+            }); 
+        }
         map.get(mac.komiser_id).count++; return map;
   }, new Map()).values()).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
 
@@ -988,7 +1005,13 @@ export default function AdminPage() {
                                         <tbody>
                                             {tebellugBekleyenKomiserler.map((k: any, i) => (
                                                 <tr key={`koms-${i}`} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                                    <td className="px-4 py-3 font-bold text-slate-200">{k.isim}</td>
+                                                    <td className="px-4 py-3 font-bold text-slate-200">
+                                                        {k.isim}
+                                                        <div className="text-[10px] text-slate-400 font-normal mt-0.5 flex items-center gap-2">
+                                                            <span className="bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">Sicil: {k.id}</span>
+                                                            <span className="flex items-center gap-1">📞 {k.telefon || 'Belirtilmemiş'}</span>
+                                                        </div>
+                                                    </td>
                                                     <td className="px-4 py-3 text-right"><span className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs font-black">{k.count} Görev Bekliyor</span></td>
                                                 </tr>
                                             ))}
