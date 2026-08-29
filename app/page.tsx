@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 const DERNEK_LOGO = "/logo.jpg"; // Türkiye Futbol Saha Komiserleri Derneği Logosu
 
