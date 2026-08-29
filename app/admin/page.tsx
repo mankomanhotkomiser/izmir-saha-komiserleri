@@ -72,7 +72,6 @@ export default function AdminPage() {
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [hata, setHatasi] = useState('')
   
-  // ARŞİV SİSTEMİ İÇİN YENİ STATELER
   const [haftalikGruplar, setHaftalikGruplar] = useState<Record<number, any[]>>({})
   const [goruntulenenHafta, setGoruntulenenHafta] = useState<number | null>(null)
   const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) 
@@ -104,7 +103,6 @@ export default function AdminPage() {
   const [degisimAcikMacId, setDegisimAcikMacId] = useState<number | null>(null)
   const [yeniKomiserId, setYeniKomiserId] = useState<string>('')
 
-  // TEBELLÜĞ LİSTESİ GENİŞLETME STATE'İ
   const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
 
   const girisKontrol = (e: React.FormEvent) => {
@@ -147,7 +145,6 @@ export default function AdminPage() {
       if (komiserlerData) setTumKomiserler(komiserlerData)
 
       if (maclarVerisi.length > 0) {
-        // ARŞİV SİSTEMİ MANTIĞI EKLENDİ
         const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
         const gruplar: Record<number, any[]> = {};
         
@@ -167,7 +164,6 @@ export default function AdminPage() {
         const aktifHafta = cumalar.length;
         setGlobalAktifHaftaNo(aktifHafta);
         
-        // Eğer görüntülenen hafta henüz seçilmediyse veya veriler yenilendiyse aktif haftayı göster
         if (goruntulenenHafta === null) {
             setGoruntulenenHafta(aktifHafta);
         }
@@ -176,12 +172,13 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // MÜKERRER (ÇİFT) KAYIT TEMİZLEME MOTORU
+  // ⚠️ SUPABASE HATA ÇÖZÜMÜ: created_at yerine id üzerinden sıralama yapıldı. ⚠️
   const mukerrerleriTemizle = async () => {
       if(!window.confirm("DİKKAT: Veritabanındaki aynı Maç Koduna (M.KODU) sahip çift kayıtlar taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
       setYukleniyor(true);
       try {
-          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, created_at').order('created_at', { ascending: true });
+          // BURASI DEĞİŞTİ: order('id') kullanıldı
+          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu').order('id', { ascending: true });
           if(error) throw error;
           
           const kodMap = new Map();
@@ -360,7 +357,6 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          // MÜKERRER KAYIT KALKANI: Yüklemeden önce veritabanına sor
           const kodlar = dbVerisi.map(m => m.mac_kodu).filter(Boolean);
           const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu').in('mac_kodu', kodlar);
           const mevcutKodlar = (mevcutlar || []).map(m => m.mac_kodu);
@@ -752,7 +748,6 @@ export default function AdminPage() {
                  </div>
              )}
 
-             {/* ARŞİVDE DEĞİLSE VE MAÇ BİTMEDİYSE MÜDAHALE BUTONLARI GÖSTERİLİR */}
              {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
@@ -777,7 +772,6 @@ export default function AdminPage() {
     )
   }
 
-  // GÖRÜNTÜLENEN HAFTANIN MAÇLARINI FİLTRELEME (ZAMAN MAKİNESİ)
   const gosterilenMaclar = goruntulenenHafta ? (haftalikGruplar[goruntulenenHafta] || []) : [];
   const isArsiv = goruntulenenHafta !== globalAktifHaftaNo;
 
@@ -914,6 +908,9 @@ export default function AdminPage() {
                                     </table>
                                     {yuklenenExcelVerisi.length > 50 && <div className="text-center p-3 text-slate-500 italic">... ve {yuklenenExcelVerisi.length - 50} maç daha.</div>}
                                 </div>
+                                <div className="mt-3 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-400 text-[10px] font-medium">
+                                    💡 <b>NOT:</b> "BULUNAMADI" yazan satırlar veritabanına sorunsuz kaydedilir ancak komiseri "Atanmamış" olarak kalır. Bu maçları daha sonra panelden istediğiniz komisere atayabilirsiniz.
+                                </div>
                             </div>
                         )}
                     </div>
@@ -935,7 +932,6 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8 animate-fade-in-up">
             
-            {/* KARARGAH ARŞİV ODASI (HAFTA SEKMELERİ) */}
             {Object.keys(haftalikGruplar).length > 0 && (
                 <div className="bg-slate-900 p-2 rounded-lg flex overflow-x-auto gap-2 mb-6 shadow-inner custom-scrollbar items-center border border-slate-700">
                     <span className="text-slate-500 font-bold text-xs uppercase tracking-widest px-3">ZAMAN MAKİNESİ:</span>
