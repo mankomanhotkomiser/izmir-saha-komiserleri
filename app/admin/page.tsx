@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../../lib/supabase'
 import { toPng } from 'html-to-image' 
 import * as XLSX from 'xlsx'
@@ -71,7 +71,10 @@ export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [hata, setHatasi] = useState('')
-  const [tumMaclar, setTumMaclar] = useState<any[]>([])
+  
+  // ARŞİV SİSTEMİ İÇİN YENİ STATELER
+  const [haftalikGruplar, setHaftalikGruplar] = useState<Record<number, any[]>>({})
+  const [goruntulenenHafta, setGoruntulenenHafta] = useState<number | null>(null)
   const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) 
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
@@ -100,6 +103,9 @@ export default function AdminPage() {
   const [atamaSelects, setAtamaSelects] = useState<Record<number, string>>({})
   const [degisimAcikMacId, setDegisimAcikMacId] = useState<number | null>(null)
   const [yeniKomiserId, setYeniKomiserId] = useState<string>('')
+
+  // TEBELLÜĞ LİSTESİ GENİŞLETME STATE'İ
+  const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,18 +147,69 @@ export default function AdminPage() {
       if (komiserlerData) setTumKomiserler(komiserlerData)
 
       if (maclarVerisi.length > 0) {
-        const cumalar = maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0)
-        const essizCumalar = Array.from(new Set(cumalar)).sort((a, b) => a - b)
-        if(essizCumalar.length > 0) {
-            setGlobalAktifHaftaNo(essizCumalar.length)
-            const aktifCumaTarihi = essizCumalar[essizCumalar.length - 1]
-            const aktifHaftaMaclari = maclarVerisi.filter(mac => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
-            aktifHaftaMaclari.sort(siralamaFiltresi);
-            setTumMaclar(aktifHaftaMaclari)
+        // ARŞİV SİSTEMİ MANTIĞI EKLENDİ
+        const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
+        const gruplar: Record<number, any[]> = {};
+        
+        maclarVerisi.forEach(mac => {
+            if(!mac.tarih) return;
+            const hCuma = cumaBul(mac.tarih);
+            const hIndex = cumalar.indexOf(hCuma) + 1;
+            if(hIndex > 0) {
+                if(!gruplar[hIndex]) gruplar[hIndex] = [];
+                gruplar[hIndex].push(mac);
+            }
+        });
+
+        Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
+        setHaftalikGruplar(gruplar);
+        
+        const aktifHafta = cumalar.length;
+        setGlobalAktifHaftaNo(aktifHafta);
+        
+        // Eğer görüntülenen hafta henüz seçilmediyse veya veriler yenilendiyse aktif haftayı göster
+        if (goruntulenenHafta === null) {
+            setGoruntulenenHafta(aktifHafta);
         }
       }
     } catch (err) { console.error(err) }
     setYukleniyor(false)
+  }
+
+  // MÜKERRER (ÇİFT) KAYIT TEMİZLEME MOTORU
+  const mukerrerleriTemizle = async () => {
+      if(!window.confirm("DİKKAT: Veritabanındaki aynı Maç Koduna (M.KODU) sahip çift kayıtlar taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
+      setYukleniyor(true);
+      try {
+          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, created_at').order('created_at', { ascending: true });
+          if(error) throw error;
+          
+          const kodMap = new Map();
+          const silinecekIdler: number[] = [];
+          
+          data.forEach(m => {
+              if(!m.mac_kodu) return;
+              if(kodMap.has(m.mac_kodu)) {
+                  silinecekIdler.push(m.id);
+              } else {
+                  kodMap.set(m.mac_kodu, m.id);
+              }
+          });
+
+          if(silinecekIdler.length === 0) {
+              alert("Harika! Sistemde hiç mükerrer (çift) maç kaydı bulunamadı. Veritabanınız tertemiz.");
+          } else {
+              const chunkSize = 200;
+              for (let i = 0; i < silinecekIdler.length; i += chunkSize) {
+                  const chunk = silinecekIdler.slice(i, i + chunkSize);
+                  const {error: delErr} = await supabase.from('musabakalar').delete().in('id', chunk);
+                  if(delErr) throw delErr;
+              }
+              alert(`✅ Başarılı! Toplam ${silinecekIdler.length} adet çift (mükerrer) maç kaydı temizlendi.`);
+              veriGetir();
+          }
+      } catch(e:any) { alert("Hata: " + e.message); }
+      setYukleniyor(false);
   }
 
   const komiserIsmiBul = (id: any) => {
@@ -163,9 +220,14 @@ export default function AdminPage() {
   const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); setAcikTffMacId(null); }
   const toggleTff = (id: number) => { setAcikTffMacId(acikTffMacId === id ? null : id) }
 
-  // YENİ DÜZELTME: SESSİZ GÜNCELLEME (Ekranda başa zıplamayı önler)
   const sessizMacGuncelle = (macId: number, yeniVeriler: any) => {
-      setTumMaclar(prev => prev.map(m => m.id === macId ? { ...m, ...yeniVeriler } : m));
+      setHaftalikGruplar(prev => {
+          const yeniGruplar = { ...prev };
+          Object.keys(yeniGruplar).forEach(haftaNo => {
+              yeniGruplar[Number(haftaNo)] = yeniGruplar[Number(haftaNo)].map(m => m.id === macId ? { ...m, ...yeniVeriler } : m);
+          });
+          return yeniGruplar;
+      });
       setSezonlukMaclar(prev => prev.map(m => m.id === macId ? { ...m, ...yeniVeriler } : m));
   };
 
@@ -176,7 +238,7 @@ export default function AdminPage() {
           const { error } = await supabase.from('musabakalar').update({ komiser_id: kId }).eq('id', macId);
           if (error) throw error;
           alert("✅ Müsabaka komutanlığınızca başarıyla atandı!");
-          sessizMacGuncelle(macId, { komiser_id: kId }); // Sayfayı yenilemeden veriyi değiştirir
+          sessizMacGuncelle(macId, { komiser_id: kId }); 
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
   }
 
@@ -189,7 +251,7 @@ export default function AdminPage() {
               alert("✅ Görev devri başarıyla tamamlandı!");
               setDegisimAcikMacId(null);
               setYeniKomiserId('');
-              sessizMacGuncelle(macId, { komiser_id: yeniKomiserId, tebellug_edildi: false }); // F5 yapmadan sessizce değiştirir
+              sessizMacGuncelle(macId, { komiser_id: yeniKomiserId, tebellug_edildi: false }); 
           } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       }
   }
@@ -207,7 +269,7 @@ export default function AdminPage() {
               const { error } = await supabase.from('musabakalar').update(guncelVeri).eq('id', macId);
               if (error) throw error;
               alert("✅ Müsabaka iptal edildi ve arşive kaldırıldı.");
-              sessizMacGuncelle(macId, guncelVeri); // Sessiz iptal
+              sessizMacGuncelle(macId, guncelVeri); 
           } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       }
   }
@@ -298,10 +360,30 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          const { error } = await supabase.from('musabakalar').insert(dbVerisi);
+          // MÜKERRER KAYIT KALKANI: Yüklemeden önce veritabanına sor
+          const kodlar = dbVerisi.map(m => m.mac_kodu).filter(Boolean);
+          const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu').in('mac_kodu', kodlar);
+          const mevcutKodlar = (mevcutlar || []).map(m => m.mac_kodu);
+          
+          const eklenecekler = dbVerisi.filter(m => !mevcutKodlar.includes(m.mac_kodu));
+
+          if (eklenecekler.length === 0) {
+              alert("⚠️ Yüklediğiniz dosyadaki tüm maçlar zaten sistemde mevcut! Mükerrer (çift) kayıt önlendi.");
+              setExcelModalAcik(false);
+              setYuklenenExcelVerisi([]);
+              setExcelKaydediliyor(false);
+              return;
+          }
+
+          const { error } = await supabase.from('musabakalar').insert(eklenecekler);
           if (error) throw error;
           
-          alert(`✅ Başarılı! ${yuklenenExcelVerisi.length} adet müsabaka sisteme işlendi.`);
+          if(eklenecekler.length < dbVerisi.length) {
+              alert(`✅ Başarılı! ${eklenecekler.length} yeni müsabaka eklendi. (Sistemde zaten var olan ${dbVerisi.length - eklenecekler.length} maç atlandı).`);
+          } else {
+              alert(`✅ Başarılı! ${eklenecekler.length} adet müsabaka sisteme işlendi.`);
+          }
+          
           setExcelModalAcik(false);
           setYuklenenExcelVerisi([]);
           veriGetir(); 
@@ -593,7 +675,7 @@ export default function AdminPage() {
       );
   }
 
-  const RaporDurumKarti = ({ mac, tip }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'tebellug' | 'iptal' }) => {
+  const RaporDurumKarti = ({ mac, tip, isArsiv = false }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'tebellug' | 'iptal', isArsiv?: boolean }) => {
     let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     if (tip === 'emniyet') { renkSiniflari = { bg: "bg-red-950/20", border: "border-red-600", text: "text-red-500", badge: "bg-red-600 text-white" }; } 
     else if (tip === 'teknik') { renkSiniflari = { bg: "bg-amber-950/20", border: "border-amber-500", text: "text-amber-500", badge: "bg-amber-600 text-white" }; } 
@@ -604,8 +686,6 @@ export default function AdminPage() {
     const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
-    
-    // YENİ DÜZELTME: Maç tamamen bittiyse (skor girildiyse) iptal ve devir butonlarını gizle
     const macBittiMi = mac.skor_girildi === true && mac.mac_durumu !== 'iptal_edildi';
 
     return (
@@ -672,15 +752,15 @@ export default function AdminPage() {
                  </div>
              )}
 
-             {/* YENİ DÜZELTME: BİTMİŞ MAÇLARDA DEĞİŞİKLİK VE İPTAL GİZLENDİ */}
-             {mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
+             {/* ARŞİVDE DEĞİLSE VE MAÇ BİTMEDİYSE MÜDAHALE BUTONLARI GÖSTERİLİR */}
+             {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
                      <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
                  </div>
              )}
              
-             {degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
+             {!isArsiv && degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down">
                      <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
                          <option value="">-- Devredilecek Yeni Komiseri Seçin --</option>
@@ -697,27 +777,33 @@ export default function AdminPage() {
     )
   }
 
-  const emniyetlikMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay' && m.mac_durumu !== 'iptal_edildi')
-  const teknikMaclar = tumMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu') && m.mac_durumu !== 'iptal_edildi')
-  const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz' && m.mac_durumu !== 'iptal_edildi')
-  const iptalEdilenMaclar = tumMaclar.filter(m => m.mac_durumu === 'iptal_edildi')
-  const bekleyenMaclar = tumMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi')
+  // GÖRÜNTÜLENEN HAFTANIN MAÇLARINI FİLTRELEME (ZAMAN MAKİNESİ)
+  const gosterilenMaclar = goruntulenenHafta ? (haftalikGruplar[goruntulenenHafta] || []) : [];
+  const isArsiv = goruntulenenHafta !== globalAktifHaftaNo;
+
+  const emniyetlikMaclar = gosterilenMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay' && m.mac_durumu !== 'iptal_edildi')
+  const teknikMaclar = gosterilenMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu') && m.mac_durumu !== 'iptal_edildi')
+  const olaysizMaclar = gosterilenMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz' && m.mac_durumu !== 'iptal_edildi')
+  const iptalEdilenMaclar = gosterilenMaclar.filter(m => m.mac_durumu === 'iptal_edildi')
+  const bekleyenMaclar = gosterilenMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi')
+  const atanmayanMaclar = gosterilenMaclar.filter(m => (!m.komiser_id || m.komiser_id === 'null' || m.komiser_id === '') && m.mac_durumu !== 'iptal_edildi');
   
-  // YENİ DÜZELTME: TEBELLÜĞ LİSTESİNDE SİCİL VE TELEFON EKLENDİ
-  const tebellugBekleyenKomiserler = Array.from(tumMaclar.filter(m => !m.tebellug_edildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null' && m.komiser_id !== '').reduce((map, mac) => {
+  const tebellugBekleyenKomiserler = Array.from(gosterilenMaclar.filter(m => !m.tebellug_edildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null' && m.komiser_id !== '').reduce((map, mac) => {
         if (!map.has(mac.komiser_id)) { 
             const kData = tumKomiserler.find(k => String(k.komiser_id) === String(mac.komiser_id));
             map.set(mac.komiser_id, { 
                 id: mac.komiser_id, 
                 isim: kData ? kData.ad_soyad : 'Atanmamış', 
                 telefon: kData ? kData.telefon : '',
-                count: 0 
+                count: 0,
+                maclar: [] 
             }); 
         }
-        map.get(mac.komiser_id).count++; return map;
+        map.get(mac.komiser_id).count++; 
+        map.get(mac.komiser_id).maclar.push(mac);
+        return map;
   }, new Map()).values()).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
 
-  const atanmayanMaclar = tumMaclar.filter(m => (!m.komiser_id || m.komiser_id === 'null' || m.komiser_id === '') && m.mac_durumu !== 'iptal_edildi');
 
   if (!girisYapildi) {
     return (
@@ -747,6 +833,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-4">
              <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-4 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📥 EXCEL BÜLTEN YÜKLE</button>
+             <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-4 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
              <button onClick={veriGetir} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 YENİLE</button>
              <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">ÇIKIŞ YAP</button>
           </div>
@@ -827,9 +914,6 @@ export default function AdminPage() {
                                     </table>
                                     {yuklenenExcelVerisi.length > 50 && <div className="text-center p-3 text-slate-500 italic">... ve {yuklenenExcelVerisi.length - 50} maç daha.</div>}
                                 </div>
-                                <div className="mt-3 p-3 bg-amber-900/30 border border-amber-700/50 rounded-lg text-amber-400 text-[10px] font-medium">
-                                    💡 <b>NOT:</b> "BULUNAMADI" yazan satırlar veritabanına sorunsuz kaydedilir ancak komiseri "Atanmamış" olarak kalır. Bu maçları daha sonra panelden istediğiniz komisere atayabilirsiniz.
-                                </div>
                             </div>
                         )}
                     </div>
@@ -849,9 +933,32 @@ export default function AdminPage() {
         {yukleniyor ? (
           <div className="flex flex-col items-center justify-center py-20"><div className="w-12 h-12 border-4 border-slate-700 border-t-red-600 rounded-full animate-spin mb-4"></div><p className="text-slate-400 font-bold animate-pulse tracking-widest">VERİLER MERKEZDEN ÇEKİLİYOR...</p></div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in-up">
             
-            {atanmayanMaclar.length > 0 && (
+            {/* KARARGAH ARŞİV ODASI (HAFTA SEKMELERİ) */}
+            {Object.keys(haftalikGruplar).length > 0 && (
+                <div className="bg-slate-900 p-2 rounded-lg flex overflow-x-auto gap-2 mb-6 shadow-inner custom-scrollbar items-center border border-slate-700">
+                    <span className="text-slate-500 font-bold text-xs uppercase tracking-widest px-3">ZAMAN MAKİNESİ:</span>
+                    {Object.keys(haftalikGruplar).map(Number).sort((a,b) => a-b).map(haftaNo => (
+                        <button
+                            key={haftaNo}
+                            onClick={() => setGoruntulenenHafta(haftaNo)}
+                            className={`px-4 py-2.5 rounded font-bold text-xs whitespace-nowrap transition-colors border shadow-sm ${goruntulenenHafta === haftaNo ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
+                        >
+                            {haftaNo === globalAktifHaftaNo ? `🔥 AKTİF OPERASYON (${haftaNo}. HAFTA)` : `📁 ${haftaNo}. HAFTA ARŞİVİ`}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {isArsiv && (
+                <div className="bg-blue-900/20 border border-blue-500/50 p-4 rounded-xl text-center mb-6">
+                    <h2 className="text-xl font-black text-blue-400 uppercase tracking-widest">📁 {goruntulenenHafta}. HAFTA ARŞİVİ GÖRÜNTÜLENİYOR</h2>
+                    <p className="text-blue-200 text-xs mt-1">Bu modda geçmiş haftanın verilerini salt okunur (mühürlü) olarak inceliyorsunuz. Değişiklik yapılamaz.</p>
+                </div>
+            )}
+
+            {!isArsiv && atanmayanMaclar.length > 0 && (
                 <div className="bg-red-950/60 border-2 border-red-600 rounded-2xl p-6 mb-6 shadow-2xl animate-pulse">
                     <h3 className="text-red-400 font-black text-xl mb-4 flex items-center gap-3"><span className="text-3xl">🚨</span> DİKKAT: KOMİSERİ OLMAYAN (ATANMAMIŞ) {atanmayanMaclar.length} ADET MAÇ VAR!</h3>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
@@ -880,8 +987,8 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-blue-500 shadow-lg relative overflow-hidden group">
                   <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform">⚽</div>
-                  <h3 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">BU HAFTA TOPLAM MAÇ</h3>
-                  <div className="text-3xl md:text-4xl font-black text-white">{tumMaclar.filter(m => m.mac_durumu !== 'iptal_edildi').length}</div>
+                  <h3 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">TOPLAM MAÇ</h3>
+                  <div className="text-3xl md:text-4xl font-black text-white">{gosterilenMaclar.filter(m => m.mac_durumu !== 'iptal_edildi').length}</div>
               </div>
               <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-red-500 shadow-lg relative overflow-hidden group">
                   <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform">🚨</div>
@@ -896,7 +1003,7 @@ export default function AdminPage() {
               <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-purple-500 shadow-lg relative overflow-hidden group">
                   <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform">⏳</div>
                   <h3 className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-1">TEBELLÜĞ BEKLEYEN</h3>
-                  <div className="text-3xl md:text-4xl font-black text-purple-400">{tumMaclar.filter(m => !m.tebellug_edildi && m.mac_durumu !== 'iptal_edildi').length}</div>
+                  <div className="text-3xl md:text-4xl font-black text-purple-400">{bekleyenMaclar.length}</div>
               </div>
             </div>
 
@@ -909,7 +1016,7 @@ export default function AdminPage() {
                     </button>
                     {kategoriKirmiziAcik && (
                         <div className="space-y-3 animate-fade-in-down pl-2">
-                            {emniyetlikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait emniyetlik olay raporu bulunmuyor.</div>) : (emniyetlikMaclar.map((mac, idx) => <RaporDurumKarti key={`emniyet-${idx}`} mac={mac} tip="emniyet" />))}
+                            {emniyetlikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait emniyetlik olay raporu bulunmuyor.</div>) : (emniyetlikMaclar.map((mac, idx) => <RaporDurumKarti key={`emniyet-${idx}`} mac={mac} tip="emniyet" isArsiv={isArsiv} />))}
                         </div>
                     )}
 
@@ -920,7 +1027,7 @@ export default function AdminPage() {
                         </button>
                         {kategoriDisiplinAcik && (
                             <div className="space-y-3 animate-fade-in-down pl-2">
-                                {teknikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait teknik disiplin raporu bulunmuyor.</div>) : (teknikMaclar.map((mac, idx) => <RaporDurumKarti key={`teknik-${idx}`} mac={mac} tip="teknik" />))}
+                                {teknikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait teknik disiplin raporu bulunmuyor.</div>) : (teknikMaclar.map((mac, idx) => <RaporDurumKarti key={`teknik-${idx}`} mac={mac} tip="teknik" isArsiv={isArsiv} />))}
                             </div>
                         )}
                     </div>
@@ -1004,7 +1111,8 @@ export default function AdminPage() {
                                         <thead className="bg-slate-900 text-slate-400 uppercase text-xs"><tr><th className="px-4 py-3 border-b border-slate-700">Komiser Adı</th><th className="px-4 py-3 border-b border-slate-700 text-right">Bekleyen Maç</th></tr></thead>
                                         <tbody>
                                             {tebellugBekleyenKomiserler.map((k: any, i) => (
-                                                <tr key={`koms-${i}`} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                <Fragment key={`koms-${i}`}>
+                                                <tr className="border-b border-slate-700/50 hover:bg-slate-700/50 cursor-pointer transition-colors" onClick={() => setAcikTebellugKomiser(acikTebellugKomiser === k.id ? null : k.id)}>
                                                     <td className="px-4 py-3 font-bold text-slate-200">
                                                         {k.isim}
                                                         <div className="text-[10px] text-slate-400 font-normal mt-0.5 flex items-center gap-2">
@@ -1012,8 +1120,32 @@ export default function AdminPage() {
                                                             <span className="flex items-center gap-1">📞 {k.telefon || 'Belirtilmemiş'}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right"><span className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs font-black">{k.count} Görev Bekliyor</span></td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <span className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs font-black shadow-sm flex items-center justify-end gap-2 w-fit ml-auto">
+                                                            {k.count} Görev Bekliyor
+                                                            <span className="text-purple-400">{acikTebellugKomiser === k.id ? '▲' : '▼'}</span>
+                                                        </span>
+                                                    </td>
                                                 </tr>
+                                                {acikTebellugKomiser === k.id && (
+                                                    <tr className="bg-slate-950 border-b border-slate-700/50">
+                                                        <td colSpan={2} className="p-3">
+                                                            <div className="space-y-2 animate-fade-in-down">
+                                                                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold border-b border-slate-800 pb-1 mb-2">Bekleyen Müsabaka Detayları</div>
+                                                                {k.maclar.map((m: any, mIdx: number) => (
+                                                                    <div key={mIdx} className="bg-slate-900 border border-purple-900/50 p-2.5 rounded-lg flex justify-between items-center text-xs shadow-inner">
+                                                                        <div>
+                                                                            <span className="text-purple-400 font-bold bg-purple-950 px-1.5 py-0.5 rounded mr-1">KOD: {m.mac_kodu}</span> 
+                                                                            <span className="text-white font-bold">{m.ev_sahibi} <span className="text-slate-500 font-normal">vs</span> {m.misafir_takim}</span>
+                                                                            <div className="text-slate-400 text-[10px] mt-1 font-mono">{m.saha} | {guvenliTarih(m.tarih)} - {guvenliSaat(m.saat)}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                </Fragment>
                                             ))}
                                         </tbody>
                                     </table>
@@ -1029,7 +1161,7 @@ export default function AdminPage() {
                         </button>
                         {kategoriBekleyenAcik && (
                             <div className="space-y-3 animate-fade-in-down pl-2">
-                                {bekleyenMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Skoru girilmemiş aktif maç bulunmuyor.</div>) : (bekleyenMaclar.map((mac, idx) => <RaporDurumKarti key={`bekleyen-${idx}`} mac={mac} tip="bekleyen" />))}
+                                {bekleyenMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Skoru girilmemiş aktif maç bulunmuyor.</div>) : (bekleyenMaclar.map((mac, idx) => <RaporDurumKarti key={`bekleyen-${idx}`} mac={mac} tip="bekleyen" isArsiv={isArsiv} />))}
                             </div>
                         )}
                     </div>
@@ -1041,7 +1173,7 @@ export default function AdminPage() {
                         </button>
                         {kategoriOlaysizAcik && (
                             <div className="space-y-3 animate-fade-in-down pl-2">
-                                {olaysizMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait sorunsuz maç raporu bulunmuyor.</div>) : (olaysizMaclar.map((mac, idx) => <RaporDurumKarti key={`olaysiz-${idx}`} mac={mac} tip="olaysiz" />))}
+                                {olaysizMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait sorunsuz maç raporu bulunmuyor.</div>) : (olaysizMaclar.map((mac, idx) => <RaporDurumKarti key={`olaysiz-${idx}`} mac={mac} tip="olaysiz" isArsiv={isArsiv} />))}
                             </div>
                         )}
                     </div>
@@ -1053,7 +1185,7 @@ export default function AdminPage() {
                         </button>
                         {kategoriIptalAcik && (
                             <div className="space-y-3 animate-fade-in-down pl-2">
-                                {iptalEdilenMaclar.length === 0 ? (<div className="bg-slate-800/30 border border-slate-800 p-4 rounded-xl text-center text-slate-600 text-sm font-medium">Yönetim tarafından iptal edilen maç bulunmuyor.</div>) : (iptalEdilenMaclar.map((mac, idx) => <RaporDurumKarti key={`iptal-${idx}`} mac={mac} tip="iptal" />))}
+                                {iptalEdilenMaclar.length === 0 ? (<div className="bg-slate-800/30 border border-slate-800 p-4 rounded-xl text-center text-slate-600 text-sm font-medium">Yönetim tarafından iptal edilen maç bulunmuyor.</div>) : (iptalEdilenMaclar.map((mac, idx) => <RaporDurumKarti key={`iptal-${idx}`} mac={mac} tip="iptal" isArsiv={isArsiv} />))}
                             </div>
                         )}
                     </div>
