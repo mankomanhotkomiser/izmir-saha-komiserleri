@@ -11,8 +11,13 @@ const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_log
 const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT')) return 'gelisim';
-    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('KADIN') || kat.includes('BÖLGESEL') || kat.includes('BAL') || kat.includes('3. LİG') || kat.includes('2. LİG')) return 'yok';
+    
+    // PAF, KIZ ve KADIN ligleri artık Gelişim TFF Raporu şablonuyla açılır
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) return 'gelisim';
+    
+    // Süper Lig, 1. Lig, 2. Lig, 3. Lig, Profesyonel maçlarda TFF raporu gizlenir (Sadece Hızlı Skor)
+    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('SÜPER') || kat.includes('1. LİG') || kat.includes('2. LİG') || kat.includes('3. LİG') || kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'yok';
+    
     return 'amator';
 }
 
@@ -78,8 +83,6 @@ export default function AdminPage() {
   const [yukleniyor, setYukleniyor] = useState(true)
 
   const [acikMacId, setAcikMacId] = useState<number | null>(null)
-  
-  // 🔥 YENİ: TAM EKRAN TFF RAPOR MODALI İÇİN STATE
   const [tamEkranRaporMac, setTamEkranRaporMac] = useState<any>(null)
 
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
@@ -103,8 +106,26 @@ export default function AdminPage() {
   const [yeniKomiserId, setYeniKomiserId] = useState<string>('')
 
   const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
-  
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
+
+  // 🔥 SİSTEM YÖNETİMİ (YENİ KOMİSER VE MAÇ EKLEME) STATELERİ
+  const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle'>('komiser_ekle')
+  
+  // Yeni Komiser Ekleme Formu
+  const [yeniPersonelAd, setYeniPersonelAd] = useState('')
+  const [yeniPersonelSicil, setYeniPersonelSicil] = useState('')
+  const [personelEkleniyor, setPersonelEkleniyor] = useState(false)
+
+  // Manuel Maç Ekleme Formu
+  const [manuelMacKodu, setManuelMacKodu] = useState('')
+  const [manuelMacTarih, setManuelMacTarih] = useState('')
+  const [manuelMacSaat, setManuelMacSaat] = useState('')
+  const [manuelMacSaha, setManuelMacSaha] = useState('')
+  const [manuelMacLig, setManuelMacLig] = useState('')
+  const [manuelMacEv, setManuelMacEv] = useState('')
+  const [manuelMacMis, setManuelMacMis] = useState('')
+  const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -185,6 +206,85 @@ export default function AdminPage() {
       }
     } catch (err) { console.error(err) }
     setYukleniyor(false)
+  }
+
+  // 🔥 YENİ KOMİSER EKLEME FONKSİYONU
+  const komiserEkle = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!yeniPersonelAd || !yeniPersonelSicil) { alert("Lütfen isim ve sicil numarasını eksiksiz girin."); return; }
+      
+      setPersonelEkleniyor(true);
+      let islenecekSicil = yeniPersonelSicil.trim();
+      if (/^\d{4,10}$/.test(islenecekSicil) && !islenecekSicil.startsWith('35')) {
+          islenecekSicil = '35' + islenecekSicil;
+      }
+
+      try {
+          const { error } = await supabase.from('komiserler').insert([{ 
+              komiser_id: islenecekSicil, 
+              ad_soyad: yeniPersonelAd.toLocaleUpperCase('tr-TR')
+          }]);
+          
+          if (error) {
+              if (error.code === '23505') alert("Hata: Bu sicil numarası sistemde zaten kayıtlı!");
+              else throw error;
+          } else {
+              alert("✅ Komiser / Stajyer Karargaha başarıyla eklendi.");
+              setYeniPersonelAd(''); setYeniPersonelSicil('');
+              veriGetir(); // Listeyi yenile
+          }
+      } catch (err: any) { alert("Sistem Hatası: " + err.message); }
+      setPersonelEkleniyor(false);
+  }
+
+  // 🔥 MAÇ KODU OTOMATİK ZEKASI (+1 Kuralı)
+  const otomatikMacKoduBul = () => {
+      if (sezonlukMaclar.length === 0) return '';
+      let maxKod = 0;
+      sezonlukMaclar.forEach(mac => {
+          const kodNum = parseInt(mac.mac_kodu);
+          if (!isNaN(kodNum) && kodNum > maxKod) {
+              maxKod = kodNum;
+          }
+      });
+      return maxKod > 0 ? String(maxKod + 1) : '';
+  }
+
+  // 🔥 MANUEL (EKSTRA) MAÇ EKLEME FONKSİYONU
+  const manuelMacEkle = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!manuelMacKodu || !manuelMacTarih || !manuelMacEv || !manuelMacMis) { 
+          alert("Lütfen maç kodu, tarih, ev sahibi ve misafir takımı eksiksiz girin."); 
+          return; 
+      }
+      
+      setManuelMacEkleniyor(true);
+      try {
+          const { error } = await supabase.from('musabakalar').insert([{
+              mac_kodu: manuelMacKodu,
+              tarih: manuelMacTarih,
+              saat: manuelMacSaat || null,
+              saha: manuelMacSaha.toLocaleUpperCase('tr-TR'),
+              kategori_adi: manuelMacLig.toLocaleUpperCase('tr-TR'),
+              ev_sahibi: manuelMacEv.toLocaleUpperCase('tr-TR'),
+              misafir_takim: manuelMacMis.toLocaleUpperCase('tr-TR'),
+              komiser_id: null,
+              mac_durumu: 'oynandi',
+              olay_durumu: 'olaysiz',
+              skor_girildi: false,
+              tebellug_edildi: false
+          }]);
+
+          if (error) throw error;
+          alert("✅ Ekstra maç sisteme başarıyla işlendi ve atama bekleyenler listesine düştü.");
+          
+          // Formu sıfırla, kodu hemen +1 yap
+          setManuelMacEv(''); setManuelMacMis(''); setManuelMacSaha(''); setManuelMacSaat('');
+          setManuelMacKodu(String(parseInt(manuelMacKodu) + 1)); 
+          veriGetir(); 
+          
+      } catch (err: any) { alert("Hata oluştu: " + err.message); }
+      setManuelMacEkleniyor(false);
   }
 
   const mukerrerleriTemizle = async () => {
@@ -806,7 +906,6 @@ export default function AdminPage() {
              {detayliRaporGosterilirMi(mac.kategori_adi) && (tip === 'emniyet' || tip === 'teknik' || tip === 'olaysiz') && (
                  <div className="mt-4">
                     {detayliGonderilmis ? (
-                        /* 🔥 YENİ: BUTON ARTIK AŞAĞIYA DEĞİL, TAM EKRAN MODAL'A AÇIYOR */
                         <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                             📄 TFF RESMİ TUTANAĞINI TAM EKRAN GÖRÜNTÜLE
                         </button>
@@ -900,7 +999,7 @@ export default function AdminPage() {
       `}} />
 
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl hidden md:block">🇹🇷</span>
             <div>
@@ -908,9 +1007,15 @@ export default function AdminPage() {
               <p className="text-slate-400 text-xs font-mono">TFF İZMİR SAHA KOMİSERLERİ ({globalAktifHaftaNo}. HAFTA OPERASYONU)</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-             <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-4 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📥 EXCEL BÜLTEN YÜKLE</button>
-             <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-4 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
+          <div className="flex flex-wrap items-center gap-3">
+             <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📥 EXCEL BÜLTEN YÜKLE</button>
+             {/* 🔥 SİSTEM YÖNETİMİ BUTONU EKLENDİ */}
+             <button onClick={() => {
+                 setSistemYonetimModalAcik(true);
+                 setManuelMacKodu(otomatikMacKoduBul());
+             }} className="bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM YÖNETİMİ</button>
+             
+             <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
              <button onClick={veriGetir} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 YENİLE</button>
              <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">ÇIKIŞ YAP</button>
           </div>
@@ -919,7 +1024,100 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* 🔥 YENİ: TAM EKRAN TFF RAPOR MODALI (BÜYÜK A4 GÖRÜNÜM) 🔥 */}
+        {/* 🔥 YENİ: SİSTEM YÖNETİMİ MODALI (KOMİSER & MAÇ EKLEME) 🔥 */}
+        {sistemYonetimModalAcik && (
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
+                    <div className="bg-indigo-900/50 p-4 border-b border-indigo-500/50 flex justify-between items-center">
+                        <h2 className="text-xl font-black text-indigo-400 tracking-widest uppercase flex items-center gap-2"><span className="text-2xl">⚙️</span> SİSTEM YÖNETİMİ VE MANUEL EKLEMELER</h2>
+                        <button onClick={() => setSistemYonetimModalAcik(false)} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
+                    </div>
+                    
+                    <div className="flex bg-slate-800 border-b border-slate-700">
+                        <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 py-4 font-black uppercase tracking-widest text-sm transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
+                        <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 py-4 font-black uppercase tracking-widest text-sm transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA (MANUEL) MAÇ EKLE</button>
+                    </div>
+
+                    <div className="p-6 md:p-8 overflow-y-auto max-h-[70vh] custom-scrollbar bg-[#0f172a]">
+                        
+                        {sistemTab === 'komiser_ekle' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
+                                    <p className="text-slate-300 text-sm font-medium">Sisteme yeni atanan saha komiserini veya stajyeri buradan ekleyebilirsiniz. Kaydedilen personel anında Admin atama listesine düşer ve kendi şifresiyle sisteme giriş yapabilir.</p>
+                                </div>
+                                <form onSubmit={komiserEkle} className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Komiser Adı Soyadı</label>
+                                        <input type="text" value={yeniPersonelAd} onChange={(e) => setYeniPersonelAd(e.target.value)} placeholder="Örn: ZÜBEYDE GÜRTEKİN" className="w-full bg-slate-900 border border-slate-600 text-white font-bold uppercase px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Sicil / Plaka Numarası</label>
+                                        <input type="text" value={yeniPersonelSicil} onChange={(e) => setYeniPersonelSicil(e.target.value)} placeholder="Örn: 35262790 veya 262790" className="w-full bg-slate-900 border border-slate-600 text-white font-bold font-mono tracking-widest px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                    </div>
+                                    <div className="pt-4">
+                                        <button type="submit" disabled={personelEkleniyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest shadow-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {personelEkleniyor ? '⚙️ EKLENİYOR...' : '✅ SİSTEME KAYDET VE YETKİ VER'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {sistemTab === 'mac_ekle' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
+                                    <p className="text-slate-300 text-sm font-medium"><span className="text-emerald-400 font-bold">AKILLI MAÇ KODU DEVREDE!</span> Bülten harici gelen Türkiye Şampiyonası veya hafta içi eleme maçlarını buradan ekleyebilirsiniz. Sistem son maçın kodunu bularak, sıralamayı bozmamak için sıradaki maç kodunu <b>otomatik (+1)</b> atamıştır.</p>
+                                </div>
+                                <form onSubmit={manuelMacEkle} className="space-y-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                        <div className="md:col-span-1">
+                                            <label className="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">Maç Kodu (Otomatik)</label>
+                                            <input type="text" value={manuelMacKodu} onChange={(e) => setManuelMacKodu(e.target.value)} className="w-full bg-slate-900 border border-emerald-600/50 text-emerald-400 font-black font-mono text-lg px-4 py-3 rounded-lg focus:border-emerald-500 focus:outline-none text-center shadow-inner" required />
+                                        </div>
+                                        <div className="md:col-span-1">
+                                            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Tarih</label>
+                                            <input type="date" value={manuelMacTarih} onChange={(e) => setManuelMacTarih(e.target.value)} className="w-full bg-slate-900 border border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div className="md:col-span-1">
+                                            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Saat</label>
+                                            <input type="time" value={manuelMacSaat} onChange={(e) => setManuelMacSaat(e.target.value)} className="w-full bg-slate-900 border border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Lig / Kategori</label>
+                                            <input type="text" value={manuelMacLig} onChange={(e) => setManuelMacLig(e.target.value)} placeholder="Örn: U18 TÜRKİYE ŞAMPİYONASI" className="w-full bg-slate-900 border border-slate-600 text-white font-bold uppercase px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Saha / Tesis</label>
+                                            <input type="text" value={manuelMacSaha} onChange={(e) => setManuelMacSaha(e.target.value)} placeholder="Örn: ATATÜRK STADI 1 NOLU YAN SAHA" className="w-full bg-slate-900 border border-slate-600 text-white font-bold uppercase px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Ev Sahibi Takım</label>
+                                            <input type="text" value={manuelMacEv} onChange={(e) => setManuelMacEv(e.target.value)} placeholder="1. Takım Adı" className="w-full bg-slate-900 border border-slate-600 text-white font-bold uppercase px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Misafir Takım</label>
+                                            <input type="text" value={manuelMacMis} onChange={(e) => setManuelMacMis(e.target.value)} placeholder="2. Takım Adı" className="w-full bg-slate-900 border border-slate-600 text-white font-bold uppercase px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <button type="submit" disabled={manuelMacEkleniyor} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-lg uppercase tracking-widest shadow-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {manuelMacEkleniyor ? '⚙️ İŞLENİYOR...' : '🚀 EKSTRA MAÇI SİSTEME YÜKLE'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* TAM EKRAN TFF RAPOR MODALI */}
         {tamEkranRaporMac && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
@@ -936,7 +1134,6 @@ export default function AdminPage() {
                             </button>
                         </div>
                     </div>
-                    {/* Bu div sayesinde rapor tam ortada jilet gibi A4 boyutunda durur */}
                     <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar flex justify-center bg-slate-300">
                         <div className="shadow-2xl">
                             {renderTffRaporu(tamEkranRaporMac, 'tam-ekran')}
@@ -1115,9 +1312,8 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                {/* SOL SÜTUN - YENİ HİYERARŞİ */}
+                {/* SOL SÜTUN */}
                 <div>
-                    {/* 1. SIRA: SORUNSUZ / OLAYSIZ BİTENLER */}
                     <div className="mb-6">
                         <button onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)} className="w-full flex justify-between items-center bg-emerald-950/40 border border-emerald-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                             <div className="flex items-center gap-3"><span className="text-2xl">✅</span><h2 className="text-lg font-black text-emerald-400 tracking-widest uppercase">SORUNSUZ / OLAYSIZ BİTENLER</h2></div>
@@ -1130,7 +1326,6 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* 2. SIRA: SARI KATEGORİ (TEKNİK İHRAÇLAR) */}
                     <div className="mb-6">
                         <button onClick={() => setKategoriDisiplinAcik(!kategoriDisiplinAcik)} className="w-full flex justify-between items-center bg-amber-950 border border-amber-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                             <div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><h2 className="text-lg font-black text-amber-500 tracking-widest uppercase">SARI KATEGORİ (TEKNİK İHRAÇLAR)</h2></div>
@@ -1143,7 +1338,6 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* 3. SIRA: KIRMIZI KATEGORİ (EMNİYETLİK) - POLİS ÇAKARI ALARMLI */}
                     <div className="mb-6">
                         <button onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)} className={`w-full flex justify-between items-center p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all ${sirenAktif ? 'police-siren-active text-white' : 'bg-red-950 border border-red-900 text-red-500'}`}>
                             <div className="flex items-center gap-3"><span className="text-2xl">🚨</span><h2 className={`text-lg font-black tracking-widest uppercase ${sirenAktif ? 'text-white drop-shadow-md' : 'text-red-500'}`}>KIRMIZI KATEGORİ (EMNİYETLİK)</h2></div>
@@ -1156,7 +1350,6 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* 4. SIRA: SİCİL VE ARŞİV */}
                     <div className="mt-6">
                         <button onClick={() => setKategoriSicilAcik(!kategoriSicilAcik)} className="w-full flex justify-between items-center bg-blue-950 border border-blue-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                             <div className="flex items-center gap-3"><span className="text-2xl">🗄️</span><h2 className="text-lg font-black text-blue-400 tracking-widest uppercase">KOMİSER SİCİL VE ARŞİV DOSYASI</h2></div>
@@ -1206,7 +1399,6 @@ export default function AdminPage() {
                                                             <div className="flex flex-col gap-2 items-end">
                                                                 <span className={`px-2 py-1 rounded text-[10px] font-black ${mac.skor_girildi ? 'bg-green-900 text-green-300' : 'bg-slate-700 text-slate-400'}`}>{skorMetni}</span>
                                                                 {detayliGonderilmis && (
-                                                                    /* 🔥 YENİ: SİCİL KARTINDAKİ BUTON DA TAM EKRANI AÇIYOR */
                                                                     <button onClick={() => setTamEkranRaporMac(mac)} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-colors shadow-sm">
                                                                         📄 RAPORU AÇ
                                                                     </button>
@@ -1224,7 +1416,7 @@ export default function AdminPage() {
                     </div>
                 </div>
 
-                {/* SAĞ SÜTUN - BEKLEYENLER VE İPTALLER */}
+                {/* SAĞ SÜTUN */}
                 <div>
                     <button onClick={() => setKategoriTebellugAcik(!kategoriTebellugAcik)} className="w-full flex justify-between items-center bg-purple-950 border border-purple-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                         <div className="flex items-center gap-3"><span className="text-2xl">📬</span><h2 className="text-lg font-black text-purple-400 tracking-widest uppercase">GÖREVİ ONAYLAMAYANLAR</h2></div>
