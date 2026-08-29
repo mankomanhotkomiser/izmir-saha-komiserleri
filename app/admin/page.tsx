@@ -172,12 +172,11 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // 🧬 DNA GÜNCELLEMESİ (Tarih + Saat + Kategori + Ev Sahibi + Misafir)
   const mukerrerleriTemizle = async () => {
       if(!window.confirm("DİKKAT: Veritabanındaki tam kopyalar (Aynı Tarih+Saat+Lig+Takımlar) taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
       setYukleniyor(true);
       try {
-          const { data, error } = await supabase.from('musabakalar').select('id, tarih, saat, kategori_adi, ev_sahibi, misafir_takim').order('id', { ascending: true });
+          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, tarih, saat, kategori_adi, ev_sahibi, misafir_takim, komiser_id').order('id', { ascending: true });
           if(error) throw error;
           
           const dnaMap = new Map();
@@ -185,8 +184,8 @@ export default function AdminPage() {
           
           data.forEach(m => {
               if(!m.ev_sahibi || !m.misafir_takim) return;
-              // YENİ ZIRHLI DNA! Artık U14 ve U15 maçları karışmayacak.
-              const anahtar = `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              const anahtar = `${m.mac_kodu || 'bos'}_${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}_${m.komiser_id || 'bos'}`;
+              
               if(dnaMap.has(anahtar)) {
                   silinecekIdler.push(m.id);
               } else {
@@ -272,7 +271,6 @@ export default function AdminPage() {
       }
   }
 
-  // 📡 GELİŞMİŞ EXCEL RADARI VE HAYALET MAÇ FİLTRESİ
   const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -286,7 +284,6 @@ export default function AdminPage() {
               if (jsonData.length === 0) { setExcelHata("Yüklediğiniz dosya boş veya okunamadı."); return; }
 
               const islenmisVeri = jsonData.map((row: any) => {
-                  // Radarı devreye sok: Tüm sütun başlıklarındaki boşlukları sil ve büyük harfe çevir
                   const normRow: any = {};
                   Object.keys(row).forEach(k => { normRow[k.trim().toLocaleUpperCase('tr-TR')] = row[k]; });
 
@@ -314,8 +311,11 @@ export default function AdminPage() {
                   let finalKomiserId = rawName; 
                   
                   if (rawName && tumKomiserler && tumKomiserler.length > 0) {
-                      const nameUpper = rawName.toLocaleUpperCase('tr-TR');
-                      const matchedKomiser = tumKomiserler.find(k => k.ad_soyad && k.ad_soyad.toLocaleUpperCase('tr-TR').trim() === nameUpper);
+                      // YENİ GÜÇLÜ İSİM TEMİZLEYİCİ: Çift boşlukları tek boşluk yapar, başı sonu siler.
+                      const temizle = (isim: string) => isim.toLocaleUpperCase('tr-TR').replace(/\s+/g, ' ').trim();
+                      
+                      const nameUpper = temizle(rawName);
+                      const matchedKomiser = tumKomiserler.find(k => k.ad_soyad && temizle(k.ad_soyad) === nameUpper);
                       if (matchedKomiser) { finalKomiserId = matchedKomiser.komiser_id; }
                   }
 
@@ -331,7 +331,6 @@ export default function AdminPage() {
                       raw_komiser_name: rawName 
                   }
               }).filter(m => {
-                  // HAYALET MAÇ FİLTRESİ: Takım isimleri boşsa veya BAY geçiyorsa listeye almaz.
                   const ev = m.ev_sahibi.trim().toLocaleUpperCase('tr-TR');
                   const misafir = m.misafir_takim.trim().toLocaleUpperCase('tr-TR');
                   return ev && misafir && ev !== 'BAY' && misafir !== 'BAY';
@@ -353,7 +352,6 @@ export default function AdminPage() {
       }
   }
 
-  // YÜKLEMEDEKİ DNA GÜNCELLEMESİ
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
       setExcelKaydediliyor(true);
@@ -369,11 +367,11 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          const { data: mevcutlar } = await supabase.from('musabakalar').select('tarih, saat, kategori_adi, ev_sahibi, misafir_takim');
-          const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`));
+          const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, saat, kategori_adi, ev_sahibi, misafir_takim, komiser_id');
+          const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => `${m.mac_kodu || 'bos'}_${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}_${m.komiser_id || 'bos'}`));
           
           const eklenecekler = dbVerisi.filter(m => {
-              const anahtar = `${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              const anahtar = `${m.mac_kodu || 'bos'}_${m.tarih || 'bos'}_${m.saat || 'bos'}_${m.kategori_adi || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}_${m.komiser_id || 'bos'}`;
               return !mevcutAnahtarlar.has(anahtar);
           });
 
