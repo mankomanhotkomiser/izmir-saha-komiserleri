@@ -52,6 +52,22 @@ const getZaman = (mac: any) => {
 
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
+// İŞTE VERCEL'İN PATLADIĞI, BENİM UNUTTUĞUM O İKİ LİSTE! EKLENDİ.
+const gelisimOrganizasyon = [
+    { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
+    { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
+    { id: 'anons', text: '3. Anons sistemi çalışıyor mu?' },
+    { id: 'sedyeci', text: '4. Müsabakada ev sahibi takım tarafından sedyeci (2 kişi) görevlendirildi mi?' }
+];
+
+const gelisimTeknik = [
+    { id: 'soyunma_odasi', text: '1. Hakem ve Takım Soyunma Odası' }, { id: 'oyun_alani', text: '2. Oyun Alanı' },
+    { id: 'kale_aglari', text: '3. Kale ve Ağları' }, { id: 'saha_cizgileri', text: '4. Saha Çizgileri' },
+    { id: 'kose_gonderleri', text: '5. Köşe Gönderleri' }, { id: 'teknik_alan', text: '6. Teknik Alan' },
+    { id: 'yedek_kulubeleri', text: '7. Yedek Kulübeleri' }, { id: 'skor_tabelasi', text: '8. Skor Tabelası' },
+    { id: 'oyuncu_degistirme', text: '9. Oyuncu Değiştirme Tabelası' }
+];
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -70,7 +86,7 @@ export default function AdminPage() {
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(false)
   const [kategoriTebellugAcik, setKategoriTebellugAcik] = useState(true)
   const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
-  const [kategoriIptalAcik, setKategoriIptalAcik] = useState(false) // YENİ: İptal edilenler akordeonu
+  const [kategoriIptalAcik, setKategoriIptalAcik] = useState(false)
   
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
   const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') 
@@ -82,7 +98,6 @@ export default function AdminPage() {
   const [excelHata, setExcelHata] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false) 
 
-  // YENİ: TANRI MODU (GOD MODE) YETKİ STATE'LERİ
   const [atamaSelects, setAtamaSelects] = useState<Record<number, string>>({})
   const [degisimAcikMacId, setDegisimAcikMacId] = useState<number | null>(null)
   const [yeniKomiserId, setYeniKomiserId] = useState<string>('')
@@ -149,7 +164,6 @@ export default function AdminPage() {
   const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); setAcikTffMacId(null); }
   const toggleTff = (id: number) => { setAcikTffMacId(acikTffMacId === id ? null : id) }
 
-  // YENİ: TANRI MODU - MANUEL ATAMA (ERGÜN BABAOĞLU VAKASI ÇÖZÜMÜ)
   const islemYapAta = async (macId: number) => {
       const kId = atamaSelects[macId];
       if (!kId) { alert("Lütfen atanacak komiseri listeden seçiniz!"); return; }
@@ -161,7 +175,6 @@ export default function AdminPage() {
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
   }
 
-  // YENİ: TANRI MODU - CANLI GÖREV DEVRİ
   const islemYapDevir = async (macId: number) => {
       if (!yeniKomiserId) { alert("Lütfen devredilecek yeni komiseri seçiniz!"); return; }
       if (window.confirm("Bu görevi seçili komisere devretmek istediğinize emin misiniz? (Önceki komiserin ekranından tamamen silinecek ve yeni komisere tebellüğ için düşecek)")) {
@@ -176,15 +189,14 @@ export default function AdminPage() {
       }
   }
 
-  // YENİ: TANRI MODU - MAÇ İPTAL ETME
   const macIptalEt = async (macId: number) => {
       if (window.confirm("⛔ DİKKAT: Bu maçı tamamen iptal etmek istediğinize emin misiniz? (Müsabaka komiserin ekranından silinir, görev istatistiğine yansımaz ve arşive kaldırılır)")) {
           try {
               const { error } = await supabase.from('musabakalar').update({
                   mac_durumu: 'iptal_edildi',
                   olay_durumu: 'iptal',
-                  skor_girildi: true, // Bekleyen listelerinden düşmesi için
-                  tebellug_edildi: true, // Tebellüğ listelerinden düşmesi için
+                  skor_girildi: true, 
+                  tebellug_edildi: true, 
                   rapor_notu: 'Müsabaka Yönetim (Karargah) Kararıyla İptal Edilmiştir.'
               }).eq('id', macId);
               if (error) throw error;
@@ -470,7 +482,8 @@ export default function AdminPage() {
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">I) ORGANİZASYON :</div>
                   <div className="mb-4 text-xs font-medium space-y-1">
                       <p className="mb-2">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
-                      {gelisimOrganizasyon.map(soru => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
+                      {/* VERCEL TYPE HATASI TS7006 ÇÖZÜMÜ İÇİN `(soru: any)` EKLENDİ */}
+                      {gelisimOrganizasyon.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
                       <p className="mt-4 mb-1">(b) Müsabaka sonu değerlendirmesi</p>
                       <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} className="w-full border-b border-dashed border-black bg-transparent outline-none resize-none h-10 pointer-events-none"></textarea>
                   </div>
@@ -478,7 +491,7 @@ export default function AdminPage() {
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">II) TEKNİK HUSUSLAR :</div>
                   <div className="mb-4 text-xs font-medium space-y-1">
                       <p className="mb-2">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
-                      {gelisimTeknik.map(soru => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
+                      {gelisimTeknik.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
                       <div className="mt-4 space-y-2">
                           <div className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.isim_listeleri} /></div></div>
                           <div className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">c) Takımlar koyu ve açık renk forma setlerini getirdi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.forma_setleri} /></div></div>
@@ -652,7 +665,6 @@ export default function AdminPage() {
                  </div>
              )}
 
-             {/* YÖNETİM MÜDAHALE BUTONLARI (EKMEL KANUNU - SİLİNMEDEN EKLENDİ) */}
              {mac.mac_durumu !== 'iptal_edildi' && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
@@ -677,7 +689,6 @@ export default function AdminPage() {
     )
   }
 
-  // LİSTE FİLTRELERİ (İPTAL EDİLENLER HARİÇ TUTULDU)
   const emniyetlikMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay' && m.mac_durumu !== 'iptal_edildi')
   const teknikMaclar = tumMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu') && m.mac_durumu !== 'iptal_edildi')
   const olaysizMaclar = tumMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'olaysiz' && m.mac_durumu !== 'iptal_edildi')
@@ -727,7 +738,6 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         
-        {/* EXCEL YÜKLEME MODALI */}
         {excelModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -824,7 +834,6 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-8">
             
-            {/* YENİ: ATANMAYAN (BOŞ) MAÇLAR UYARISI */}
             {atanmayanMaclar.length > 0 && (
                 <div className="bg-red-950/60 border-2 border-red-600 rounded-2xl p-6 mb-6 shadow-2xl animate-pulse">
                     <h3 className="text-red-400 font-black text-xl mb-4 flex items-center gap-3"><span className="text-3xl">🚨</span> DİKKAT: KOMİSERİ OLMAYAN (ATANMAMIŞ) {atanmayanMaclar.length} ADET MAÇ VAR!</h3>
@@ -876,7 +885,6 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                {/* SOL SÜTUN */}
                 <div>
                     <button onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)} className="w-full flex justify-between items-center bg-red-950 border border-red-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                         <div className="flex items-center gap-3"><span className="text-2xl">🚨</span><h2 className="text-lg font-black text-red-500 tracking-widest uppercase">KIRMIZI KATEGORİ (EMNİYETLİK)</h2></div>
@@ -964,7 +972,6 @@ export default function AdminPage() {
                     </div>
                 </div>
 
-                {/* SAĞ SÜTUN */}
                 <div>
                     <button onClick={() => setKategoriTebellugAcik(!kategoriTebellugAcik)} className="w-full flex justify-between items-center bg-purple-950 border border-purple-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
                         <div className="flex items-center gap-3"><span className="text-2xl">📬</span><h2 className="text-lg font-black text-purple-400 tracking-widest uppercase">GÖREVİ ONAYLAMAYANLAR</h2></div>
@@ -1016,7 +1023,6 @@ export default function AdminPage() {
                         )}
                     </div>
 
-                    {/* YENİ: İPTAL EDİLEN MAÇLAR AKORDEONU */}
                     <div className="mt-6">
                         <button onClick={() => setKategoriIptalAcik(!kategoriIptalAcik)} className="w-full flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all opacity-70">
                             <div className="flex items-center gap-3"><span className="text-2xl">⛔</span><h2 className="text-lg font-black text-slate-500 tracking-widest uppercase line-through">İPTAL EDİLEN MAÇLAR</h2></div>
