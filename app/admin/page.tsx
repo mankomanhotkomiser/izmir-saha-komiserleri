@@ -16,10 +16,9 @@ const raporTurunuBelirle = (kategori: any) => {
     return 'amator';
 }
 
-// 🔥 SİBER HATA BURADAYDI! Gelişim liglerini gizliyordu. Artık sadece "yok" olan profesyonel ligleri gizleyecek!
 const detayliRaporGosterilirMi = (kategori: any) => {
-    const tur = raporTurunuBelirle(kategori);
-    return tur !== 'yok'; 
+  const tur = raporTurunuBelirle(kategori);
+  return tur !== 'yok'; 
 }
 
 const guvenliTarih = (tarihMetni: string | null | undefined) => {
@@ -103,6 +102,8 @@ export default function AdminPage() {
   const [yeniKomiserId, setYeniKomiserId] = useState<string>('')
 
   const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
+  
+  const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,7 +125,21 @@ export default function AdminPage() {
     } catch (e) { return 0; }
   }
 
-  useEffect(() => { if (girisYapildi) { veriGetir() } }, [girisYapildi])
+  useEffect(() => { 
+      if (girisYapildi) { 
+          veriGetir();
+          try {
+              const kayitliAlarmlar = localStorage.getItem('karargahSusturulanAlarmlar');
+              if (kayitliAlarmlar) setSusturulanAlarmlar(JSON.parse(kayitliAlarmlar));
+          } catch(e) {}
+      } 
+  }, [girisYapildi])
+
+  const alarmSustur = (id: number) => {
+      const yeni = [...susturulanAlarmlar, id];
+      setSusturulanAlarmlar(yeni);
+      localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
+  }
 
   const veriGetir = async () => {
     setYukleniyor(true)
@@ -424,6 +439,14 @@ export default function AdminPage() {
     }
   }
 
+  // 🔥 TIKLA VE SEÇ KAMUFLAJI
+  const temizHakem = (isim: any) => {
+      if (!isim) return '';
+      const s = String(isim).trim().toLocaleUpperCase('tr-TR');
+      if (s.includes('TIKLA VE')) return '';
+      return String(isim).trim();
+  };
+
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
@@ -475,10 +498,10 @@ export default function AdminPage() {
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       <div className="border-r border-black flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_1)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_2)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={temizHakem(safeRaporDetay?.gozlemci)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
                       </div>
                       <div className="flex flex-col">
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input readOnly type="text" value={safeRaporDetay?.saglik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
@@ -546,25 +569,32 @@ export default function AdminPage() {
                       </div>
                   </div>
 
+                  {/* 🔥 GELİŞİM LİGİ YENİ NİZAMİ SKORBORD KUTUSU */}
                   <div className="border-2 border-black text-xs font-bold mb-6">
                       <div className="grid grid-cols-6 border-b border-black">
                           <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
-                          <div className="col-span-1 p-2 flex justify-between bg-slate-100 items-center"><span className="mr-2">SKOR</span><span className="text-lg font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</span></div>
+                          <div className="col-span-1 grid grid-cols-2 bg-slate-100">
+                              <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
+                              <div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div>
+                          </div>
                       </div>
                       <div className="grid grid-cols-6">
                           <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
-                          <div className="col-span-1 p-2 flex justify-between bg-slate-100 items-center"><span className="mr-2">SKOR</span><span className="text-lg font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span></div>
+                          <div className="col-span-1 grid grid-cols-2 bg-slate-100">
+                              <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
+                              <div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div>
+                          </div>
                       </div>
                   </div>
 
                   <h3 className="font-bold text-sm mb-1 uppercase">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_1)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.y_hakem_2)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.hakem_4)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={temizHakem(safeRaporDetay?.gozlemci)} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
@@ -700,19 +730,20 @@ export default function AdminPage() {
     const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
     
-    // 🔥 SİBER ÇEVİRİ ZEKASI: Paketi açıp içine bakıyoruz. En ufak bir veri varsa (hakem, detayli vs) rapor gelmiş demektir!
-    let parsedDetay = {};
+    let parsedDetay: any = {};
     if (mac.tff_rapor_detaylari) {
         if (typeof mac.tff_rapor_detaylari === 'string') {
             try { 
                 parsedDetay = JSON.parse(mac.tff_rapor_detaylari); 
                 if (typeof parsedDetay === 'string') parsedDetay = JSON.parse(parsedDetay);
-            } catch(e) { console.error("JSON Paketi Açılmadı:", e); }
+            } catch(e) { }
         } else if (typeof mac.tff_rapor_detaylari === 'object') {
             parsedDetay = mac.tff_rapor_detaylari;
         }
     }
-    const detayliGonderilmis = parsedDetay && Object.keys(parsedDetay).length > 0;
+    
+    const hasHakem = parsedDetay && parsedDetay.hakem && String(parsedDetay.hakem).trim().length > 1;
+    const detayliGonderilmis = parsedDetay && (parsedDetay.detayli_kaydedildi === true) && hasHakem;
     
     const macBittiMi = mac.skor_girildi === true && mac.mac_durumu !== 'iptal_edildi';
 
@@ -726,7 +757,6 @@ export default function AdminPage() {
                   {tip === 'iptal' && <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded animate-pulse">İPTAL EDİLDİ</span>}
                 </div>
                 
-                {/* SKORBORD TASARIMI (MÜHÜRLÜ - DEĞİŞTİRİLMEDİ) */}
                 <div className="flex flex-col gap-1.5 w-full md:w-3/4 mb-3">
                   <div className="flex justify-between items-center rounded px-2 py-1 bg-slate-900/30">
                       <h3 className={`font-bold text-sm md:text-base uppercase pr-2 truncate w-full ${tip === 'iptal' ? 'text-red-400 line-through opacity-70' : 'text-white'}`}>{mac.ev_sahibi || '-'}</h3>
@@ -755,6 +785,21 @@ export default function AdminPage() {
 
         {isAcik && (
           <div className="bg-slate-900 border-t border-slate-800 p-4 md:p-6 animate-fade-in-down">
+             
+             {tip === 'emniyet' && (
+                 <div className="mb-4 pb-4 border-b border-slate-800 flex justify-between items-center">
+                     {!susturulanAlarmlar.includes(mac.id) ? (
+                         <button onClick={() => alarmSustur(mac.id)} className="bg-red-950/80 hover:bg-red-900 border border-red-500 text-white px-4 py-2 rounded-lg text-xs font-black tracking-widest transition-colors flex items-center gap-2 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse">
+                             🔇 BU MAÇIN ALARMINI SUSTUR
+                         </button>
+                     ) : (
+                         <span className="bg-slate-900/50 text-slate-500 border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2">
+                             🔕 Bu maçın alarmı Karargah tarafından susturuldu.
+                         </span>
+                     )}
+                 </div>
+             )}
+
              <div className="sm:hidden mb-4 pb-4 border-b border-slate-800">
                  <span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span>
                  <span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span>
@@ -791,7 +836,6 @@ export default function AdminPage() {
                  </div>
              )}
 
-             {/* KARARGAH GÜVENLİK KİLİDİ: Skor girilmişse butonlar ekranda GÖZÜKMEZ */}
              {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
@@ -842,6 +886,8 @@ export default function AdminPage() {
         return map;
   }, new Map()).values()).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
 
+  const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
+  const sirenAktif = aktifEmniyetlikler.length > 0;
 
   if (!girisYapildi) {
     return (
@@ -861,7 +907,6 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#0f172a] font-sans text-slate-200">
       
-      {/* 🚨 POLİS ÇAKARI ALARM CSS KODU (EMNİYETLİK MAÇLAR İÇİN) */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes siren-police {
             0%, 100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); border-color: #ef4444; background-color: rgba(69, 10, 10, 0.95); }
@@ -1091,9 +1136,9 @@ export default function AdminPage() {
 
                     {/* 3. SIRA: KIRMIZI KATEGORİ (EMNİYETLİK) - POLİS ÇAKARI ALARMLI */}
                     <div className="mb-6">
-                        <button onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)} className={`w-full flex justify-between items-center p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all ${emniyetlikMaclar.length > 0 ? 'police-siren-active text-white' : 'bg-red-950 border border-red-900 text-red-500'}`}>
-                            <div className="flex items-center gap-3"><span className="text-2xl">🚨</span><h2 className={`text-lg font-black tracking-widest uppercase ${emniyetlikMaclar.length > 0 ? 'text-white drop-shadow-md' : 'text-red-500'}`}>KIRMIZI KATEGORİ (EMNİYETLİK)</h2></div>
-                            <div className="flex items-center gap-4"><span className={`${emniyetlikMaclar.length > 0 ? 'bg-white text-red-600' : 'bg-red-600 text-white'} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>{emniyetlikMaclar.length} MAÇ</span><span className={`${emniyetlikMaclar.length > 0 ? 'text-white' : 'text-red-500'}`}>{kategoriKirmiziAcik ? '▲' : '▼'}</span></div>
+                        <button onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)} className={`w-full flex justify-between items-center p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all ${sirenAktif ? 'police-siren-active text-white' : 'bg-red-950 border border-red-900 text-red-500'}`}>
+                            <div className="flex items-center gap-3"><span className="text-2xl">🚨</span><h2 className={`text-lg font-black tracking-widest uppercase ${sirenAktif ? 'text-white drop-shadow-md' : 'text-red-500'}`}>KIRMIZI KATEGORİ (EMNİYETLİK)</h2></div>
+                            <div className="flex items-center gap-4"><span className={`${sirenAktif ? 'bg-white text-red-600' : 'bg-red-600 text-white'} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>{emniyetlikMaclar.length} MAÇ</span><span className={`${sirenAktif ? 'text-white' : 'text-red-500'}`}>{kategoriKirmiziAcik ? '▲' : '▼'}</span></div>
                         </button>
                         {kategoriKirmiziAcik && (
                             <div className="space-y-3 animate-fade-in-down pl-2">
@@ -1128,7 +1173,7 @@ export default function AdminPage() {
                                                 const isAcik = acikSicilTffMacId === mac.id;
                                                 const skorMetni = mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Bekleniyor';
                                                 
-                                                let parsedDetay = {};
+                                                let parsedDetay: any = {};
                                                 if (mac.tff_rapor_detaylari) {
                                                     if (typeof mac.tff_rapor_detaylari === 'string') {
                                                         try { 
@@ -1139,7 +1184,8 @@ export default function AdminPage() {
                                                         parsedDetay = mac.tff_rapor_detaylari;
                                                     }
                                                 }
-                                                const detayliGonderilmis = parsedDetay && Object.keys(parsedDetay).length > 0;
+                                                const hasHakem = parsedDetay && parsedDetay.hakem && String(parsedDetay.hakem).trim().length > 1;
+                                                const detayliGonderilmis = parsedDetay && (parsedDetay.detayli_kaydedildi === true) && hasHakem;
                                                 
                                                 return (
                                                     <div key={`sicil-${idx}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
