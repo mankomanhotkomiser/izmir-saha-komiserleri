@@ -172,24 +172,24 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // ⚠️ SUPABASE HATA ÇÖZÜMÜ: created_at yerine id üzerinden sıralama yapıldı. ⚠️
+  // ⚠️ HATANIN ÇÖZÜMÜ: Sadece MAÇ KODUNA değil, "Tarih + EvSahibi + Misafir" DNA'sına bakar.
   const mukerrerleriTemizle = async () => {
-      if(!window.confirm("DİKKAT: Veritabanındaki aynı Maç Koduna (M.KODU) sahip çift kayıtlar taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
+      if(!window.confirm("DİKKAT: Veritabanındaki çift kayıtlar (Aynı Tarih + Aynı Takımlar) taranacak ve fazlalıkları kalıcı olarak silinecektir. Onaylıyor musunuz?")) return;
       setYukleniyor(true);
       try {
-          // BURASI DEĞİŞTİ: order('id') kullanıldı
-          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu').order('id', { ascending: true });
+          const { data, error } = await supabase.from('musabakalar').select('id, tarih, ev_sahibi, misafir_takim').order('id', { ascending: true });
           if(error) throw error;
           
-          const kodMap = new Map();
+          const dnaMap = new Map();
           const silinecekIdler: number[] = [];
           
           data.forEach(m => {
-              if(!m.mac_kodu) return;
-              if(kodMap.has(m.mac_kodu)) {
+              if(!m.ev_sahibi || !m.misafir_takim) return;
+              const anahtar = `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              if(dnaMap.has(anahtar)) {
                   silinecekIdler.push(m.id);
               } else {
-                  kodMap.set(m.mac_kodu, m.id);
+                  dnaMap.set(anahtar, m.id);
               }
           });
 
@@ -342,6 +342,7 @@ export default function AdminPage() {
       }
   }
 
+  // ⚠️ HATANIN ÇÖZÜMÜ 2: Yüklemede kalkanı M.KODU değil, Maç DNA'sı yaptık
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
       setExcelKaydediliyor(true);
@@ -357,11 +358,13 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          const kodlar = dbVerisi.map(m => m.mac_kodu).filter(Boolean);
-          const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu').in('mac_kodu', kodlar);
-          const mevcutKodlar = (mevcutlar || []).map(m => m.mac_kodu);
+          const { data: mevcutlar } = await supabase.from('musabakalar').select('tarih, ev_sahibi, misafir_takim');
+          const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`));
           
-          const eklenecekler = dbVerisi.filter(m => !mevcutKodlar.includes(m.mac_kodu));
+          const eklenecekler = dbVerisi.filter(m => {
+              const anahtar = `${m.tarih || 'bos'}_${m.ev_sahibi}_${m.misafir_takim}`;
+              return !mevcutAnahtarlar.has(anahtar);
+          });
 
           if (eklenecekler.length === 0) {
               alert("⚠️ Yüklediğiniz dosyadaki tüm maçlar zaten sistemde mevcut! Mükerrer (çift) kayıt önlendi.");
