@@ -700,7 +700,13 @@ export default function AdminPage() {
 
     const isAcik = acikMacId === mac.id; const isTffAcik = acikTffMacId === mac.id;
     const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
-    const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
+    
+    // 🔥 SİBER ÇEVİRİ DÜZELTİLDİ: Rapor paketi (JSON String) önce açılıp sonra içindeki 'detayli_kaydedildi' değerine bakılıyor.
+    let parsedDetay = typeof mac.tff_rapor_detaylari === 'string' 
+        ? JSON.parse(mac.tff_rapor_detaylari) 
+        : (mac.tff_rapor_detaylari || {});
+    const detayliGonderilmis = parsedDetay?.detayli_kaydedildi === true;
+    
     const macBittiMi = mac.skor_girildi === true && mac.mac_durumu !== 'iptal_edildi';
 
     return (
@@ -713,7 +719,7 @@ export default function AdminPage() {
                   {tip === 'iptal' && <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded animate-pulse">İPTAL EDİLDİ</span>}
                 </div>
                 
-                {/* YENİ SKORBORD TASARIMI */}
+                {/* SKORBORD TASARIMI (Aynı şekilde korundu) */}
                 <div className="flex flex-col gap-1.5 w-full md:w-3/4 mb-3">
                   <div className="flex justify-between items-center rounded px-2 py-1 bg-slate-900/30">
                       <h3 className={`font-bold text-sm md:text-base uppercase pr-2 truncate w-full ${tip === 'iptal' ? 'text-red-400 line-through opacity-70' : 'text-white'}`}>{mac.ev_sahibi || '-'}</h3>
@@ -734,7 +740,7 @@ export default function AdminPage() {
             <div className="flex flex-col items-end gap-2 shrink-0">
                 <div className="text-right hidden sm:block">
                     <span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span>
-                    <span className="bg-slate-900 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-inner">{komiserTamIsim}</span>
+                    <span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-inner">{komiserTamIsim}</span>
                 </div>
                 <span className={`text-xl transition-transform duration-300 ${renkSiniflari.text} ${isAcik ? 'rotate-180' : ''}`}>▼</span>
             </div>
@@ -778,6 +784,7 @@ export default function AdminPage() {
                  </div>
              )}
 
+             {/* KARARGAH GÜVENLİK KİLİDİ: Skor girilmişse butonlar ekranda GÖZÜKMEZ */}
              {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
                      <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button>
@@ -1113,7 +1120,11 @@ export default function AdminPage() {
                                             return komiserinMaclari.map((mac, idx) => {
                                                 const isAcik = acikSicilTffMacId === mac.id;
                                                 const skorMetni = mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Bekleniyor';
-                                                const detayliGonderilmis = mac.tff_rapor_detaylari?.detayli_kaydedildi === true;
+                                                
+                                                let parsedDetay = typeof mac.tff_rapor_detaylari === 'string' 
+                                                    ? JSON.parse(mac.tff_rapor_detaylari) 
+                                                    : (mac.tff_rapor_detaylari || {});
+                                                const detayliGonderilmis = parsedDetay?.detayli_kaydedildi === true;
                                                 
                                                 return (
                                                     <div key={`sicil-${idx}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
