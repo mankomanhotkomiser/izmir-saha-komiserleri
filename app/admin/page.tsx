@@ -11,13 +11,8 @@ const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_log
 const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
-    
-    // PAF, KIZ ve KADIN ligleri artık Gelişim TFF Raporu şablonuyla açılır
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) return 'gelisim';
-    
-    // Süper Lig, 1. Lig, 2. Lig, 3. Lig, Profesyonel maçlarda TFF raporu gizlenir (Sadece Hızlı Skor)
     if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('SÜPER') || kat.includes('1. LİG') || kat.includes('2. LİG') || kat.includes('3. LİG') || kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'yok';
-    
     return 'amator';
 }
 
@@ -79,6 +74,7 @@ export default function AdminPage() {
   const [goruntulenenHafta, setGoruntulenenHafta] = useState<number | null>(null)
   const [sezonlukMaclar, setSezonlukMaclar] = useState<any[]>([]) 
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
+  const [hakemListesi, setHakemListesi] = useState<string[]>([])
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [yukleniyor, setYukleniyor] = useState(true)
 
@@ -109,11 +105,15 @@ export default function AdminPage() {
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
-  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle'>('komiser_ekle')
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle'>('komiser_ekle')
   
   const [yeniPersonelAd, setYeniPersonelAd] = useState('')
   const [yeniPersonelSicil, setYeniPersonelSicil] = useState('')
   const [personelEkleniyor, setPersonelEkleniyor] = useState(false)
+
+  // Yeni Hakem Ekleme State'i
+  const [yeniHakemAd, setYeniHakemAd] = useState('')
+  const [hakemEkleniyor, setHakemEkleniyor] = useState(false)
 
   const [manuelMacKodu, setManuelMacKodu] = useState('')
   const [manuelMacTarih, setManuelMacTarih] = useState('')
@@ -127,7 +127,7 @@ export default function AdminPage() {
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
-    else { setHatasi('Hatalı şifre. Operasyon Merkezine giriş reddedildi.') }
+    else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
   const cumaBul = (tarihMetni: string) => {
@@ -177,6 +177,9 @@ export default function AdminPage() {
       const { data: komiserlerData } = await supabase.from('komiserler').select('*')
       if (komiserlerData) setTumKomiserler(komiserlerData)
 
+      const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').order('ad_soyad')
+      if (hakemData) setHakemListesi(hakemData.map((h: any) => h.ad_soyad));
+
       if (maclarVerisi.length > 0) {
         const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
         const gruplar: Record<number, any[]> = {};
@@ -225,12 +228,28 @@ export default function AdminPage() {
               if (error.code === '23505') alert("Hata: Bu sicil numarası sistemde zaten kayıtlı!");
               else throw error;
           } else {
-              alert("✅ Komiser / Stajyer Karargaha başarıyla eklendi.");
+              alert("✅ Komiser / Stajyer Merkeze başarıyla eklendi.");
               setYeniPersonelAd(''); setYeniPersonelSicil('');
               veriGetir(); 
           }
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       setPersonelEkleniyor(false);
+  }
+
+  // 🔥 YENİ HAKEM EKLEME (ÖNDER HOCAMIN İSTEDİĞİ GİBİ BÜYÜK HARFE ÇEVİREREK)
+  const hakemEkleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if(!yeniHakemAd) return;
+      setHakemEkleniyor(true);
+      try {
+          const upperAd = yeniHakemAd.toLocaleUpperCase('tr-TR');
+          const { error } = await supabase.from('hakemler').insert([{ ad_soyad: upperAd }]);
+          if(error) throw error;
+          alert("✅ Hakem başarıyla Merkez veritabanına eklendi!");
+          setYeniHakemAd('');
+          veriGetir(); 
+      } catch (err: any) { alert("Hata: " + err.message); }
+      setHakemEkleniyor(false);
   }
 
   const otomatikMacKoduBul = () => {
@@ -280,7 +299,6 @@ export default function AdminPage() {
       setManuelMacEkleniyor(false);
   }
 
-  // 🔥 YENİ AKILLI MÜKERRER TEMİZLİK MOTORU ÖNDER HOCAM İÇİN GÜNCELLENDİ
   const mukerrerleriTemizle = async () => {
       if(!window.confirm("DİKKAT: Toleranslı Temizlik başlıyor! Lütfen onaylayın.")) return;
       setYukleniyor(true);
@@ -294,8 +312,6 @@ export default function AdminPage() {
           data.forEach(m => {
               if(!m.ev_sahibi || !m.misafir_takim) return;
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
-              
-              // 🔥 YENİ DNA: Maç Kodu + Tarih + Kategori + Ev Sahibi + Misafir
               const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}`;
               
               if(dnaMap.has(anahtar)) {
@@ -314,7 +330,7 @@ export default function AdminPage() {
                   const {error: delErr} = await supabase.from('musabakalar').delete().in('id', chunk);
                   if(delErr) throw delErr;
               }
-              alert(`✅ Başarılı! Toplam ${silinecekIdler.length} adet gizli çift kayıt (mükerrer) acımasızca temizlendi.`);
+              alert(`✅ Başarılı! Toplam ${silinecekIdler.length} adet gizli çift kayıt (mükerrer) temizlendi.`);
               veriGetir();
           }
       } catch(e:any) { alert("Hata: " + e.message); }
@@ -345,14 +361,14 @@ export default function AdminPage() {
       try {
           const { error } = await supabase.from('musabakalar').update({ komiser_id: kId }).eq('id', macId);
           if (error) throw error;
-          alert("✅ Müsabaka komutanlığınızca başarıyla atandı!");
+          alert("✅ Müsabaka Merkez tarafından başarıyla atandı!");
           sessizMacGuncelle(macId, { komiser_id: kId }); 
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
   }
 
   const islemYapDevir = async (macId: number) => {
       if (!yeniKomiserId) { alert("Lütfen devredilecek yeni komiseri seçiniz!"); return; }
-      if (window.confirm("Bu görevi seçili komisere devretmek istediğinize emin misiniz? (Önceki komiserin ekranından tamamen silinecek ve yeni komisere tebellüğ için düşecek)")) {
+      if (window.confirm("Bu görevi seçili komisere devretmek istediğinize emin misiniz?")) {
           try {
               const { error } = await supabase.from('musabakalar').update({ komiser_id: yeniKomiserId, tebellug_edildi: false }).eq('id', macId);
               if (error) throw error;
@@ -365,14 +381,14 @@ export default function AdminPage() {
   }
 
   const macIptalEt = async (macId: number) => {
-      if (window.confirm("⛔ DİKKAT: Bu maçı tamamen iptal etmek istediğinize emin misiniz? (Müsabaka komiserin ekranından silinir, görev istatistiğine yansımaz ve arşive kaldırılır)")) {
+      if (window.confirm("⛔ DİKKAT: Bu maçı tamamen iptal etmek istediğinize emin misiniz?")) {
           try {
               const guncelVeri = {
                   mac_durumu: 'iptal_edildi',
                   olay_durumu: 'iptal',
                   skor_girildi: true, 
                   tebellug_edildi: true, 
-                  rapor_notu: 'Müsabaka Yönetim (Karargah) Kararıyla İptal Edilmiştir.'
+                  rapor_notu: 'Müsabaka Merkez Kararıyla İptal Edilmiştir.'
               };
               const { error } = await supabase.from('musabakalar').update(guncelVeri).eq('id', macId);
               if (error) throw error;
@@ -465,7 +481,6 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 EXCEL YÜKLEMEDE DE AYNI GÜNCELLENMİŞ DNA KULLANILDI (ÖNDER HOCAM İÇİN)
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
       setExcelKaydediliyor(true);
@@ -483,7 +498,6 @@ export default function AdminPage() {
 
           const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim');
           
-          // 🔥 YENİ DNA: Maç Kodu + Tarih + Kategori + Ev Sahibi + Misafir
           const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => {
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
               return `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}`;
@@ -532,11 +546,18 @@ export default function AdminPage() {
             backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
             style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' } 
         });
-        const link = document.createElement('a'); link.href = dataURL; link.download = `OPERASYON_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
+        const link = document.createElement('a'); link.href = dataURL; link.download = `Sistem_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
         document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
       } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
     }
   }
+
+  const temizHakem = (isim: any) => {
+    if (!isim) return '';
+    const s = String(isim).trim().toLocaleUpperCase('tr-TR');
+    if (s.includes('TIKLA VE')) return '';
+    return String(isim).trim();
+  };
 
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
@@ -595,8 +616,14 @@ export default function AdminPage() {
                           <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
                       </div>
                       <div className="flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> <input readOnly type="text" value={safeRaporDetay?.saglik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
-                          <div className="flex p-1.5 items-center justify-between h-1/2"><span className="text-[10px] font-bold w-24">GÜVENLİK</span> <input readOnly type="text" value={safeRaporDetay?.guvenlik || ''} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none" /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
+                              <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> 
+                              <input readOnly type="text" value={temizHakem(safeRaporDetay?.saglik_adi)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none text-center" />
+                          </div>
+                          <div className="flex p-1.5 items-center justify-between h-1/2">
+                              <span className="text-[10px] font-bold w-24">GÜVENLİK</span> 
+                              <input readOnly type="text" value={temizHakem(safeRaporDetay?.guvenlik_amiri)} className="w-full text-xs outline-none bg-transparent font-black uppercase ml-2 pointer-events-none text-center" />
+                          </div>
                       </div>
                   </div>
                   <h3 className="text-center font-black tracking-widest text-sm mb-2 border-b-2 border-black w-32 mx-auto pb-1 text-black">İ H R A Ç L A R</h3>
@@ -690,15 +717,16 @@ export default function AdminPage() {
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5">GÜVENLİK</div>
-                          <div className="w-1/2 flex items-center justify-center p-1 gap-4"><VarYokBox val={safeRaporDetay?.guvenlik} /></div>
+                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">
+                              <input readOnly type="text" value={temizHakem(safeRaporDetay?.guvenlik_amiri)} className="w-full text-xs outline-none bg-transparent uppercase pointer-events-none text-center font-bold" />
+                          </div>
                       </div>
-                      <div className="flex border-b border-black"><div className="w-1/2 border-r border-black p-1.5">GÜVENLİK AMİRİ ADI SOYADI</div><div className="w-1/2 p-1.5"><input readOnly type="text" value={safeRaporDetay?.guvenlik_amiri || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      <div className="flex border-b border-black"><div className="w-1/2 border-r border-black p-1.5">GÜVENLİK AMİRİ TELEFON</div><div className="w-1/2 p-1.5"><input readOnly type="text" value={safeRaporDetay?.guvenlik_telefon || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5">SAĞLIK MEMURU</div>
-                          <div className="w-1/2 flex items-center justify-center p-1 gap-4"><VarYokBox val={safeRaporDetay?.saglik} /></div>
+                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">
+                              <input readOnly type="text" value={temizHakem(safeRaporDetay?.saglik_adi)} className="w-full text-xs outline-none bg-transparent uppercase pointer-events-none text-center font-bold" />
+                          </div>
                       </div>
-                      <div className="flex"><div className="w-1/2 border-r border-black p-1.5">ADI SOYADI</div><div className="w-1/2 p-1.5"><input readOnly type="text" value={safeRaporDetay?.saglik_adi || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                   </div>
 
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">I) ORGANİZASYON :</div>
@@ -884,7 +912,7 @@ export default function AdminPage() {
                          </button>
                      ) : (
                          <span className="bg-slate-900/50 text-slate-500 border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2">
-                             🔕 Bu maçın alarmı Karargah tarafından susturuldu.
+                             🔕 Bu maçın alarmı Yönetim tarafından susturuldu.
                          </span>
                      )}
                  </div>
@@ -950,6 +978,32 @@ export default function AdminPage() {
   const bekleyenMaclar = gosterilenMaclar.filter(m => m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi')
   const atanmayanMaclar = gosterilenMaclar.filter(m => (!m.komiser_id || m.komiser_id === 'null' || m.komiser_id === '') && m.mac_durumu !== 'iptal_edildi');
   
+  // 🔥 DİNAMİK SIRALAMA: En son işlem yapılan maç (islem_saati) hesaplanıyor
+  const islemZamaniAl = (m: any) => {
+      if (!m.tff_rapor_detaylari) return 0;
+      let d = m.tff_rapor_detaylari;
+      if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e){ d={}; } }
+      return d.islem_saati || 0;
+  }
+
+  const maxOlaysiz = olaysizMaclar.length > 0 ? Math.max(...olaysizMaclar.map(islemZamaniAl)) : -1;
+  const maxTeknik = teknikMaclar.length > 0 ? Math.max(...teknikMaclar.map(islemZamaniAl)) : -1;
+  const maxEmniyet = emniyetlikMaclar.length > 0 ? Math.max(...emniyetlikMaclar.map(islemZamaniAl)) : -1;
+
+  // Kendi içlerinde de islem_saati'ne göre azalan (en yeni en üstte) sıralıyoruz
+  olaysizMaclar.sort((a,b) => islemZamaniAl(b) - islemZamaniAl(a));
+  teknikMaclar.sort((a,b) => islemZamaniAl(b) - islemZamaniAl(a));
+  emniyetlikMaclar.sort((a,b) => islemZamaniAl(b) - islemZamaniAl(a));
+
+  const dinamikKategoriler = [
+      { id: 'emniyet', tip: 'emniyet', baslik: 'KIRMIZI KATEGORİ (EMNİYETLİK)', maclar: emniyetlikMaclar, maxZaman: maxEmniyet, acik: kategoriKirmiziAcik, setAcik: setKategoriKirmiziAcik, icon: '🚨', bgClass: 'bg-red-950 border border-red-900 text-red-500', btnClass: 'bg-red-600 text-white', hoverText: 'text-red-500' },
+      { id: 'teknik', tip: 'teknik', baslik: 'SARI KATEGORİ (TEKNİK İHRAÇLAR)', maclar: teknikMaclar, maxZaman: maxTeknik, acik: kategoriDisiplinAcik, setAcik: setKategoriDisiplinAcik, icon: '⚠️', bgClass: 'bg-amber-950 border border-amber-900 text-amber-500', btnClass: 'bg-amber-600 text-white', hoverText: 'text-amber-500' },
+      { id: 'olaysiz', tip: 'olaysiz', baslik: 'SORUNSUZ / OLAYSIZ BİTENLER', maclar: olaysizMaclar, maxZaman: maxOlaysiz, acik: kategoriOlaysizAcik, setAcik: setKategoriOlaysizAcik, icon: '✅', bgClass: 'bg-emerald-950/40 border border-emerald-900 text-emerald-400', btnClass: 'bg-emerald-600 text-white', hoverText: 'text-emerald-400' }
+  ];
+
+  // Blokları en son gelen maça göre (en büyük islem_saati) sıralıyoruz
+  dinamikKategoriler.sort((a,b) => b.maxZaman - a.maxZaman);
+
   const tebellugBekleyenKomiserler = Array.from(gosterilenMaclar.filter(m => !m.tebellug_edildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null' && m.komiser_id !== '').reduce((map, mac) => {
         if (!map.has(mac.komiser_id)) { 
             const kData = tumKomiserler.find(k => String(k.komiser_id) === String(mac.komiser_id));
@@ -973,7 +1027,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700">
-          <div className="text-center mb-8"><span className="text-5xl block mb-4">🛡️</span><h1 className="text-2xl font-black text-white tracking-widest uppercase">OPERASYON MERKEZİ GİRİŞİ</h1></div>
+          <div className="text-center mb-8"><span className="text-5xl block mb-4">🛡️</span><h1 className="text-2xl font-black text-white tracking-widest uppercase">YÖNETİM GİRİŞİ</h1></div>
           <form onSubmit={girisKontrol} className="space-y-6">
             <div><input type="password" value={sifre} onChange={(e: any) => setSifre(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 text-center tracking-[0.5em] font-mono text-xl focus:outline-none focus:border-red-500 transition-colors" placeholder="••••" /></div>
             {hata && <p className="text-red-500 text-sm font-bold text-center">{hata}</p>}
@@ -1003,11 +1057,12 @@ export default function AdminPage() {
             <span className="text-3xl hidden md:block">🇹🇷</span>
             <div>
               <h1 className="font-black text-lg md:text-xl text-white tracking-widest uppercase">İZMİR SAHA KOMİSERLERİ OPERASYON MERKEZİ</h1>
-              <p className="text-slate-400 text-xs font-mono">TFF İZMİR SAHA KOMİSERLERİ ({globalAktifHaftaNo}. HAFTA OPERASYONU)</p>
+              <p className="text-slate-400 text-xs font-mono">TFF İZMİR SAHA KOMİSERLERİ ({globalAktifHaftaNo}. HAFTA YÖNETİMİ)</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
              <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📥 EXCEL BÜLTEN YÜKLE</button>
+             
              <button onClick={() => {
                  setSistemYonetimModalAcik(true);
                  setManuelMacKodu(otomatikMacKoduBul());
@@ -1022,7 +1077,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* SİSTEM YÖNETİMİ MODALI (KOMİSER & MAÇ EKLEME) */}
+        {/* SİSTEM YÖNETİMİ MODALI (KOMİSER, HAKEM & MAÇ EKLEME) */}
         {sistemYonetimModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
@@ -1031,9 +1086,10 @@ export default function AdminPage() {
                         <button onClick={() => setSistemYonetimModalAcik(false)} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
                     </div>
                     
-                    <div className="flex bg-slate-800 border-b border-slate-700">
-                        <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 py-4 font-black uppercase tracking-widest text-sm transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
-                        <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 py-4 font-black uppercase tracking-widest text-sm transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA (MANUEL) MAÇ EKLE</button>
+                    <div className="flex bg-slate-800 border-b border-slate-700 flex-wrap">
+                        <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
+                        <button onClick={() => setSistemTab('hakem_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'hakem_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏃 YENİ HAKEM EKLE</button>
+                        <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA MAÇ EKLE</button>
                     </div>
 
                     <div className="p-6 md:p-8 overflow-y-auto max-h-[70vh] custom-scrollbar bg-[#0f172a]">
@@ -1041,7 +1097,7 @@ export default function AdminPage() {
                         {sistemTab === 'komiser_ekle' && (
                             <div className="space-y-6">
                                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-                                    <p className="text-slate-300 text-sm font-medium">Sisteme yeni atanan saha komiserini veya stajyeri buradan ekleyebilirsiniz. Kaydedilen personel anında Admin atama listesine düşer ve kendi şifresiyle sisteme giriş yapabilir.</p>
+                                    <p className="text-slate-300 text-sm font-medium">Sisteme yeni atanan saha komiserini veya stajyeri buradan ekleyebilirsiniz. Kaydedilen personel anında Yönetim atama listesine düşer ve kendi şifresiyle sisteme giriş yapabilir.</p>
                                 </div>
                                 <form onSubmit={komiserEkle} className="space-y-5">
                                     <div>
@@ -1055,6 +1111,25 @@ export default function AdminPage() {
                                     <div className="pt-4">
                                         <button type="submit" disabled={personelEkleniyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest shadow-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                                             {personelEkleniyor ? '⚙️ EKLENİYOR...' : '✅ SİSTEME KAYDET VE YETKİ VER'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {sistemTab === 'hakem_ekle' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
+                                    <p className="text-slate-300 text-sm font-medium">Sistemde (Hakem seçme listesinde) bulunmayan yeni aday hakemleri buradan ekleyebilirsiniz. <br/><span className="text-emerald-400 font-bold mt-2 block">Türkçe Karakter Zekası:</span> Küçük harfle veya hatalı karakterle (Sivas'ın S'si gibi) yazsanız bile sistem otomatik olarak kusursuz büyük Türkçe karakterlere dönüştürerek kaydeder.</p>
+                                </div>
+                                <form onSubmit={hakemEkleSubmit} className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Hakem Adı Soyadı</label>
+                                        <input type="text" value={yeniHakemAd} onChange={(e) => setYeniHakemAd(e.target.value)} placeholder="Örn: Ayşe Yılmaz" className="w-full bg-slate-900 border border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required />
+                                    </div>
+                                    <div className="pt-4">
+                                        <button type="submit" disabled={hakemEkleniyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest shadow-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {hakemEkleniyor ? '⚙️ EKLENİYOR...' : '🏃 VERİTABANINA HAKEM EKLE'}
                                         </button>
                                     </div>
                                 </form>
@@ -1310,43 +1385,21 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                {/* SOL SÜTUN */}
+                {/* SOL SÜTUN - YENİ DİNAMİK YAPI */}
                 <div>
-                    <div className="mb-6">
-                        <button onClick={() => setKategoriOlaysizAcik(!kategoriOlaysizAcik)} className="w-full flex justify-between items-center bg-emerald-950/40 border border-emerald-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
-                            <div className="flex items-center gap-3"><span className="text-2xl">✅</span><h2 className="text-lg font-black text-emerald-400 tracking-widest uppercase">SORUNSUZ / OLAYSIZ BİTENLER</h2></div>
-                            <div className="flex items-center gap-4"><span className="bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">{olaysizMaclar.length} MAÇ</span><span className="text-emerald-500">{kategoriOlaysizAcik ? '▲' : '▼'}</span></div>
-                        </button>
-                        {kategoriOlaysizAcik && (
-                            <div className="space-y-3 animate-fade-in-down pl-2">
-                                {olaysizMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait sorunsuz maç raporu bulunmuyor.</div>) : (olaysizMaclar.map((mac, idx) => <RaporDurumKarti key={`olaysiz-${idx}`} mac={mac} tip="olaysiz" isArsiv={isArsiv} />))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mb-6">
-                        <button onClick={() => setKategoriDisiplinAcik(!kategoriDisiplinAcik)} className="w-full flex justify-between items-center bg-amber-950 border border-amber-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
-                            <div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><h2 className="text-lg font-black text-amber-500 tracking-widest uppercase">SARI KATEGORİ (TEKNİK İHRAÇLAR)</h2></div>
-                            <div className="flex items-center gap-4"><span className="bg-amber-600 text-white px-3 py-1 rounded-full text-xs font-bold">{teknikMaclar.length} MAÇ</span><span className="text-amber-500">{kategoriDisiplinAcik ? '▲' : '▼'}</span></div>
-                        </button>
-                        {kategoriDisiplinAcik && (
-                            <div className="space-y-3 animate-fade-in-down pl-2">
-                                {teknikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait teknik disiplin raporu bulunmuyor.</div>) : (teknikMaclar.map((mac, idx) => <RaporDurumKarti key={`teknik-${idx}`} mac={mac} tip="teknik" isArsiv={isArsiv} />))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mb-6">
-                        <button onClick={() => setKategoriKirmiziAcik(!kategoriKirmiziAcik)} className={`w-full flex justify-between items-center p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all ${sirenAktif ? 'police-siren-active text-white' : 'bg-red-950 border border-red-900 text-red-500'}`}>
-                            <div className="flex items-center gap-3"><span className="text-2xl">🚨</span><h2 className={`text-lg font-black tracking-widest uppercase ${sirenAktif ? 'text-white drop-shadow-md' : 'text-red-500'}`}>KIRMIZI KATEGORİ (EMNİYETLİK)</h2></div>
-                            <div className="flex items-center gap-4"><span className={`${sirenAktif ? 'bg-white text-red-600' : 'bg-red-600 text-white'} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>{emniyetlikMaclar.length} MAÇ</span><span className={`${sirenAktif ? 'text-white' : 'text-red-500'}`}>{kategoriKirmiziAcik ? '▲' : '▼'}</span></div>
-                        </button>
-                        {kategoriKirmiziAcik && (
-                            <div className="space-y-3 animate-fade-in-down pl-2">
-                                {emniyetlikMaclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait emniyetlik olay raporu bulunmuyor.</div>) : (emniyetlikMaclar.map((mac, idx) => <RaporDurumKarti key={`emniyet-${idx}`} mac={mac} tip="emniyet" isArsiv={isArsiv} />))}
-                            </div>
-                        )}
-                    </div>
+                    {dinamikKategoriler.map(kat => (
+                        <div key={kat.id} className="mb-6">
+                            <button onClick={() => kat.setAcik(!kat.acik)} className={`w-full flex justify-between items-center p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all ${kat.id === 'emniyet' && sirenAktif ? 'police-siren-active text-white' : kat.bgClass}`}>
+                                <div className="flex items-center gap-3"><span className="text-2xl">{kat.icon}</span><h2 className={`text-lg font-black tracking-widest uppercase ${(kat.id === 'emniyet' && sirenAktif) ? 'text-white drop-shadow-md' : kat.hoverText}`}>{kat.baslik}</h2></div>
+                                <div className="flex items-center gap-4"><span className={`${(kat.id === 'emniyet' && sirenAktif) ? 'bg-white text-red-600' : kat.btnClass} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>{kat.maclar.length} MAÇ</span><span className={`${(kat.id === 'emniyet' && sirenAktif) ? 'text-white' : kat.hoverText}`}>{kat.acik ? '▲' : '▼'}</span></div>
+                            </button>
+                            {kat.acik && (
+                                <div className="space-y-3 animate-fade-in-down pl-2">
+                                    {kat.maclar.length === 0 ? (<div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Bu haftaya ait {kat.baslik.toLowerCase()} raporu bulunmuyor.</div>) : (kat.maclar.map((mac: any, idx: number) => <RaporDurumKarti key={`${kat.id}-${idx}`} mac={mac} tip={kat.tip as any} isArsiv={isArsiv} />))}
+                                </div>
+                            )}
+                        </div>
+                    ))}
 
                     <div className="mt-6">
                         <button onClick={() => setKategoriSicilAcik(!kategoriSicilAcik)} className="w-full flex justify-between items-center bg-blue-950 border border-blue-900 p-4 rounded-xl shadow-lg mb-3 hover:brightness-110 transition-all">
