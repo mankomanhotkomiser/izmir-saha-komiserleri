@@ -50,6 +50,20 @@ const getZaman = (mac: any) => {
 
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
+// 🔥 GÜN RENGİNİ TESPİT EDEN ZEKİ FONKSİYON 🔥
+const getGunRengi = (tarihStr: string | null | undefined) => {
+    if (!tarihStr) return 'text-black';
+    try {
+        const d = new Date(tarihStr);
+        const day = d.getDay(); // 0: Pazar, 1: Pzt, 2: Salı, 3: Çrş, 4: Prş, 5: Cuma, 6: Cmt
+        if (day === 0) return 'text-red-600'; // PAZAR KOMPLE KIRMIZI
+        if (day === 3) return 'text-blue-600'; // ÇARŞAMBA KOMPLE MAVİ
+        return 'text-black'; // CUMARTESİ VE DİĞERLERİ SİYAH
+    } catch (e) {
+        return 'text-black';
+    }
+};
+
 const gelisimOrganizasyon = [
     { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
     { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
@@ -97,7 +111,6 @@ export default function AdminPage() {
   const [excelHata, setExcelHata] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false) 
 
-  // 🔥 YENİ: HAFTALIK BÜLTEN VE ÖZET STATE'LERİ 🔥
   const [bultenModalAcik, setBultenModalAcik] = useState(false)
   const [bultenTab, setBultenTab] = useState<'gorev' | 'sonuc'>('gorev')
 
@@ -216,32 +229,7 @@ export default function AdminPage() {
     return komiser ? komiser.ad_soyad : 'Atanmamış'
   }
 
-  // 🔥 YENİ: WHATSAPP KOPYALAMA FONKSİYONU 🔥
-  const copyToWhatsApp = () => {
-      let text = `🏆 *TFF İZMİR ${goruntulenenHafta}. HAFTA ${bultenTab === 'gorev' ? 'GÖREV LİSTESİ' : 'TOPLU SONUÇLARI'}* 🏆\n\n`;
-      const maclar = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort(siralamaFiltresi);
-      
-      maclar.forEach(m => {
-          const komiser = komiserIsmiBul(m.komiser_id);
-          if (bultenTab === 'gorev') {
-              text += `🕒 *${guvenliSaat(m.saat)}* | ⚽ ${m.kategori_adi}\n🏟️ ${m.ev_sahibi} - ${m.misafir_takim}\n📍 ${m.saha}\n👨‍✈️ Komiser: ${komiser}\n\n`;
-          } else {
-              let skor = m.skor_girildi ? `${m.ev_sahibi_skor !== null ? m.ev_sahibi_skor : '-'} - ${m.misafir_skor !== null ? m.misafir_skor : '-'}` : 'v';
-              if(m.mac_durumu === 'iptal_edildi') skor = '(İPTAL)';
-              else if (m.mac_durumu === 'yarida_kaldi') skor += ' (Yarıda Kaldı)';
-              else if (m.mac_durumu === 'takimlar_cikmadi') skor = '(Oynanmadı)';
-              
-              let ikon = m.olay_durumu === 'olaysiz' ? '✅' : (m.olay_durumu === 'emniyetlik_olay' ? '🚨' : (m.olay_durumu === 'teknik_olay' ? '⚠️' : '⏳'));
-              if(m.mac_durumu === 'iptal_edildi') ikon = '⛔';
-
-              text += `⚽ ${m.kategori_adi}\n${m.ev_sahibi} *${skor}* ${m.misafir_takim} ${ikon}\n👨‍✈️ Komiser: ${komiser}\n\n`;
-          }
-      });
-      
-      navigator.clipboard.writeText(text).then(() => alert("WhatsApp metni başarıyla kopyalandı! Grubunuza yapıştırabilirsiniz."));
-  }
-
-  // 🔥 YENİ: A4 ÇIKTISI (PNG) İNDİRME FONKSİYONU 🔥
+  // A4 ÇIKTISI (PNG) İNDİRME FONKSİYONU
   const indirBulten = async () => {
       const element = document.getElementById('bulten-print-area');
       if (element) {
@@ -668,11 +656,11 @@ export default function AdminPage() {
                       <div className="flex flex-col">
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> 
-                              <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' ? 'YOK' : '')}</span>
+                              <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' || safeRaporDetay?.saglik_adi === 'VAR' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' || safeRaporDetay?.saglik_adi === 'YOK' ? 'YOK' : '')}</span>
                           </div>
                           <div className="flex p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">GÜVENLİK</span> 
-                              <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' ? 'YOK' : '')}</span>
+                              <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' || safeRaporDetay?.guvenlik_amiri === 'VAR' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' || safeRaporDetay?.guvenlik_amiri === 'YOK' ? 'YOK' : '')}</span>
                           </div>
                       </div>
                   </div>
@@ -1119,6 +1107,13 @@ export default function AdminPage() {
     )
   }
 
+  // A'DAN Z'YE SIRALANMIŞ BÜLTEN MAÇLARI
+  const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
+      const kA = komiserIsmiBul(a.komiser_id);
+      const kB = komiserIsmiBul(b.komiser_id);
+      return kA.localeCompare(kB, 'tr-TR');
+  });
+
   return (
     <div className="min-h-screen bg-[#0f172a] font-sans text-slate-200">
       
@@ -1166,9 +1161,6 @@ export default function AdminPage() {
                             📋 {goruntulenenHafta}. HAFTA BÜLTEN VE PANORAMA
                         </h2>
                         <div className="flex items-center gap-4 flex-wrap justify-end">
-                            <button onClick={() => copyToWhatsApp()} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
-                                💬 WHATSAPP İÇİN KOPYALA
-                            </button>
                             <button onClick={() => indirBulten()} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
                                 📸 A4 ÇIKTISI (PNG) İNDİR
                             </button>
@@ -1179,43 +1171,44 @@ export default function AdminPage() {
                     </div>
                     
                     <div className="flex bg-slate-800 border-b border-slate-700">
-                        <button onClick={() => setBultenTab('gorev')} className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${bultenTab === 'gorev' ? 'bg-purple-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📅 GÖREV LİSTESİ (MAÇ ÖNCESİ)</button>
-                        <button onClick={() => setBultenTab('sonuc')} className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${bultenTab === 'sonuc' ? 'bg-purple-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏆 TOPLU SONUÇLAR (MAÇ SONRASI)</button>
+                        <button onClick={() => setBultenTab('gorev')} className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${bultenTab === 'gorev' ? 'bg-purple-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📅 GÖREV LİSTESİ (HAFTA BAŞI)</button>
+                        <button onClick={() => setBultenTab('sonuc')} className={`flex-1 py-4 font-black uppercase tracking-widest text-xs transition-colors ${bultenTab === 'sonuc' ? 'bg-purple-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏆 TOPLU SONUÇLAR (HAFTA BİTİMİ)</button>
                     </div>
 
                     <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar flex justify-center bg-slate-300">
-                        <div id="bulten-print-area" className="w-full bg-white p-8 border border-slate-300 shadow-2xl relative font-sans text-black min-h-[1050px]">
+                        <div id="bulten-print-area" className="w-full bg-white p-8 border border-slate-300 shadow-2xl relative font-sans min-h-[1050px] bg-white">
                             
                             <div className="flex justify-between items-center border-b-[3px] border-double border-slate-800 pb-4 mb-6">
-                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo" className="h-16 w-auto" />
+                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo Sol" className="h-16 w-auto" />
                                 <div className="text-center">
                                     <h2 className="font-black text-xl uppercase tracking-widest text-black">İZMİR AMATÖR SPOR KULÜPLERİ FEDERASYONU</h2>
                                     <h3 className="font-bold text-lg uppercase mt-1 text-slate-800">İZMİR SAHA KOMİSERLERİ DERNEĞİ</h3>
-                                    <p className="font-semibold text-sm mt-2">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA VE GÖREV LİSTESİ' : 'TOPLU MÜSABAKA SONUÇLARI'}</p>
+                                    <p className="font-semibold text-sm mt-2 text-black">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA VE BAŞLANGIÇ GÖREV LİSTESİ' : 'BİTİMİ TOPLU MÜSABAKA SONUÇLARI'}</p>
                                 </div>
-                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo" className="h-16 w-auto opacity-0" />
+                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo Sag" className="h-16 w-auto" />
                             </div>
 
-                            <table className="w-full text-left text-[11px] md:text-xs border-collapse border border-black">
-                                <thead className="bg-slate-100">
+                            <table className="w-full text-left text-[11px] md:text-xs border-collapse border border-black bg-white text-black">
+                                <thead className="bg-slate-100 text-black">
                                     <tr>
-                                        <th className="border border-black p-2 font-bold text-center">KOD</th>
-                                        <th className="border border-black p-2 font-bold text-center">TARİH</th>
-                                        <th className="border border-black p-2 font-bold text-center">SAAT</th>
-                                        <th className="border border-black p-2 font-bold">SAHA</th>
-                                        <th className="border border-black p-2 font-bold">KATEGORİ</th>
-                                        <th className="border border-black p-2 font-bold">EV SAHİBİ</th>
-                                        {bultenTab === 'sonuc' && <th className="border border-black p-2 font-bold text-center">SKOR</th>}
-                                        <th className="border border-black p-2 font-bold">MİSAFİR TAKIM</th>
-                                        <th className="border border-black p-2 font-bold">SAHA KOMİSERİ</th>
-                                        {bultenTab === 'sonuc' && <th className="border border-black p-2 font-bold text-center">DURUM</th>}
+                                        <th className="border border-black p-2 font-bold text-center text-black">KOD</th>
+                                        <th className="border border-black p-2 font-bold text-center text-black">TARİH</th>
+                                        <th className="border border-black p-2 font-bold text-center text-black">SAAT</th>
+                                        <th className="border border-black p-2 font-bold text-black">SAHA</th>
+                                        <th className="border border-black p-2 font-bold text-black">KATEGORİ</th>
+                                        <th className="border border-black p-2 font-bold text-black">EV SAHİBİ</th>
+                                        {bultenTab === 'sonuc' && <th className="border border-black p-2 font-bold text-center text-black">SKOR</th>}
+                                        <th className="border border-black p-2 font-bold text-black">MİSAFİR TAKIM</th>
+                                        <th className="border border-black p-2 font-bold text-black">SAHA KOMİSERİ</th>
+                                        {bultenTab === 'sonuc' && <th className="border border-black p-2 font-bold text-center text-black">DURUM</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {[...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort(siralamaFiltresi).map((m, idx) => {
+                                    {siraliBultenMaclari.map((m, idx) => {
                                         const komiser = komiserIsmiBul(m.komiser_id);
+                                        let isIptal = m.mac_durumu === 'iptal_edildi';
                                         let skor = m.skor_girildi ? `${m.ev_sahibi_skor ?? '-'} - ${m.misafir_skor ?? '-'}` : '';
-                                        if(m.mac_durumu === 'iptal_edildi') skor = 'İPTAL';
+                                        if(isIptal) skor = 'İPTAL';
                                         
                                         let durum = '-';
                                         if (m.olay_durumu === 'emniyetlik_olay') durum = 'EMNİYETLİK';
@@ -1224,20 +1217,22 @@ export default function AdminPage() {
                                         
                                         if (m.mac_durumu === 'takimlar_cikmadi') durum = 'ÇIKMADI';
                                         else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
-                                        else if (m.mac_durumu === 'iptal_edildi') durum = 'İPTAL';
+                                        else if (isIptal) durum = 'İPTAL';
+
+                                        const gunRengi = getGunRengi(m.tarih);
 
                                         return (
-                                            <tr key={idx} className="border-b border-slate-300">
-                                                <td className="border border-black p-1.5 text-center font-mono">{m.mac_kodu}</td>
-                                                <td className="border border-black p-1.5 text-center">{guvenliTarih(m.tarih)}</td>
-                                                <td className="border border-black p-1.5 text-center">{guvenliSaat(m.saat)}</td>
-                                                <td className="border border-black p-1.5 font-semibold truncate max-w-[120px]">{m.saha}</td>
-                                                <td className="border border-black p-1.5 text-[10px]">{m.kategori_adi}</td>
-                                                <td className="border border-black p-1.5 font-bold uppercase">{m.ev_sahibi}</td>
-                                                {bultenTab === 'sonuc' && <td className="border border-black p-1.5 text-center font-black text-blue-900 bg-slate-50">{skor}</td>}
-                                                <td className="border border-black p-1.5 font-bold uppercase">{m.misafir_takim}</td>
-                                                <td className="border border-black p-1.5 font-bold uppercase text-[10px]">{komiser}</td>
-                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-bold text-[9px] ${durum === 'EMNİYETLİK' ? 'text-red-600' : (durum==='OLAYSIZ' ? 'text-green-600' : '')}`}>{durum}</td>}
+                                            <tr key={idx} className={`border-b border-slate-300 ${gunRengi}`}>
+                                                <td className="border border-black p-1.5 text-center font-mono font-bold">{m.mac_kodu}</td>
+                                                <td className="border border-black p-1.5 text-center font-bold">{guvenliTarih(m.tarih)}</td>
+                                                <td className="border border-black p-1.5 text-center font-bold">{guvenliSaat(m.saat)}</td>
+                                                <td className="border border-black p-1.5 font-bold truncate max-w-[120px]">{m.saha}</td>
+                                                <td className="border border-black p-1.5 font-bold text-[10px]">{m.kategori_adi}</td>
+                                                <td className="border border-black p-1.5 font-black uppercase">{m.ev_sahibi}</td>
+                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black ${isIptal ? 'bg-red-600 text-white' : 'bg-slate-100/50'}`}>{skor}</td>}
+                                                <td className="border border-black p-1.5 font-black uppercase">{m.misafir_takim}</td>
+                                                <td className="border border-black p-1.5 font-black uppercase text-[10px]">{komiser}</td>
+                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black text-[9px] ${isIptal ? 'bg-red-600 text-white' : (durum === 'EMNİYETLİK' ? 'text-red-600' : (durum==='OLAYSIZ' ? 'text-green-600' : ''))}`}>{durum}</td>}
                                             </tr>
                                         );
                                     })}
