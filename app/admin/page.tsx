@@ -70,7 +70,14 @@ const temizHakem = (isim: any) => {
     return String(isim).trim();
 };
 
-// 🔥 VERCEL'İN BULAMADIĞI GELİŞİM LİGİ SORULARI EKLENDİ 🔥
+const formatMacKodu = (kod: any) => {
+    if (!kod) return '-';
+    const s = String(kod).trim();
+    if (s.length === 1 && !isNaN(Number(s))) return `0${s}`;
+    return s;
+}
+
+// 🔥 VERCEL'İN VE SENİN EKRANININ BULAMADIĞI SORULAR BURADA 🔥
 const gelisimOrganizasyon = [
     { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
     { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
@@ -129,8 +136,12 @@ export default function AdminPage() {
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
-  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle'>('komiser_ekle')
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle'>('komiser_ekle')
   
+  const [tumStatuler, setTumStatuler] = useState<any[]>([])
+  const [statuForm, setStatuForm] = useState<any>({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })
+  const [statuKaydediliyor, setStatuKaydediliyor] = useState(false)
+
   const [yeniPersonelAd, setYeniPersonelAd] = useState('')
   const [yeniPersonelSicil, setYeniPersonelSicil] = useState('')
   const [personelEkleniyor, setPersonelEkleniyor] = useState(false)
@@ -203,6 +214,9 @@ export default function AdminPage() {
       const { data: mazeretData } = await supabase.from('mazeretler').select('*');
       if (mazeretData) setTumMazeretler(mazeretData);
 
+      const { data: statuData } = await supabase.from('lig_statuleri').select('*');
+      if (statuData) setTumStatuler(statuData);
+
       if (maclarVerisi.length > 0) {
         const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
         const gruplar: Record<number, any[]> = {};
@@ -260,7 +274,7 @@ export default function AdminPage() {
 
           const row: any = {
               "SIRA": idx + 1,
-              "KOD": m.mac_kodu,
+              "KOD": formatMacKodu(m.mac_kodu),
               "TARİH": guvenliTarih(m.tarih),
               "SAAT": guvenliSaat(m.saat),
               "SAHA": m.saha,
@@ -285,6 +299,40 @@ export default function AdminPage() {
   const indirPDF = () => {
       alert("Açılan pencerede 'Yazıcı / Hedef' kısmından 'PDF Olarak Kaydet'i seçerek mükemmel kalitede belgenizi alabilirsiniz. Belge YATAY olarak ayarlanmıştır.");
       window.print();
+  }
+
+  const statuKaydetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setStatuKaydediliyor(true);
+      try {
+          const payload = { ...statuForm };
+          delete payload.id;
+          payload.kategori_anahtar = payload.kategori_anahtar.toLocaleUpperCase('tr-TR').trim();
+          
+          if (statuForm.id) {
+              const { error } = await supabase.from('lig_statuleri').update(payload).eq('id', statuForm.id);
+              if (error) throw error;
+              alert("✅ Statü başarıyla GÜNCELLENDİ.");
+          } else {
+              const { error } = await supabase.from('lig_statuleri').insert([payload]);
+              if (error) {
+                  if (error.code === '23505') alert("Hata: Bu Kategori Anahtarı zaten var. Lütfen listeden onu bulup düzenleyin.");
+                  else throw error;
+              } else {
+                  alert("✅ Statü başarıyla EKLENDİ.");
+              }
+          }
+          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' });
+          veriGetir();
+      } catch (err: any) { alert("Hata: " + err.message); }
+      setStatuKaydediliyor(false);
+  }
+
+  const statuSil = async (id: number) => {
+      if (window.confirm("Bu statüyü veritabanından TAMAMEN silmek istediğinize emin misiniz?")) {
+          await supabase.from('lig_statuleri').delete().eq('id', id);
+          veriGetir();
+      }
   }
 
   const komiserEkle = async (e: React.FormEvent) => {
@@ -514,7 +562,6 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 VERCEL'İN BULAMADIĞI TFF FOTOĞRAF İNDİRME FONKSİYONU EKLENDİ 🔥
   const tffTutanakIndir = async (mac: any, prefix: string) => {
       const element = document.getElementById(`${prefix}-tff-form-${mac.id}`);
       if (element) {
@@ -557,23 +604,28 @@ export default function AdminPage() {
                       <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                       <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                       <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1 text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU (AMATÖR LİG)</h3>
+                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
                       <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div></div>
-                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{mac?.mac_kodu || '-'}</span></div></div>
+                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{formatMacKodu(mac?.mac_kodu)}</span></div></div>
                       <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs uppercase text-right truncate w-3/4 text-black">{mac?.saha || '-'}</span></div></div>
                       <div className="grid grid-cols-4 border-b border-dashed border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.ev_sahibi || '-'}</span></div></div>
                           <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</span></div>
                       </div>
-                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div></div>
+                      
+                      <div className="p-2 border-b border-dashed border-black flex justify-between items-center"><span className="text-[10px] font-bold w-12">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{mac?.kategori_adi || '-'}</span></div>
+                      
                       <div className="grid grid-cols-4 border-b border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.misafir_takim || '-'}</span></div></div>
                           <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span></div>
                       </div>
-                      <div className="flex flex-col border-b border-black"><div className="p-2 flex justify-between items-center border-b border-dashed border-black"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div><div className="p-2 flex justify-between items-center"><span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{mac?.kategori_adi || '-'}</span></div></div>
+                      <div className="flex flex-col border-b border-black">
+                          <div className="p-2 flex justify-between items-center border-b border-dashed border-black"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div>
+                          <div className="p-2 flex justify-between items-center"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div>
+                      </div>
                   </div>
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEM BİLGİLERİ</div>
@@ -807,7 +859,7 @@ export default function AdminPage() {
         <button onClick={() => toggleMac(mac.id)} className={`w-full text-left p-4 flex justify-between items-center ${renkSiniflari.bg} hover:brightness-125 transition-all focus:outline-none`}>
             <div className="flex-1 pr-4 w-full">
                 <div className="flex items-center flex-wrap gap-2 mb-3">
-                  <span className={`${renkSiniflari.badge} px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm`}>{mac.mac_kodu}</span>
+                  <span className={`${renkSiniflari.badge} px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm`}>{formatMacKodu(mac.mac_kodu)}</span>
                   <span className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">{mac.kategori_adi}</span>
                   {tip === 'iptal' && <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded animate-pulse">İPTAL EDİLDİ</span>}
                 </div>
@@ -1049,7 +1101,7 @@ export default function AdminPage() {
 
                                         return (
                                             <tr key={idx} className={`border-b border-slate-300 ${gunRengi}`}>
-                                                <td className="border border-black p-1.5 text-center font-mono font-bold">{m.mac_kodu}</td>
+                                                <td className="border border-black p-1.5 text-center font-mono font-bold">{formatMacKodu(m.mac_kodu)}</td>
                                                 <td className="border border-black p-1.5 text-center font-bold">{guvenliTarih(m.tarih)}</td>
                                                 <td className="border border-black p-1.5 text-center font-bold">{guvenliSaat(m.saat)}</td>
                                                 <td className="border border-black p-1.5 font-bold truncate max-w-[120px]">{m.saha}</td>
@@ -1086,10 +1138,62 @@ export default function AdminPage() {
                         <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
                         <button onClick={() => setSistemTab('hakem_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'hakem_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏃 YENİ HAKEM EKLE</button>
                         <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA MAÇ EKLE</button>
+                        <button onClick={() => setSistemTab('statu_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'statu_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📝 STATÜ YÖNETİMİ</button>
                     </div>
 
                     <div className="p-6 md:p-8 overflow-y-auto max-h-[70vh] custom-scrollbar bg-[#0f172a]">
                         
+                        {sistemTab === 'statu_ekle' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-start">
+                                    <div>
+                                        <h3 className="text-emerald-400 font-bold mb-1">Müsabaka Statü ve Kural Zekası</h3>
+                                        <p className="text-slate-300 text-xs">Saha komiserlerinin mobil cihazlarında göreceği statüleri buradan yönetebilirsiniz.</p>
+                                    </div>
+                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
+                                </div>
+                                
+                                <form onSubmit={statuKaydetSubmit} className="bg-slate-900 border border-indigo-500/50 p-5 rounded-xl space-y-4 shadow-lg relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Kategori / Lig Anahtarı (Örn: U14)</label><input type="text" value={statuForm.kategori_anahtar} onChange={e => setStatuForm({...statuForm, kategori_anahtar: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Lig kodunu yazın..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Pencere Başlığı (Örn: U14 Ligi Statüsü)</label><input type="text" value={statuForm.baslik} onChange={e => setStatuForm({...statuForm, baslik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Görünecek büyük başlık..." /></div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⏱️ Süre (Örn: 2x35 Dk)</label><input type="text" value={statuForm.sure} onChange={e => setStatuForm({...statuForm, sure: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Maç süresi..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚽ Top No (Örn: 4 Numara)</label><input type="text" value={statuForm.top} onChange={e => setStatuForm({...statuForm, top: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Top no..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚖️ Hakem (Örn: Tek Hakem)</label><input type="text" value={statuForm.hakem} onChange={e => setStatuForm({...statuForm, hakem: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Hakem sayısı..." /></div>
+                                    </div>
+                                    <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">🏃 Yaş Sınırı Kuralları</label><textarea value={statuForm.yas_siniri} onChange={e => setStatuForm({...statuForm, yas_siniri: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-xs px-3 py-2 rounded focus:border-indigo-500 focus:outline-none min-h-[60px]" placeholder="Kimler oynayabilir, kimler oynayamaz..." /></div>
+                                    <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">🔄 Oyuncu Değişikliği Kuralları</label><textarea value={statuForm.degisiklik} onChange={e => setStatuForm({...statuForm, degisiklik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-xs px-3 py-2 rounded focus:border-indigo-500 focus:outline-none min-h-[60px]" placeholder="Değişiklik sayısı, duraklama kuralları..." /></div>
+                                    <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚖️ Beraberlik Durumu (Uzatma/Penaltı)</label><textarea value={statuForm.beraberlik} onChange={e => setStatuForm({...statuForm, beraberlik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-xs px-3 py-2 rounded focus:border-indigo-500 focus:outline-none min-h-[60px]" placeholder="Eleme maçlarındaki kurallar..." /></div>
+                                    <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 DEĞİŞİKLİKLERİ GÜNCELLE' : '✅ YENİ STATÜYÜ SİSTEME EKLE')}</button></div>
+                                </form>
+
+                                <div className="mt-6 border-t border-slate-700 pt-6">
+                                    <h4 className="text-slate-400 font-bold mb-3 uppercase tracking-widest text-xs">Sistemdeki Aktif Statüler ({tumStatuler.length})</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                        {tumStatuler.length === 0 ? (
+                                            <div className="col-span-1 md:col-span-2 text-center text-slate-500 text-xs italic bg-slate-800/50 p-4 rounded-lg border border-slate-700">Sistemde henüz kayıtlı bir statü bulunmuyor.</div>
+                                        ) : (
+                                            tumStatuler.sort((a,b) => a.kategori_anahtar.localeCompare(b.kategori_anahtar)).map((st, i) => (
+                                                <div key={i} className="bg-slate-950 border border-slate-700 rounded-lg p-3 flex justify-between items-start hover:border-indigo-500/50 transition-colors">
+                                                    <div>
+                                                        <div className="text-indigo-400 font-black text-sm mb-1">{st.kategori_anahtar}</div>
+                                                        <div className="text-[10px] text-slate-400 line-clamp-1">{st.baslik}</div>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 shrink-0 ml-2">
+                                                        <button onClick={() => setStatuForm(st)} className="bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1 rounded text-[10px] font-bold transition-colors border border-slate-600 shadow-sm">DÜZENLE</button>
+                                                        <button onClick={() => statuSil(st.id)} className="bg-slate-800 hover:bg-red-900/50 text-red-500 px-3 py-1 rounded text-[10px] font-bold transition-colors border border-slate-600 shadow-sm">SİL</button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {sistemTab === 'komiser_ekle' && (
                             <div className="space-y-6">
                                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
