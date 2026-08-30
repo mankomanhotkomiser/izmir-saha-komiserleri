@@ -10,12 +10,10 @@ const DERNEK_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
-// 🔥 YENİ: 3 ANA KATEGORİ ZEKASI 🔥
 const getAnaKategori = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
 
-    // 1. PROFESYONEL (BAL ve Bölgesel HARİÇ)
     if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
         (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
         (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
@@ -23,15 +21,11 @@ const getAnaKategori = (kategori: any) => {
         kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) {
         return 'profesyonel';
     }
-
-    // 2. GELİŞİM VE KADIN
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || 
         kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN') || 
         kat.includes('TFF U')) {
         return 'gelisim';
     }
-
-    // 3. AMATÖR (BAL, Bölgesel, Yerel Amatörler ve Yerel U Ligleri)
     return 'amator';
 }
 
@@ -50,7 +44,7 @@ const detayliRaporGosterilirMi = (kategori: any) => {
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const anaKat = getAnaKategori(kategori);
-    if (anaKat !== 'amator') return 'dort_kutu'; // Gelişim ve Profesyonelde tüm kutular açık kalsın
+    if (anaKat !== 'amator') return 'dort_kutu'; 
 
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
     if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
@@ -71,7 +65,6 @@ const getHakemGosterimModu = (kategori: any) => {
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
-    
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U')) {
         const yasMatch = kat.match(/(\d{2})/);
         if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ`;
@@ -84,6 +77,14 @@ const formatKategori = (rawKategori: any) => {
     const amatorYasMatch = kat.match(/U\s*(\d{2})/);
     if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} LİGİ`;
     return kat;
+}
+
+// 🔥 YENİ: MÜSABAKA NO SIFIR DOLDURUCU 🔥
+const formatMacKodu = (kod: any) => {
+    if (!kod) return '-';
+    const s = String(kod).trim();
+    if (s.length === 1 && !isNaN(Number(s))) return `0${s}`;
+    return s;
 }
 
 const gelisimOrganizasyon = [
@@ -678,8 +679,8 @@ export default function Home() {
     }
 
     const guncellenecekVeri = {
-      ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || evSkor === '') ? null : Number(evSkor),
-      misafir_skor: (macDurumu === 'takimlar_cikmadi' || misafirSkor === '') ? null : Number(misafirSkor),
+      ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || macDurumu === 'yarida_kaldi' || evSkor === '') ? null : Number(evSkor),
+      misafir_skor: (macDurumu === 'takimlar_cikmadi' || macDurumu === 'yarida_kaldi' || misafirSkor === '') ? null : Number(misafirSkor),
       mac_durumu: macDurumu, olay_durumu: olayDurumu, rapor_notu: raporNotu, skor_girildi: true, tff_rapor_detaylari: kaydedilecekDetay
     };
 
@@ -747,6 +748,7 @@ export default function Home() {
     )
   }
 
+  // 🔥 TFF RAPOR RENDER MOTORU (YENİ TASARIM VE SKOR GİZLEME) 🔥
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = prefix === 'aktif' ? raporDetay : (mac?.tff_rapor_detaylari || {});
       if (typeof safeRaporDetay === 'string') {
@@ -767,6 +769,11 @@ export default function Home() {
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
 
+      // 🔥 SKOR GİZLEME MANTIĞI 🔥
+      const isYaridaKaldi = prefix === 'aktif' ? (macDurumu === 'yarida_kaldi' || macDurumu === 'takimlar_cikmadi') : (mac?.mac_durumu === 'yarida_kaldi' || mac?.mac_durumu === 'takimlar_cikmadi');
+      const gosterilecekEvSkor = isYaridaKaldi ? '-' : (prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-'));
+      const gosterilecekMisafirSkor = isYaridaKaldi ? '-' : (prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-'));
+
       const EvetHayirBox = ({ val }: { val: string }) => (
           <div className="flex items-center gap-4 pointer-events-none"><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Evet</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div></div><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Hayır</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div></div></div>
       );
@@ -779,28 +786,37 @@ export default function Home() {
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
                       <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                       <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
+                      {/* 🔥 AMATÖR LİG YAZISI KALDIRILDI 🔥 */}
                       <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1 text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU (AMATÖR LİG)</h3>
+                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU</h3>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
                       <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div></div>
-                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{mac?.mac_kodu || '-'}</span></div></div>
+                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{formatMacKodu(mac?.mac_kodu)}</span></div></div>
                       
                       <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs uppercase text-right truncate w-3/4 text-black">{mac?.saha || '-'}</span></div></div>
                       
+                      {/* 🔥 YENİ TABLO DÜZENİ 🔥 */}
                       <div className="grid grid-cols-4 border-b border-dashed border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.ev_sahibi || '-'}</span></div></div>
-                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</span></div>
+                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{gosterilecekEvSkor}</span></div>
                       </div>
-                      <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div></div>
+                      
+                      <div className="flex flex-col border-b border-dashed border-black">
+                          <div className="p-1.5 px-2 flex justify-between items-center border-b border-dashed border-black flex-1"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div>
+                          <div className="p-1.5 px-2 flex justify-between items-center flex-1"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div>
+                      </div>
                       
                       <div className="grid grid-cols-4 border-b border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.misafir_takim || '-'}</span></div></div>
-                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</span></div>
+                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{gosterilecekMisafirSkor}</span></div>
                       </div>
-                      <div className="flex flex-col border-b border-black"><div className="p-2 flex justify-between items-center border-b border-dashed border-black"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div><div className="p-2 flex justify-between items-center"><span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{mac?.kategori_adi || '-'}</span></div></div>
+                      
+                      <div className="flex flex-col justify-center border-b border-black p-2">
+                          <div className="flex justify-between items-center h-full"><span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[11px] md:text-xs text-right truncate w-3/4 text-black uppercase tracking-wider">{mac?.kategori_adi || '-'}</span></div>
+                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
@@ -921,11 +937,19 @@ export default function Home() {
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-4">
-                      <div className="flex border-b border-black text-center bg-slate-100">
-                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
+                      <div className="flex border-b border-black text-center bg-slate-100 text-[10px]">
+                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MÜSABAKA NO</div>
+                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div>
+                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div>
+                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI</div>
+                          <div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
                       </div>
-                      <div className="flex text-center uppercase">
-                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac?.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac?.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac?.saha}</div><div className="w-1/5 p-2 truncate">{mac?.kategori_adi}</div>
+                      <div className="flex text-center uppercase text-[10px]">
+                          <div className="w-1/5 border-r border-black p-2 font-mono font-bold">{formatMacKodu(mac?.mac_kodu)}</div>
+                          <div className="w-1/5 border-r border-black p-2 font-bold">{guvenliTarih(mac?.tarih)}</div>
+                          <div className="w-1/5 border-r border-black p-2 font-bold">{guvenliSaat(mac?.saat)}</div>
+                          <div className="w-1/5 border-r border-black p-2 font-bold truncate">{mac?.saha}</div>
+                          <div className="w-1/5 p-2 font-bold truncate">{mac?.kategori_adi}</div>
                       </div>
                   </div>
 
@@ -934,14 +958,14 @@ export default function Home() {
                           <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac?.ev_sahibi}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
-                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</div>
+                              <div className="flex items-center justify-center text-xl font-black">{gosterilecekEvSkor}</div>
                           </div>
                       </div>
                       <div className="grid grid-cols-6">
                           <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac?.misafir_takim}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
-                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</div>
+                              <div className="flex items-center justify-center text-xl font-black">{gosterilecekMisafirSkor}</div>
                           </div>
                       </div>
                   </div>
@@ -1062,7 +1086,7 @@ export default function Home() {
                   <div className="mb-4">
                       <h3 className="font-bold text-xs uppercase mb-1">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
                       <p className="text-[10px] mb-1">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      <textarea value={safeRaporDetay?.tff_not || mac?.rapor_notu || ''} onChange={e => raporDetayGuncelle('tff_not', e.target.value)} readOnly={prefix !== 'aktif'} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent"></textarea>
+                      <textarea value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} onChange={e => raporDetayGuncelle('tff_not', e.target.value)} readOnly={prefix !== 'aktif'} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent"></textarea>
                   </div>
 
                   <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black">
@@ -1077,7 +1101,7 @@ export default function Home() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- */}
+              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- MAP DÖNGÜSÜ GÜVENCE ALTINDA */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
@@ -1102,7 +1126,7 @@ export default function Home() {
                       <div className="flex border-b border-black text-sm font-bold mb-6">
                           <div className="w-1/2 border-r border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
                           <div className="w-1/4 border-r border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
-                          <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{mac?.mac_kodu}</span></div>
+                          <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
                       </div>
 
                       <div className="mb-6">
@@ -1618,7 +1642,7 @@ export default function Home() {
                     <button onClick={() => raporFormunuAc(mac)} className={`w-full text-left p-3 md:p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 hover:bg-slate-50 transition-colors ${raporGonderilmis && !acikMi ? 'bg-slate-50' : ''}`}>
                       <div className="w-full sm:w-auto pr-0 sm:pr-4">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="bg-slate-800 text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold">{mac?.mac_kodu || '-'}</span>
+                          <span className="bg-slate-800 text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold">{formatMacKodu(mac?.mac_kodu)}</span>
                           <span className={`${detayliGoster ? 'text-blue-700 bg-blue-100 border-blue-300' : 'text-purple-700 bg-purple-100 border-purple-300'} border text-[10px] md:text-[11px] px-2 py-0.5 rounded font-black uppercase tracking-wider`}>{mac?.kategori_adi || 'LİG BELİRTİLMEMİŞ'}</span>
                           <span className="text-slate-500 text-[10px] md:text-xs font-bold">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
                         </div>
@@ -1645,13 +1669,21 @@ export default function Home() {
                             <div>
                               <label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Maç Durumu</label>
                               <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full p-2 md:p-3 border-2 border-slate-300 rounded-lg font-bold text-sm md:text-base text-slate-700 bg-white text-center appearance-none cursor-pointer">
-                                <option value="oynandi">Müsabaka Tamamlandı</option><option value="yarida_kaldi">Maç Yarıda Kaldı</option><option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option>
+                                <option value="oynandi">Müsabaka Tamamlandı</option>
+                                {/* 🔥 SKOR GİZLEME SEÇENEKLERİ 🔥 */}
+                                <option value="yarida_kaldi">Maç Yarıda Kaldı / Tatil</option>
+                                <option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option>
                               </select>
-                              {macDurumu !== 'takimlar_cikmadi' && (
-                                <div className="mt-4 bg-white p-3 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-2 w-full">
+                              
+                              {macDurumu === 'oynandi' ? (
+                                <div className="mt-4 bg-white p-3 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-2 w-full animate-fade-in-down">
                                   <div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-bold text-slate-500 mb-1 w-full text-center truncate px-1">{mac?.ev_sahibi || '-'}</label><select value={evSkor} onChange={e => setEvSkor(e.target.value)} className="w-16 h-10 md:w-20 md:h-12 text-center text-xl font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50"><option value="" disabled>-</option>{skorSecenekleri.map(s => <option key={`ev-${s}`} value={s}>{s}</option>)}</select></div>
                                   <span className="text-xl font-black text-slate-300">-</span>
                                   <div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-bold text-slate-500 mb-1 w-full text-center truncate px-1">{mac?.misafir_takim || '-'}</label><select value={misafirSkor} onChange={e => setMisafirSkor(e.target.value)} className="w-16 h-10 md:w-20 md:h-12 text-center text-xl font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50"><option value="" disabled>-</option>{skorSecenekleri.map(s => <option key={`misafir-${s}`} value={s}>{s}</option>)}</select></div>
+                                </div>
+                              ) : (
+                                <div className="mt-4 bg-amber-50 p-4 rounded-lg text-amber-800 text-[10px] md:text-xs text-center border border-amber-200 font-medium animate-fade-in-down">
+                                  ⚠️ <b>Skor bölümü kapalıdır.</b> Maçın yarıda kalma anındaki skorunu, kaçıncı dakikada tatil edildiğini veya diğer tüm detayları aşağıdaki <b>Görev Raporu</b> kısmına yazınız.
                                 </div>
                               )}
                             </div>
