@@ -108,16 +108,13 @@ export default function AdminPage() {
   const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
-  // 🔥 SİSTEM YÖNETİMİ (YENİ KOMİSER VE MAÇ EKLEME) STATELERİ
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
   const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle'>('komiser_ekle')
   
-  // Yeni Komiser Ekleme Formu
   const [yeniPersonelAd, setYeniPersonelAd] = useState('')
   const [yeniPersonelSicil, setYeniPersonelSicil] = useState('')
   const [personelEkleniyor, setPersonelEkleniyor] = useState(false)
 
-  // Manuel Maç Ekleme Formu
   const [manuelMacKodu, setManuelMacKodu] = useState('')
   const [manuelMacTarih, setManuelMacTarih] = useState('')
   const [manuelMacSaat, setManuelMacSaat] = useState('')
@@ -208,7 +205,6 @@ export default function AdminPage() {
     setYukleniyor(false)
   }
 
-  // 🔥 YENİ KOMİSER EKLEME FONKSİYONU
   const komiserEkle = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!yeniPersonelAd || !yeniPersonelSicil) { alert("Lütfen isim ve sicil numarasını eksiksiz girin."); return; }
@@ -231,13 +227,12 @@ export default function AdminPage() {
           } else {
               alert("✅ Komiser / Stajyer Karargaha başarıyla eklendi.");
               setYeniPersonelAd(''); setYeniPersonelSicil('');
-              veriGetir(); // Listeyi yenile
+              veriGetir(); 
           }
       } catch (err: any) { alert("Sistem Hatası: " + err.message); }
       setPersonelEkleniyor(false);
   }
 
-  // 🔥 MAÇ KODU OTOMATİK ZEKASI (+1 Kuralı)
   const otomatikMacKoduBul = () => {
       if (sezonlukMaclar.length === 0) return '';
       let maxKod = 0;
@@ -250,7 +245,6 @@ export default function AdminPage() {
       return maxKod > 0 ? String(maxKod + 1) : '';
   }
 
-  // 🔥 MANUEL (EKSTRA) MAÇ EKLEME FONKSİYONU
   const manuelMacEkle = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!manuelMacKodu || !manuelMacTarih || !manuelMacEv || !manuelMacMis) { 
@@ -278,7 +272,6 @@ export default function AdminPage() {
           if (error) throw error;
           alert("✅ Ekstra maç sisteme başarıyla işlendi ve atama bekleyenler listesine düştü.");
           
-          // Formu sıfırla, kodu hemen +1 yap
           setManuelMacEv(''); setManuelMacMis(''); setManuelMacSaha(''); setManuelMacSaat('');
           setManuelMacKodu(String(parseInt(manuelMacKodu) + 1)); 
           veriGetir(); 
@@ -287,11 +280,12 @@ export default function AdminPage() {
       setManuelMacEkleniyor(false);
   }
 
+  // 🔥 YENİ AKILLI MÜKERRER TEMİZLİK MOTORU ÖNDER HOCAM İÇİN GÜNCELLENDİ
   const mukerrerleriTemizle = async () => {
-      if(!window.confirm("DİKKAT: Toleranslı Temizlik başlıyor! Gizli boşluk, saat veya kategori uyuşmazlığına bakılmaksızın aynı komiserin aynı koddaki çift kayıtları acımasızca silinecek. Onaylıyor musunuz?")) return;
+      if(!window.confirm("DİKKAT: Toleranslı Temizlik başlıyor! Lütfen onaylayın.")) return;
       setYukleniyor(true);
       try {
-          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, ev_sahibi, misafir_takim, komiser_id').order('id', { ascending: true });
+          const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim').order('id', { ascending: true });
           if(error) throw error;
           
           const dnaMap = new Map();
@@ -300,7 +294,9 @@ export default function AdminPage() {
           data.forEach(m => {
               if(!m.ev_sahibi || !m.misafir_takim) return;
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
-              const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}_${temizle(m.komiser_id)}`;
+              
+              // 🔥 YENİ DNA: Maç Kodu + Tarih + Kategori + Ev Sahibi + Misafir
+              const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}`;
               
               if(dnaMap.has(anahtar)) {
                   silinecekIdler.push(m.id);
@@ -469,6 +465,7 @@ export default function AdminPage() {
       }
   }
 
+  // 🔥 EXCEL YÜKLEMEDE DE AYNI GÜNCELLENMİŞ DNA KULLANILDI (ÖNDER HOCAM İÇİN)
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
       setExcelKaydediliyor(true);
@@ -484,15 +481,17 @@ export default function AdminPage() {
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
           }));
 
-          const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, saat, kategori_adi, ev_sahibi, misafir_takim, komiser_id');
+          const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim');
+          
+          // 🔥 YENİ DNA: Maç Kodu + Tarih + Kategori + Ev Sahibi + Misafir
           const mevcutAnahtarlar = new Set((mevcutlar || []).map(m => {
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
-              return `${temizle(m.mac_kodu)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}_${temizle(m.komiser_id)}`;
+              return `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}`;
           }));
           
           const eklenecekler = dbVerisi.filter(m => {
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
-              const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}_${temizle(m.komiser_id)}`;
+              const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}`;
               return !mevcutAnahtarlar.has(anahtar);
           });
 
@@ -1009,7 +1008,6 @@ export default function AdminPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
              <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📥 EXCEL BÜLTEN YÜKLE</button>
-             {/* 🔥 SİSTEM YÖNETİMİ BUTONU EKLENDİ */}
              <button onClick={() => {
                  setSistemYonetimModalAcik(true);
                  setManuelMacKodu(otomatikMacKoduBul());
@@ -1024,7 +1022,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* 🔥 YENİ: SİSTEM YÖNETİMİ MODALI (KOMİSER & MAÇ EKLEME) 🔥 */}
+        {/* SİSTEM YÖNETİMİ MODALI (KOMİSER & MAÇ EKLEME) */}
         {sistemYonetimModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
