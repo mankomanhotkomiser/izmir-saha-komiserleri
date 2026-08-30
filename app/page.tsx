@@ -26,6 +26,25 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return tur !== 'yok'; 
 }
 
+// 🔥 YENİ: KATEGORİYE GÖRE HAKEM GÖSTERİM ZEKASI 🔥
+const getHakemGosterimModu = (kategori: any) => {
+    if (!kategori) return 'dort_kutu';
+    const kat = String(kategori).toLocaleUpperCase('tr-TR');
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') ||
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') ||
+        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
+        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ') || kat.includes('14 YAŞ')) {
+        return 'tek_hakem';
+    }
+    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') ||
+        kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) {
+        return 'uc_hakem';
+    }
+    return 'dort_kutu'; // U17, U18, Süper Amatör vb.
+};
+
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
@@ -90,7 +109,7 @@ export default function Home() {
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   
   const [hakemListesi, setHakemListesi] = useState<string[]>([])
-  const [gozlemciListesi, setGozlemciListesi] = useState<string[]>([]) // YENİ EKLENDİ
+  const [gozlemciListesi, setGozlemciListesi] = useState<string[]>([]) 
   
   const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
   const [aramaKomiser, setAramaKomiser] = useState('')
@@ -263,7 +282,6 @@ export default function Home() {
             setHakemListesi(hakemData.map((h: any) => h.ad_soyad));
         }
 
-        // 🔥 YENİ: GÖZLEMCİLERİ DE ARKA PLANDA ÇEKİYORUZ 🔥
         const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').order('ad_soyad')
         if (gozlemciData && aktif) {
             setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad));
@@ -579,7 +597,6 @@ export default function Home() {
       }
   }
 
-  // 🔥 YENİ: OTOMATİK YENİ GÖZLEMCİ KAYDETME ZEKASI 🔥
   const yeniGozlemciyiKaydet = async (detaylar: any) => {
       const girilenGozlemci = detaylar.gozlemci ? detaylar.gozlemci.trim().toLocaleUpperCase('tr-TR') : '';
       
@@ -627,7 +644,7 @@ export default function Home() {
     if (kayitTuru === 'detayli') { 
         kaydedilecekDetay.detayli_kaydedildi = true; 
         await yeniHakemleriKaydet(kaydedilecekDetay); 
-        await yeniGozlemciyiKaydet(kaydedilecekDetay); // 🔥 GÖZLEMCİ ZEKASI TETİKLENİYOR
+        await yeniGozlemciyiKaydet(kaydedilecekDetay); 
     } 
     else { 
         kaydedilecekDetay.detayli_kaydedildi = raporDetay.detayli_kaydedildi || false; 
@@ -711,6 +728,9 @@ export default function Home() {
       if (!safeRaporDetay || typeof safeRaporDetay !== 'object') safeRaporDetay = {}; 
       
       const raporTuru = raporTurunuBelirle(mac?.kategori_adi);
+      const hakemModu = getHakemGosterimModu(mac?.kategori_adi);
+      const hakemBaslik = hakemModu === 'tek_hakem' ? 'HAKEM' : (hakemModu === 'uc_hakem' ? 'HAKEMLER' : 'HAKEMLER VE GÖZLEMCİ');
+
       const komiserTamIsim = seciliKomiser?.ad_soyad || 'KOMİSER';
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const komiserTelefon = seciliKomiser?.telefon || '';
@@ -757,17 +777,39 @@ export default function Home() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
-                      <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
+                      <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">{hakemBaslik}</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
+                      
+                      {/* 🔥 AMATÖR İÇİN DİNAMİK HAKEM KOLONU 🔥 */}
                       <div className="border-r border-black flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          {/* 🔥 YENİ: GÖZLEMCİ İÇİN AYRI DATALIST EKLENDİ 🔥 */}
-                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          <div className={`flex p-1.5 items-center justify-between flex-1 ${hakemModu !== 'tek_hakem' ? 'border-b border-dashed border-black' : ''}`}>
+                              <span className="text-[10px] font-bold w-20">HAKEM</span> 
+                              <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." />
+                          </div>
+                          
+                          {hakemModu !== 'tek_hakem' && (
+                              <>
+                                  <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between flex-1">
+                                      <span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> 
+                                      <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." />
+                                  </div>
+                                  <div className={`flex p-1.5 items-center justify-between flex-1 ${hakemModu === 'dort_kutu' ? 'border-b border-dashed border-black' : ''}`}>
+                                      <span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> 
+                                      <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." />
+                                  </div>
+                              </>
+                          )}
+
+                          {hakemModu === 'dort_kutu' && (
+                              <div className="flex p-1.5 items-center justify-between flex-1">
+                                  <span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> 
+                                  <input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." />
+                              </div>
+                          )}
                       </div>
+
                       <div className="flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between flex-1">
                               <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> 
                               {prefix === 'aktif' ? (
                                   <select value={safeRaporDetay?.saglik_adi || ''} onChange={e => raporDetayGuncelle('saglik_adi', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
@@ -780,7 +822,7 @@ export default function Home() {
                               )}
                           </div>
                           
-                          <div className="flex p-1.5 items-center justify-between h-1/2">
+                          <div className="flex p-1.5 items-center justify-between flex-1">
                               <span className="text-[10px] font-bold w-24">GÜVENLİK</span> 
                               {prefix === 'aktif' ? (
                                   <select value={safeRaporDetay?.guvenlik_amiri || ''} onChange={e => raporDetayGuncelle('guvenlik_amiri', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
@@ -857,20 +899,20 @@ export default function Home() {
                           <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
                       </div>
                       <div className="flex text-center uppercase">
-                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac?.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac?.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac?.saha}</div><div className="w-1/5 p-2 truncate">{mac?.kategori_adi}</div>
+                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac.saha}</div><div className="w-1/5 p-2 truncate">{mac.kategori_adi}</div>
                       </div>
                   </div>
 
                   <div className="border-2 border-black text-xs font-bold mb-6">
                       <div className="grid grid-cols-6 border-b border-black">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac?.ev_sahibi}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
                               <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</div>
                           </div>
                       </div>
                       <div className="grid grid-cols-6">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac?.misafir_takim}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
                               <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</div>
@@ -885,8 +927,6 @@ export default function Home() {
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem_4 || '') : temizHakem(safeRaporDetay?.hakem_4)} onChange={e => raporDetayGuncelle('hakem_4', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
-                      
-                      {/* 🔥 YENİ: GÖZLEMCİ İÇİN AYRI DATALIST EKLENDİ 🔥 */}
                       <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                   </div>
 
