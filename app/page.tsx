@@ -131,7 +131,7 @@ export default function Home() {
 
   const defaultRaporDetay = {
     hakem: '', y_hakem_1: '', y_hakem_2: '', hakem_4: '', gozlemci: '', 
-    saglik: '', guvenlik: '', 
+    saglik: '', guvenlik: '',
     guvenlik_amiri: '', guvenlik_telefon: '', saglik_adi: '', saglik_telefon: '', 
     islem_saati: 0,
     ihrac_ev: [{forma: '', isim: '', lisans: ''}, {forma: '', isim: '', lisans: ''}],
@@ -327,6 +327,23 @@ export default function Home() {
         return "Gelişim Denetçi / Saha Komiseri"
     }
     return "Saha Komiseri"
+  }
+
+  const renderOrjinalGorevKarti = (mac: any) => {
+    if (!mac) return null;
+    return (
+      <div className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-3 md:p-4 mb-3">
+        <div className="flex justify-between items-start mb-2 border-b border-slate-100 pb-2">
+          <span className="font-bold text-blue-950 text-base md:text-xl leading-tight">{mac.ev_sahibi || '-'} <span className="text-slate-400 font-medium mx-1 text-sm md:text-base">vs</span> {mac.misafir_takim || '-'}</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-2 md:p-3 rounded-lg border border-slate-100">
+          <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800 text-xs md:text-sm">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span></div>
+          <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac.saha || '-'}</span></div>
+          <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac.kategori_adi || '-'} <span className="text-[9px] md:text-xs font-normal text-slate-500 block sm:inline mt-0.5 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu || '-'})</span></span></div>
+          <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700 text-xs md:text-sm">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span></div>
+        </div>
+      </div>
+    )
   }
 
   let gecerliAktifMaclar: any[] = [];
@@ -525,23 +542,48 @@ export default function Home() {
     }
   }
 
+  // 🔥 OTOMATİK YENİ HAKEM KAYDETME ZEKASI (ZIRHLI VERSİYON) 🔥
   const yeniHakemleriKaydet = async (detaylar: any) => {
+      // 1. Girilen hakemleri topla ve temizle
       const girilenHakemler = [
           detaylar.hakem, detaylar.y_hakem_1, detaylar.y_hakem_2, detaylar.hakem_4, detaylar.gozlemci
-      ].map(h => h ? h.trim().toLocaleUpperCase('tr-TR') : '').filter(h => h.length > 2);
+      ].map(h => h ? h.trim().toLocaleUpperCase('tr-TR') : '')
+       .filter(h => h.length > 2 && !h.includes("SEÇ") && !h.includes("YAZ"));
 
-      const eklenecekler = girilenHakemler.filter(h => !hakemListesi.includes(h));
-      
-      if (eklenecekler.length > 0) {
-          const uniqueEklenecekler = Array.from(new Set(eklenecekler));
-          const insertPayload = uniqueEklenecekler.map(ad => ({ ad_soyad: ad }));
-          try {
-              await supabase.from('hakemler').insert(insertPayload);
-              setHakemListesi(prev => {
-                  const newList = [...prev, ...uniqueEklenecekler].sort((a,b) => a.localeCompare(b, 'tr-TR'));
-                  return newList;
-              });
-          } catch(e) { console.error("Hakem ekleme hatasi:", e); }
+      if (girilenHakemler.length === 0) return;
+
+      try {
+          // 2. Supabase'den en güncel listeyi çek (Önbellek yanılmasına karşı)
+          const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad');
+          const guncelListe = (mevcutHakemler || []).map((h: any) => h.ad_soyad.toLocaleUpperCase('tr-TR'));
+
+          // 3. Veritabanında kesinlikle OLMAYANLARI filtrele
+          const eklenecekler = girilenHakemler.filter(h => !guncelListe.includes(h));
+
+          if (eklenecekler.length > 0) {
+              const uniqueEklenecekler = Array.from(new Set(eklenecekler));
+              const insertPayload = uniqueEklenecekler.map(ad => ({ ad_soyad: ad }));
+              
+              // 4. Supabase'e ekle
+              const { error } = await supabase.from('hakemler').insert(insertPayload);
+              
+              if (!error) {
+                  // 5. Başarılı olursa anlık ekran state'ini de güncelle
+                  setHakemListesi(prev => {
+                      const newList = [...prev];
+                      uniqueEklenecekler.forEach(h => {
+                          if (!newList.map(x => x.toLocaleUpperCase('tr-TR')).includes(h)) {
+                              newList.push(h);
+                          }
+                      });
+                      return newList.sort((a,b) => a.localeCompare(b, 'tr-TR'));
+                  });
+              } else {
+                  console.error("Hakem veritabanına eklenirken hata oluştu:", error.message);
+              }
+          }
+      } catch (err) {
+          console.error("Hakem kaydetme fonksiyonunda hata:", err);
       }
   }
 
@@ -549,7 +591,10 @@ export default function Home() {
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) { alert("⚠️ Lütfen maçın skorunu giriniz."); return; }
     if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') { alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen 'Görev Raporu / Hızlı Not' kısmına detayı yazınız."); return; }
     if (kayitTuru === 'detayli') {
-        if (!raporDetay.hakem || raporDetay.hakem.trim() === '' || raporDetay.hakem.includes('TIKLA VE')) { alert("⚠️ Detaylı Raporu iletmek için lütfen en azından Orta Hakem bilgisini giriniz!"); return; }
+        if (!raporDetay.hakem || raporDetay.hakem.trim() === '' || raporDetay.hakem.includes('TIKLA VE') || raporDetay.hakem.includes('YAZ')) { 
+            alert("⚠️ Detaylı Raporu iletmek için lütfen en azından Orta Hakem bilgisini giriniz!"); 
+            return; 
+        }
     }
 
     setSkorKaydediliyor(true);
@@ -563,11 +608,14 @@ export default function Home() {
     
     kaydedilecekDetay.islem_saati = Date.now();
 
+    // 🔥 GÖNDERİLİRKEN YENİ HAKEMLER VERİTABANINA ZIRHLI OLARAK İŞLENİYOR 🔥
     if (kayitTuru === 'detayli') { 
         kaydedilecekDetay.detayli_kaydedildi = true; 
         await yeniHakemleriKaydet(kaydedilecekDetay); 
     } 
-    else { kaydedilecekDetay.detayli_kaydedildi = raporDetay.detayli_kaydedildi || false; }
+    else { 
+        kaydedilecekDetay.detayli_kaydedildi = raporDetay.detayli_kaydedildi || false; 
+    }
 
     const guncellenecekVeri = {
       ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || evSkor === '') ? null : Number(evSkor),
@@ -639,23 +687,6 @@ export default function Home() {
     )
   }
 
-  const renderOrjinalGorevKarti = (mac: any) => {
-    if (!mac) return null;
-    return (
-      <div className="bg-white border-l-4 border-blue-800 shadow-md rounded-r-xl p-3 md:p-4 mb-3">
-        <div className="flex justify-between items-start mb-2 border-b border-slate-100 pb-2">
-          <span className="font-bold text-blue-950 text-base md:text-xl leading-tight">{mac.ev_sahibi || '-'} <span className="text-slate-400 font-medium mx-1 text-sm md:text-base">vs</span> {mac.misafir_takim || '-'}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm text-slate-700 mt-2 bg-slate-50 p-2 md:p-3 rounded-lg border border-slate-100">
-          <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Tarih & Saat</span><span className="font-bold text-slate-800 text-xs md:text-sm">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span></div>
-          <div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Saha</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac.saha || '-'}</span></div>
-          <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Kategori / Lig</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{mac.kategori_adi || '-'} <span className="text-[9px] md:text-xs font-normal text-slate-500 block sm:inline mt-0.5 sm:mt-0 sm:ml-1">(Kod: {mac.mac_kodu || '-'})</span></span></div>
-          <div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold uppercase tracking-wider">Atanan Görev</span><span className="font-extrabold text-blue-700 text-xs md:text-sm">{gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu)}</span></div>
-        </div>
-      </div>
-    )
-  }
-
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = prefix === 'aktif' ? raporDetay : (mac?.tff_rapor_detaylari || {});
       if (typeof safeRaporDetay === 'string') {
@@ -713,36 +744,35 @@ export default function Home() {
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEMLER VE GÖZLEMCİ</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       <div className="border-r border-black flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
                       </div>
                       <div className="flex flex-col">
-                          {/* AMATÖR RAPOR: SADECE VAR/YOK KUTULARI (EK SATIR YOK) */}
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> 
                               {prefix === 'aktif' ? (
-                                  <select value={safeRaporDetay?.saglik || ''} onChange={e => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
+                                  <select value={safeRaporDetay?.saglik_adi || ''} onChange={e => raporDetayGuncelle('saglik_adi', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
                                       <option value="">-- SEÇ --</option>
-                                      <option value="var">VAR</option>
-                                      <option value="yok">YOK</option>
+                                      <option value="VAR">VAR</option>
+                                      <option value="YOK">YOK</option>
                                   </select>
                               ) : (
-                                  <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' ? 'YOK' : '')}</span>
+                                  <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{temizHakem(safeRaporDetay?.saglik_adi)}</span>
                               )}
                           </div>
                           
                           <div className="flex p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">GÜVENLİK</span> 
                               {prefix === 'aktif' ? (
-                                  <select value={safeRaporDetay?.guvenlik || ''} onChange={e => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
+                                  <select value={safeRaporDetay?.guvenlik_amiri || ''} onChange={e => raporDetayGuncelle('guvenlik_amiri', e.target.value)} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm cursor-pointer text-center">
                                       <option value="">-- SEÇ --</option>
-                                      <option value="var">VAR</option>
-                                      <option value="yok">YOK</option>
+                                      <option value="VAR">VAR</option>
+                                      <option value="YOK">YOK</option>
                                   </select>
                               ) : (
-                                  <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' ? 'YOK' : '')}</span>
+                                  <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{temizHakem(safeRaporDetay?.guvenlik_amiri)}</span>
                               )}
                           </div>
                       </div>
@@ -834,6 +864,7 @@ export default function Home() {
                   <h3 className="font-bold text-sm mb-1 uppercase">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
+                      
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
@@ -842,7 +873,6 @@ export default function Home() {
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
-                      {/* 🔥 GÜVENLİK YENİ VAR/YOK VE EK SATIR SİSTEMİ (SADECE GELİŞİM) 🔥 */}
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">GÜVENLİK GÖREVLİSİ (VAR MI?)</div>
                           <div className="w-1/2 flex items-center justify-center p-1 gap-4">
@@ -874,7 +904,6 @@ export default function Home() {
                           </>
                       )}
 
-                      {/* 🔥 SAĞLIK MEMURU YENİ VAR/YOK VE EK SATIR SİSTEMİ (SADECE GELİŞİM) 🔥 */}
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">SAĞLIK MEMURU (VAR MI?)</div>
                           <div className="w-1/2 flex items-center justify-center p-1 gap-4">
@@ -951,22 +980,13 @@ export default function Home() {
                       <textarea value={safeRaporDetay?.tff_not || mac?.rapor_notu || ''} onChange={e => raporDetayGuncelle('tff_not', e.target.value)} readOnly={prefix !== 'aktif'} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent"></textarea>
                   </div>
 
-                  <div className="flex justify-between items-end px-4 mt-8 pt-4">
+                  <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black">
+                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{new Date().toLocaleDateString('tr-TR')}</span></div>
                       <div className="text-center">
-                          <div className="text-xs font-bold mb-1">Saha Komiserinin</div>
-                          <div className="text-[10px] text-slate-500">GSM Telefon No: {komiserTelefon}</div>
-                      </div>
-                      <div className="text-center">
-                          <div className="text-xs font-bold border-b border-black px-4 pb-1 mb-1">Adı Soyadı</div>
-                          <div className="font-bold text-sm uppercase">{komiserTamIsim}</div>
-                      </div>
-                      <div className="text-center">
-                          <div className="text-xs font-bold border-b border-black px-4 pb-1 mb-1">Rapor Tarihi</div>
-                          <div className="font-bold text-sm">{new Date().toLocaleDateString('tr-TR')}</div>
-                      </div>
-                      <div className="text-center">
-                          <div className="text-xs font-bold border-b border-black px-4 pb-1 mb-1">İmza / E-MAİL</div>
                           <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
+                          <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
+                          <div className="text-[10px] text-slate-500">GSM Telefon No: {komiserTelefon}</div>
+                          <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
                       </div>
                   </div>
               </div>
@@ -1046,8 +1066,6 @@ export default function Home() {
           </div>
       );
   }
-
-  // 🔥 TEK VE TEMİZ RENDER BLOKLARI BAŞLIYOR 🔥
 
   if (aktifEkran === 'dashboard') {
     return (
