@@ -10,7 +10,6 @@ const DERNEK_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
-// 🔥 ÖNDER HOCAM İÇİN GÜNCELLENEN LİG ZEKASI
 const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
@@ -419,6 +418,7 @@ export default function Home() {
     setEkRaporFotolar({});
   }
 
+  // 🔥 ÇÖKMEYİ ENGELLEYEN BÜYÜK ZIRH BURAYA EKLENDİ
   const raporFormunuAc = (mac: any) => {
     if (acikSkorMacId === mac.id) { skorFormunuSifirla(); } 
     else {
@@ -432,9 +432,16 @@ export default function Home() {
             if (typeof parsedDetay === 'string') {
                 try { parsedDetay = JSON.parse(parsedDetay); } catch(e) { parsedDetay = {}; }
             }
+            if (!parsedDetay || typeof parsedDetay !== 'object') parsedDetay = {}; 
+            
             const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
-            if (!birlesikDetay.gelisim_sorular) birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
-            if (!birlesikDetay.ek_raporlar) birlesikDetay.ek_raporlar = [];
+            
+            // Eğer veritabanından gelen listeler bozuksa veya array değilse anında şablonu onar:
+            if (!birlesikDetay.gelisim_sorular || typeof birlesikDetay.gelisim_sorular !== 'object') birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
+            if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
+            if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
+            if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
+            
             setRaporDetay(birlesikDetay); 
         } 
         else { setRaporDetay({...defaultRaporDetay, tff_not: mac.rapor_notu || ''}); }
@@ -472,14 +479,14 @@ export default function Home() {
   const ekRaporEkle = () => {
       setRaporDetay((prev:any) => ({
           ...prev, 
-          ek_raporlar: [...(prev.ek_raporlar || []), { id: Date.now(), text: '' }]
+          ek_raporlar: [...(Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []), { id: Date.now(), text: '' }]
       }));
   }
   
   const ekRaporSil = (id: number) => {
       setRaporDetay((prev:any) => ({
           ...prev, 
-          ek_raporlar: (prev.ek_raporlar || []).filter((r:any) => r.id !== id)
+          ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).filter((r:any) => r.id !== id)
       }));
       const yeniFotolar = {...ekRaporFotolar};
       delete yeniFotolar[id];
@@ -489,7 +496,7 @@ export default function Home() {
   const ekRaporGuncelle = (id: number, text: string) => {
       setRaporDetay((prev:any) => ({
           ...prev, 
-          ek_raporlar: (prev.ek_raporlar || []).map((r:any) => r.id === id ? { ...r, text } : r)
+          ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r)
       }));
   }
   
@@ -557,7 +564,6 @@ export default function Home() {
     kaydedilecekDetay.hakem_4 = temizHakem(kaydedilecekDetay.hakem_4);
     kaydedilecekDetay.gozlemci = temizHakem(kaydedilecekDetay.gozlemci);
     
-    // 🔥 ZAMAN DAMGASI (Yönetim Ekranında En Üste Çıkması İçin)
     kaydedilecekDetay.islem_saati = Date.now();
 
     if (kayitTuru === 'detayli') { kaydedilecekDetay.detayli_kaydedildi = true; } 
@@ -634,29 +640,30 @@ export default function Home() {
   }
 
   const renderTffRaporu = (mac: any, prefix: string) => {
-      let safeRaporDetay = prefix === 'aktif' ? raporDetay : (mac.tff_rapor_detaylari || {});
+      // 🔥 İKİNCİ BÜYÜK ZIRH: Rapor renderlanırken veritabanı boş dönse bile çökmez
+      let safeRaporDetay = prefix === 'aktif' ? raporDetay : (mac?.tff_rapor_detaylari || {});
       if (typeof safeRaporDetay === 'string') {
           try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; }
       }
+      if (!safeRaporDetay || typeof safeRaporDetay !== 'object') safeRaporDetay = {}; 
       
-      const raporTuru = raporTurunuBelirle(mac.kategori_adi);
+      const raporTuru = raporTurunuBelirle(mac?.kategori_adi);
       const komiserTamIsim = seciliKomiser?.ad_soyad || 'KOMİSER';
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const komiserTelefon = seciliKomiser?.telefon || '';
 
+      // Array.isArray kalkanları ile React'in map fonksiyonunun çökmesi %100 engellendi
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
+      const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
 
-      const VarYokBox = ({ val }: { val: string }) => (
-          <><div className="flex items-center gap-2 mb-1 pointer-events-none"><span className="w-8 text-slate-700">VAR</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'var' ? 'X' : ''}</div></div><div className="flex items-center gap-2 pointer-events-none"><span className="w-8 text-slate-700">YOK</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'yok' ? 'X' : ''}</div></div></>
-      );
       const EvetHayirBox = ({ val }: { val: string }) => (
           <div className="flex items-center gap-4 pointer-events-none"><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Evet</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div></div><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Hayır</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div></div></div>
       );
 
       return (
-          <div id={`${prefix}-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6">
+          <div id={`${prefix}-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6">
               
               {raporTuru === 'amator' && (
               <div className="border-[3px] border-double border-slate-600 p-4">
@@ -676,13 +683,13 @@ export default function Home() {
                       
                       <div className="grid grid-cols-4 border-b border-dashed border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.ev_sahibi || '-'}</span></div></div>
-                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{prefix === 'aktif' ? (evSkor || '-') : (mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-')}</span></div>
+                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</span></div>
                       </div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div></div>
                       
                       <div className="grid grid-cols-4 border-b border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.misafir_takim || '-'}</span></div></div>
-                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac.misafir_skor !== null ? mac.misafir_skor : '-')}</span></div>
+                          <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</span></div>
                       </div>
                       <div className="flex flex-col border-b border-black"><div className="p-2 flex justify-between items-center border-b border-dashed border-black"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div><div className="p-2 flex justify-between items-center"><span className="text-[10px] font-bold">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{mac?.kategori_adi || '-'}</span></div></div>
                   </div>
@@ -697,7 +704,6 @@ export default function Home() {
                           <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-xs outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yaz..." /></div>
                       </div>
                       <div className="flex flex-col">
-                          {/* 🔥 SAĞLIK MEMURU YENİ VAR/YOK SİSTEMİ EKLENDİ (AMATÖR RAPOR) 🔥 */}
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span> 
                               {prefix === 'aktif' ? (
@@ -710,8 +716,6 @@ export default function Home() {
                                   <span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{temizHakem(safeRaporDetay?.saglik_adi)}</span>
                               )}
                           </div>
-                          
-                          {/* 🔥 GÜVENLİK AMİRİ YENİ VAR/YOK SİSTEMİ EKLENDİ (AMATÖR RAPOR) 🔥 */}
                           <div className="flex p-1.5 items-center justify-between h-1/2">
                               <span className="text-[10px] font-bold w-24">GÜVENLİK</span> 
                               {prefix === 'aktif' ? (
@@ -789,23 +793,23 @@ export default function Home() {
                           <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
                       </div>
                       <div className="flex text-center uppercase">
-                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac.saha}</div><div className="w-1/5 p-2 truncate">{mac.kategori_adi}</div>
+                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac?.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac?.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac?.saha}</div><div className="w-1/5 p-2 truncate">{mac?.kategori_adi}</div>
                       </div>
                   </div>
 
                   <div className="border-2 border-black text-xs font-bold mb-6">
                       <div className="grid grid-cols-6 border-b border-black">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac?.ev_sahibi}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
-                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-')}</div>
+                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</div>
                           </div>
                       </div>
                       <div className="grid grid-cols-6">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac?.misafir_takim}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
-                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac.misafir_skor !== null ? mac.misafir_skor : '-')}</div>
+                              <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</div>
                           </div>
                       </div>
                   </div>
@@ -821,7 +825,6 @@ export default function Home() {
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
-                      {/* 🔥 GÜVENLİK YENİ VAR/YOK SİSTEMİ EKLENDİ (GELİŞİM RAPOR) 🔥 */}
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5">GÜVENLİK</div>
                           <div className="w-1/2 flex items-center justify-center p-1 gap-4">
@@ -836,7 +839,6 @@ export default function Home() {
                               )}
                           </div>
                       </div>
-                      {/* 🔥 SAĞLIK MEMURU YENİ VAR/YOK SİSTEMİ EKLENDİ (GELİŞİM RAPOR) 🔥 */}
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5">SAĞLIK MEMURU</div>
                           <div className="w-1/2 flex items-center justify-center p-1 gap-4">
@@ -894,7 +896,7 @@ export default function Home() {
                   <div className="mb-4">
                       <h3 className="font-bold text-xs uppercase mb-1">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
                       <p className="text-[10px] mb-1">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      <textarea value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} onChange={e => raporDetayGuncelle('tff_not', e.target.value)} readOnly={prefix !== 'aktif'} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent"></textarea>
+                      <textarea value={safeRaporDetay?.tff_not || mac?.rapor_notu || ''} onChange={e => raporDetayGuncelle('tff_not', e.target.value)} readOnly={prefix !== 'aktif'} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent"></textarea>
                   </div>
 
                   <div className="flex justify-between items-end px-4 mt-8 pt-4">
@@ -918,8 +920,8 @@ export default function Home() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- */}
-              {(safeRaporDetay?.ek_raporlar || []).map((ekRapor: any, index: number) => (
+              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- MAP DÖNGÜSÜ GÜVENCE ALTINDA */}
+              {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
                       
@@ -941,9 +943,9 @@ export default function Home() {
                       )}
 
                       <div className="flex border-b border-black text-sm font-bold mb-6">
-                          <div className="w-1/2 border-r border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase">{mac.ev_sahibi} - {mac.misafir_takim}</span></div>
-                          <div className="w-1/4 border-r border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac.tarih)}</span></div>
-                          <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{mac.mac_kodu}</span></div>
+                          <div className="w-1/2 border-r border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
+                          <div className="w-1/4 border-r border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
+                          <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{mac?.mac_kodu}</span></div>
                       </div>
 
                       <div className="mb-6">
@@ -1156,12 +1158,12 @@ export default function Home() {
     const maclar = Array.isArray(komiserMaclari) ? komiserMaclari : [];
     maclar.forEach(mac => {
         if (!mac) return;
-        const isProf = !detayliRaporGosterilirMi(mac.kategori_adi);
-        const katAdi = formatKategori(mac.kategori_adi);
+        const isProf = !detayliRaporGosterilirMi(mac?.kategori_adi);
+        const katAdi = formatKategori(mac?.kategori_adi);
         if (isProf) { profCount++; profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1; } 
         else { amatorCount++; amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1; }
         
-        const sahaAdi = mac.saha || 'BELİRTİLMEMİŞ SAHA';
+        const sahaAdi = mac?.saha || 'BELİRTİLMEMİŞ SAHA';
         if (!sahaGruplari[sahaAdi]) { sahaGruplari[sahaAdi] = { gidisler: new Set(), maclar: [] }; }
         if (mac.tarih) sahaGruplari[sahaAdi].gidisler.add(mac.tarih);
         sahaGruplari[sahaAdi].maclar.push(mac);
@@ -1253,9 +1255,9 @@ export default function Home() {
                                                     <div key={mac.id || idx} className="bg-white border border-slate-300 rounded p-3 text-xs text-slate-700">
                                                         <div className="flex justify-between items-start pb-2 mb-2 gap-2">
                                                             <div className="flex-1">
-                                                                <div className="text-emerald-600 font-bold text-[9px] mb-1 tracking-widest">{mac.kategori_adi}</div>
-                                                                <div className="font-bold text-sm text-slate-900 mb-1">{mac.ev_sahibi} <span className="text-slate-400 mx-1 text-[10px]">vs</span> {mac.misafir_takim}</div>
-                                                                <div className="text-[10px] text-slate-500">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</div>
+                                                                <div className="text-emerald-600 font-bold text-[9px] mb-1 tracking-widest">{mac?.kategori_adi}</div>
+                                                                <div className="font-bold text-sm text-slate-900 mb-1">{mac?.ev_sahibi} <span className="text-slate-400 mx-1 text-[10px]">vs</span> {mac?.misafir_takim}</div>
+                                                                <div className="text-[10px] text-slate-500">{guvenliTarih(mac?.tarih)} - {guvenliSaat(mac?.saat)}</div>
                                                             </div>
                                                             <div className="flex flex-col gap-2 items-end">
                                                                 <div className="bg-slate-100 text-slate-800 font-black px-3 py-1.5 rounded shadow-sm border border-slate-300 text-center min-w-[70px]">
@@ -1305,26 +1307,27 @@ export default function Home() {
     if (aramaKomiser.trim() !== '') {
       const q = aramaKomiser.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => {
-        const isim = (Array.isArray(tumKomiserler) ? tumKomiserler : []).find(k => String(k.komiser_id) === String(mac.komiser_id))?.ad_soyad || "";
+        const isim = (Array.isArray(tumKomiserler) ? tumKomiserler : []).find(k => String(k.komiser_id) === String(mac?.komiser_id))?.ad_soyad || "";
         return String(isim).toLocaleLowerCase('tr-TR').includes(q);
       });
     }
     if (aramaSaha.trim() !== '') {
       const q = aramaSaha.toLocaleLowerCase('tr-TR');
-      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => String(mac.saha || '').toLocaleLowerCase('tr-TR').includes(q));
+      filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => String(mac?.saha || '').toLocaleLowerCase('tr-TR').includes(q));
     }
     if (aramaTakim.trim() !== '') {
       const q = aramaTakim.toLocaleLowerCase('tr-TR');
       filtrelenmisMaclar = filtrelenmisMaclar.filter(mac => 
-        String(mac.ev_sahibi || '').toLocaleLowerCase('tr-TR').includes(q) || 
-        String(mac.misafir_takim || '').toLocaleLowerCase('tr-TR').includes(q) ||
-        String(mac.kategori_adi || '').toLocaleLowerCase('tr-TR').includes(q)
+        String(mac?.ev_sahibi || '').toLocaleLowerCase('tr-TR').includes(q) || 
+        String(mac?.misafir_takim || '').toLocaleLowerCase('tr-TR').includes(q) ||
+        String(mac?.kategori_adi || '').toLocaleLowerCase('tr-TR').includes(q)
       );
     }
     
-    const siraliKomiserler = Array.isArray(tumKomiserler) ? [...tumKomiserler].sort((a, b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR')) : [];
-    const siraliSahalar = Array.from(new Set(guvenliTumMaclar.map(m => m.saha).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
-    const siraliTakimlar = Array.from(new Set([...guvenliTumMaclar.map(m => m.ev_sahibi), ...guvenliTumMaclar.map(m => m.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
+    const safeKomiserler = Array.isArray(tumKomiserler) ? tumKomiserler : [];
+    const siraliKomiserler = [...safeKomiserler].sort((a, b) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR'));
+    const siraliSahalar = Array.from(new Set(guvenliTumMaclar.map(m => m?.saha).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
+    const siraliTakimlar = Array.from(new Set([...guvenliTumMaclar.map(m => m?.ev_sahibi), ...guvenliTumMaclar.map(m => m?.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
 
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
@@ -1350,7 +1353,8 @@ export default function Home() {
               <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500 font-bold text-sm">Aramanızla eşleşen müsabaka bulunamadı.</div>
             ) : (
               filtrelenmisMaclar.map((mac, idx) => {
-                const komiserIsim = (Array.isArray(tumKomiserler) ? tumKomiserler : []).find(k => String(k.komiser_id) === String(mac.komiser_id))?.ad_soyad || "Komiser Atanmadı";
+                const safeKomiserler = Array.isArray(tumKomiserler) ? tumKomiserler : [];
+                const komiserIsim = safeKomiserler.find(k => String(k.komiser_id) === String(mac?.komiser_id))?.ad_soyad || "Komiser Atanmadı";
                 const isAcik = acikAramaMacId === mac.id;
                 return (
                   <div key={mac.id || `arama-${idx}`} className="bg-white border-l-4 border-slate-800 shadow-md rounded-r-xl overflow-hidden transition-all">
