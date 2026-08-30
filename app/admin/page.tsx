@@ -63,13 +63,28 @@ const getGunRengi = (tarihStr: string | null | undefined) => {
     }
 };
 
-// 🔥 HATA VEREN TEMİZLİK MOTORU BURAYA EKLENDİ 🔥
 const temizHakem = (isim: any) => {
     if (!isim) return '';
     const s = String(isim).trim().toLocaleUpperCase('tr-TR');
     if (s.includes('TIKLA VE')) return '';
     return String(isim).trim();
 };
+
+// 🔥 VERCEL'İN BULAMADIĞI GELİŞİM LİGİ SORULARI EKLENDİ 🔥
+const gelisimOrganizasyon = [
+    { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
+    { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
+    { id: 'anons', text: '3. Anons sistemi çalışıyor mu?' },
+    { id: 'sedyeci', text: '4. Müsabakada ev sahibi takım tarafından sedyeci (2 kişi) görevlendirildi mi?' }
+];
+
+const gelisimTeknik = [
+    { id: 'soyunma_odasi', text: '1. Hakem ve Takım Soyunma Odası' }, { id: 'oyun_alani', text: '2. Oyun Alanı' },
+    { id: 'kale_aglari', text: '3. Kale ve Ağları' }, { id: 'saha_cizgileri', text: '4. Saha Çizgileri' },
+    { id: 'kose_gonderleri', text: '5. Köşe Gönderleri' }, { id: 'teknik_alan', text: '6. Teknik Alan' },
+    { id: 'yedek_kulubeleri', text: '7. Yedek Kulübeleri' }, { id: 'skor_tabelasi', text: '8. Skor Tabelası' },
+    { id: 'oyuncu_degistirme', text: '9. Oyuncu Değiştirme Tabelası' }
+];
 
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
@@ -496,6 +511,26 @@ export default function AdminPage() {
               if (error) throw error;
               alert("✅ İptal edildi."); sessizMacGuncelle(macId, guncelVeri); 
           } catch (err: any) { alert("Hata: " + err.message); }
+      }
+  }
+
+  // 🔥 VERCEL'İN BULAMADIĞI TFF FOTOĞRAF İNDİRME FONKSİYONU EKLENDİ 🔥
+  const tffTutanakIndir = async (mac: any, prefix: string) => {
+      const element = document.getElementById(`${prefix}-tff-form-${mac.id}`);
+      if (element) {
+        try {
+          const style = document.createElement('style');
+          style.innerHTML = '.tff-no-print { display: none !important; }';
+          document.head.appendChild(style);
+          const fullWidth = element.scrollWidth;
+          const fullHeight = element.scrollHeight;
+          const dataURL = await toPng(element as HTMLElement, { 
+              backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
+              style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' } 
+          });
+          const link = document.createElement('a'); link.href = dataURL; link.download = `Sistem_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
+          document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
+        } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
       }
   }
 
