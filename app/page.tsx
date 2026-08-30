@@ -88,7 +88,9 @@ export default function Home() {
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
+  
   const [hakemListesi, setHakemListesi] = useState<string[]>([])
+  const [gozlemciListesi, setGozlemciListesi] = useState<string[]>([]) // YENİ EKLENDİ
   
   const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
   const [aramaKomiser, setAramaKomiser] = useState('')
@@ -259,6 +261,12 @@ export default function Home() {
         const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').order('ad_soyad')
         if (hakemData && aktif) {
             setHakemListesi(hakemData.map((h: any) => h.ad_soyad));
+        }
+
+        // 🔥 YENİ: GÖZLEMCİLERİ DE ARKA PLANDA ÇEKİYORUZ 🔥
+        const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').order('ad_soyad')
+        if (gozlemciData && aktif) {
+            setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad));
         }
 
       } catch (err: any) { console.error(err) }
@@ -542,48 +550,56 @@ export default function Home() {
     }
   }
 
-  // 🔥 OTOMATİK YENİ HAKEM KAYDETME ZEKASI (ZIRHLI VERSİYON) 🔥
   const yeniHakemleriKaydet = async (detaylar: any) => {
-      // 1. Girilen hakemleri topla ve temizle
       const girilenHakemler = [
-          detaylar.hakem, detaylar.y_hakem_1, detaylar.y_hakem_2, detaylar.hakem_4, detaylar.gozlemci
+          detaylar.hakem, detaylar.y_hakem_1, detaylar.y_hakem_2, detaylar.hakem_4
       ].map(h => h ? h.trim().toLocaleUpperCase('tr-TR') : '')
        .filter(h => h.length > 2 && !h.includes("SEÇ") && !h.includes("YAZ"));
 
-      if (girilenHakemler.length === 0) return;
+      if (girilenHakemler.length > 0) {
+          try {
+              const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad');
+              const guncelListe = (mevcutHakemler || []).map((h: any) => h.ad_soyad.toLocaleUpperCase('tr-TR'));
+              const eklenecekler = girilenHakemler.filter(h => !guncelListe.includes(h));
 
-      try {
-          // 2. Supabase'den en güncel listeyi çek (Önbellek yanılmasına karşı)
-          const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad');
-          const guncelListe = (mevcutHakemler || []).map((h: any) => h.ad_soyad.toLocaleUpperCase('tr-TR'));
-
-          // 3. Veritabanında kesinlikle OLMAYANLARI filtrele
-          const eklenecekler = girilenHakemler.filter(h => !guncelListe.includes(h));
-
-          if (eklenecekler.length > 0) {
-              const uniqueEklenecekler = Array.from(new Set(eklenecekler));
-              const insertPayload = uniqueEklenecekler.map(ad => ({ ad_soyad: ad }));
-              
-              // 4. Supabase'e ekle
-              const { error } = await supabase.from('hakemler').insert(insertPayload);
-              
-              if (!error) {
-                  // 5. Başarılı olursa anlık ekran state'ini de güncelle
-                  setHakemListesi(prev => {
-                      const newList = [...prev];
-                      uniqueEklenecekler.forEach(h => {
-                          if (!newList.map(x => x.toLocaleUpperCase('tr-TR')).includes(h)) {
-                              newList.push(h);
-                          }
+              if (eklenecekler.length > 0) {
+                  const uniqueEklenecekler = Array.from(new Set(eklenecekler));
+                  const insertPayload = uniqueEklenecekler.map(ad => ({ ad_soyad: ad }));
+                  
+                  const { error } = await supabase.from('hakemler').insert(insertPayload);
+                  if (!error) {
+                      setHakemListesi(prev => {
+                          const newList = [...prev];
+                          uniqueEklenecekler.forEach(h => { if (!newList.map(x => x.toLocaleUpperCase('tr-TR')).includes(h)) newList.push(h); });
+                          return newList.sort((a,b) => a.localeCompare(b, 'tr-TR'));
                       });
-                      return newList.sort((a,b) => a.localeCompare(b, 'tr-TR'));
-                  });
-              } else {
-                  console.error("Hakem veritabanına eklenirken hata oluştu:", error.message);
+                  }
               }
-          }
-      } catch (err) {
-          console.error("Hakem kaydetme fonksiyonunda hata:", err);
+          } catch (err) { console.error("Hakem kaydetme fonksiyonunda hata:", err); }
+      }
+  }
+
+  // 🔥 YENİ: OTOMATİK YENİ GÖZLEMCİ KAYDETME ZEKASI 🔥
+  const yeniGozlemciyiKaydet = async (detaylar: any) => {
+      const girilenGozlemci = detaylar.gozlemci ? detaylar.gozlemci.trim().toLocaleUpperCase('tr-TR') : '';
+      
+      if (girilenGozlemci.length > 2 && !girilenGozlemci.includes("SEÇ") && !girilenGozlemci.includes("YAZ")) {
+          try {
+              const { data: mevcutGozlemciler } = await supabase.from('gozlemciler').select('ad_soyad');
+              const guncelListe = (mevcutGozlemciler || []).map((g: any) => g.ad_soyad.toLocaleUpperCase('tr-TR'));
+              
+              if (!guncelListe.includes(girilenGozlemci)) {
+                  const { error } = await supabase.from('gozlemciler').insert([{ ad_soyad: girilenGozlemci }]);
+                  if (!error) {
+                      setGozlemciListesi(prev => {
+                          const newList = [...prev, girilenGozlemci];
+                          return newList.sort((a,b) => a.localeCompare(b, 'tr-TR'));
+                      });
+                  } else {
+                      console.error("Gözlemci eklenirken hata:", error.message);
+                  }
+              }
+          } catch (err) { console.error("Gözlemci kaydetme hatası:", err); }
       }
   }
 
@@ -608,10 +624,10 @@ export default function Home() {
     
     kaydedilecekDetay.islem_saati = Date.now();
 
-    // 🔥 GÖNDERİLİRKEN YENİ HAKEMLER VERİTABANINA ZIRHLI OLARAK İŞLENİYOR 🔥
     if (kayitTuru === 'detayli') { 
         kaydedilecekDetay.detayli_kaydedildi = true; 
         await yeniHakemleriKaydet(kaydedilecekDetay); 
+        await yeniGozlemciyiKaydet(kaydedilecekDetay); // 🔥 GÖZLEMCİ ZEKASI TETİKLENİYOR
     } 
     else { 
         kaydedilecekDetay.detayli_kaydedildi = raporDetay.detayli_kaydedildi || false; 
@@ -717,7 +733,7 @@ export default function Home() {
                       <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                       <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                       <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1 text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU</h3>
+                      <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU (AMATÖR LİG)</h3>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
@@ -747,7 +763,8 @@ export default function Home() {
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
-                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
+                          {/* 🔥 YENİ: GÖZLEMCİ İÇİN AYRI DATALIST EKLENDİ 🔥 */}
+                          <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> <input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full text-[11px] outline-none bg-blue-50/40 border border-blue-100 pl-3 py-1 font-black text-blue-900 uppercase ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /></div>
                       </div>
                       <div className="flex flex-col">
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
@@ -864,12 +881,13 @@ export default function Home() {
                   <h3 className="font-bold text-sm mb-1 uppercase">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                      
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem || '') : temizHakem(safeRaporDetay?.hakem)} onChange={e => raporDetayGuncelle('hakem', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem_4 || '') : temizHakem(safeRaporDetay?.hakem_4)} onChange={e => raporDetayGuncelle('hakem_4', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
-                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
+                      
+                      {/* 🔥 YENİ: GÖZLEMCİ İÇİN AYRI DATALIST EKLENDİ 🔥 */}
+                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
@@ -1463,9 +1481,15 @@ export default function Home() {
 
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        
+        {/* 🔥 YENİ EKLENEN HAKEM VE GÖZLEMCİ DATALİST'LERİ 🔥 */}
         <datalist id="hakem-listesi">
             {hakemListesi?.map((hakem, i) => <option key={`hakem-${i}`} value={hakem || ''} />)}
         </datalist>
+        <datalist id="gozlemci-listesi">
+            {gozlemciListesi?.map((gozlemci, i) => <option key={`gozlemci-${i}`} value={gozlemci || ''} />)}
+        </datalist>
+
         {renderOrtakHeader(true)}
         <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
           <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-4 border-green-700 text-center">
