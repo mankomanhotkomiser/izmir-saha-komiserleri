@@ -50,15 +50,14 @@ const getZaman = (mac: any) => {
 
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
-// 🔥 GÜN RENGİNİ TESPİT EDEN ZEKİ FONKSİYON 🔥
 const getGunRengi = (tarihStr: string | null | undefined) => {
     if (!tarihStr) return 'text-black';
     try {
         const d = new Date(tarihStr);
-        const day = d.getDay(); // 0: Pazar, 1: Pzt, 2: Salı, 3: Çrş, 4: Prş, 5: Cuma, 6: Cmt
-        if (day === 0) return 'text-red-600'; // PAZAR KOMPLE KIRMIZI
-        if (day === 3) return 'text-blue-600'; // ÇARŞAMBA KOMPLE MAVİ
-        return 'text-black'; // CUMARTESİ VE DİĞERLERİ SİYAH
+        const day = d.getDay(); 
+        if (day === 0) return 'text-red-600'; 
+        if (day === 3) return 'text-blue-600'; 
+        return 'text-black'; 
     } catch (e) {
         return 'text-black';
     }
@@ -229,7 +228,6 @@ export default function AdminPage() {
     return komiser ? komiser.ad_soyad : 'Atanmamış'
   }
 
-  // A4 ÇIKTISI (PNG) İNDİRME FONKSİYONU
   const indirBulten = async () => {
       const element = document.getElementById('bulten-print-area');
       if (element) {
@@ -856,7 +854,6 @@ export default function AdminPage() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- */}
               {(safeRaporDetay?.ek_raporlar || []).map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       
@@ -1179,13 +1176,13 @@ export default function AdminPage() {
                         <div id="bulten-print-area" className="w-full bg-white p-8 border border-slate-300 shadow-2xl relative font-sans min-h-[1050px] bg-white">
                             
                             <div className="flex justify-between items-center border-b-[3px] border-double border-slate-800 pb-4 mb-6">
-                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo Sol" className="h-16 w-auto" />
-                                <div className="text-center">
-                                    <h2 className="font-black text-xl uppercase tracking-widest text-black">İZMİR AMATÖR SPOR KULÜPLERİ FEDERASYONU</h2>
-                                    <h3 className="font-bold text-lg uppercase mt-1 text-slate-800">İZMİR SAHA KOMİSERLERİ DERNEĞİ</h3>
-                                    <p className="font-semibold text-sm mt-2 text-black">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA VE BAŞLANGIÇ GÖREV LİSTESİ' : 'BİTİMİ TOPLU MÜSABAKA SONUÇLARI'}</p>
+                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="h-20 w-auto" />
+                                <div className="text-center flex-1 px-4">
+                                    <h2 className="font-black text-2xl uppercase tracking-widest text-black">İZMİR SAHA KOMİSERLERİ DERNEĞİ</h2>
+                                    <p className="font-bold text-base mt-2 text-slate-800">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA VE BAŞLANGIÇ GÖREV LİSTESİ' : 'BİTİMİ TOPLU MÜSABAKA SONUÇLARI'}</p>
                                 </div>
-                                <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="Logo Sag" className="h-16 w-auto" />
+                                {/* Özel logo geldiğinde src eklenecek, şimdilik şablon hizası için görünmez div */}
+                                <div className="h-20 w-20"></div> 
                             </div>
 
                             <table className="w-full text-left text-[11px] md:text-xs border-collapse border border-black bg-white text-black">
