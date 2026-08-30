@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../../lib/supabase'
+import { toPng } from 'html-to-image' 
 import * as XLSX from 'xlsx'
 
 const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
@@ -234,7 +235,6 @@ export default function AdminPage() {
       return kA.localeCompare(kB, 'tr-TR');
   });
 
-  // 🔥 YENİ: EXCEL DOSYASI İNDİRME 🔥
   const indirExcel = () => {
       const data = siraliBultenMaclari.map((m, idx) => {
           const komiser = komiserIsmiBul(m.komiser_id);
@@ -275,7 +275,6 @@ export default function AdminPage() {
       XLSX.writeFile(wb, `Izmir_Saha_Komiserleri_${goruntulenenHafta}_Hafta_${bultenTab.toUpperCase()}.xlsx`);
   }
 
-  // 🔥 YENİ: PDF OLARAK YAZDIR/KAYDET 🔥
   const indirPDF = () => {
       alert("Açılan pencerede 'Yazıcı / Hedef' kısmından 'PDF Olarak Kaydet'i seçerek mükemmel kalitede (yakınlaştırınca bozulmayan) belgenizi alabilirsiniz.");
       window.print();
@@ -1147,7 +1146,6 @@ export default function AdminPage() {
             animation: siren-police 0.8s infinite;
         }
 
-        /* 🔥 PDF YAZDIRMA İÇİN ÖZEL ZIRH (Ekranda görünmez, sadece yazıcıda görünür) 🔥 */
         @media print {
             @page { size: A4 portrait; margin: 10mm; }
             body * { visibility: hidden !important; }
@@ -1195,7 +1193,6 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* 🔥 YENİ: HAFTALIK BÜLTEN VE ÖZET MODALI 🔥 */}
         {bultenModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
@@ -1204,7 +1201,6 @@ export default function AdminPage() {
                             📋 {goruntulenenHafta}. HAFTA BÜLTEN VE PANORAMA
                         </h2>
                         <div className="flex items-center gap-4 flex-wrap justify-end">
-                            {/* 🔥 YENİ EXCEL VE PDF BUTONLARI BURADA 🔥 */}
                             <button onClick={() => indirExcel()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
                                 📊 EXCEL İNDİR
                             </button>
@@ -1294,7 +1290,6 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* SİSTEM YÖNETİMİ MODALI (KOMİSER, HAKEM & MAÇ EKLEME) */}
         {sistemYonetimModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
@@ -1407,7 +1402,6 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* TAM EKRAN TFF RAPOR MODALI */}
         {tamEkranRaporMac && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
