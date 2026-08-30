@@ -14,16 +14,10 @@ const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
     
-    // PAF, KIZ ve KADIN ligleri artık Gelişim TFF Raporu şablonuyla açılır
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) return 'gelisim';
-    
-    // BAL ve Bölgesel Amatör Lig'de TFF raporu gizlenir
     if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'yok';
-    
-    // Profesyonel maçlarda TFF raporu gizlenir (DİKKAT: "SÜPER AMATÖR" buraya takılmasın diye "SÜPER LİG" olarak aranıyor)
     if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('SÜPER LİG') || kat.includes('1. LİG') || kat.includes('2. LİG') || kat.includes('3. LİG')) return 'yok';
     
-    // Geri kalan her şey (Süper Amatör dahil)
     return 'amator';
 }
 
@@ -418,7 +412,7 @@ export default function Home() {
     setEkRaporFotolar({});
   }
 
-  // 🔥 ÇÖKMEYİ ENGELLEYEN BÜYÜK ZIRH BURAYA EKLENDİ
+  // 🔥 ÇÖKMEYİ ENGELLEYEN BÜYÜK ZIRH 🔥
   const raporFormunuAc = (mac: any) => {
     if (acikSkorMacId === mac.id) { skorFormunuSifirla(); } 
     else {
@@ -436,7 +430,7 @@ export default function Home() {
             
             const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
             
-            // Eğer veritabanından gelen listeler bozuksa veya array değilse anında şablonu onar:
+            // Veritabanından gelen listeler bozuksa veya array değilse anında şablonu onar:
             if (!birlesikDetay.gelisim_sorular || typeof birlesikDetay.gelisim_sorular !== 'object') birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
             if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
             if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
@@ -1381,6 +1375,196 @@ export default function Home() {
               })
             )}
           </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (aktifEkran === 'skorRapor') {
+    const tebellugEdilenMaclar = Array.isArray(gecerliAktifMaclar) ? gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true) : [];
+
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        <datalist id="hakem-listesi">
+            {hakemListesi?.map((hakem, i) => <option key={`hakem-${i}`} value={hakem || ''} />)}
+        </datalist>
+        {renderOrtakHeader(true)}
+        <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white p-4 rounded-xl shadow-sm mb-5 border-b-4 border-green-700 text-center">
+            <h4 className="text-xl font-black text-green-800 tracking-wide uppercase">SKOR VE SAHA RAPORU</h4>
+            <p className="text-slate-500 text-xs md:text-sm mt-1">Hızlı skoru bildirebilir ve detaylı rapor oluşturabilirsiniz.</p>
+          </div>
+
+          {tebellugEdilenMaclar.length === 0 ? (
+            <div className="text-center bg-white p-8 rounded-xl shadow-sm text-slate-500">
+              <span className="text-4xl block mb-3">📋</span><p className="text-sm font-bold">Raporlanacak aktif (tebellüğ edilmiş) göreviniz bulunmuyor.</p>
+            </div>
+          ) : (
+            <div className="space-y-4 md:space-y-6">
+              {tebellugEdilenMaclar.map((mac, idx) => {
+                if(!mac) return null;
+                const acikMi = acikSkorMacId === mac.id;
+                const raporGonderilmis = mac.skor_girildi === true;
+                const raporTuru = raporTurunuBelirle(mac?.kategori_adi);
+                const detayliGoster = raporTuru !== 'yok';
+                
+                // HATA BURADAYDI, ŞİMDİ ZIRHLANDI:
+                let pDetay = mac?.tff_rapor_detaylari || {};
+                if (typeof pDetay === 'string') {
+                    try { pDetay = JSON.parse(pDetay); } catch(e) { pDetay = {}; }
+                }
+                const detayliGonderilmis = pDetay?.detayli_kaydedildi === true;
+
+                let borderClass = 'border-slate-300';
+                if (!raporGonderilmis) { borderClass = 'border-slate-300 hover:border-slate-400'; } 
+                else if (detayliGoster && !detayliGonderilmis) { borderClass = 'border-red-400'; } 
+                else { borderClass = 'border-green-500'; }
+                if (acikMi) borderClass = 'border-blue-500 shadow-lg';
+
+                return (
+                  <div key={mac.id || `skor-${idx}`} className={`bg-white rounded-xl shadow-md border-2 transition-all ${borderClass}`}>
+                    <button onClick={() => raporFormunuAc(mac)} className={`w-full text-left p-3 md:p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 hover:bg-slate-50 transition-colors ${raporGonderilmis && !acikMi ? 'bg-slate-50' : ''}`}>
+                      <div className="w-full sm:w-auto pr-0 sm:pr-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="bg-slate-800 text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold">{mac?.mac_kodu || '-'}</span>
+                          <span className={`${detayliGoster ? 'text-blue-700 bg-blue-100 border-blue-300' : 'text-purple-700 bg-purple-100 border-purple-300'} border text-[10px] md:text-[11px] px-2 py-0.5 rounded font-black uppercase tracking-wider`}>{mac?.kategori_adi || 'LİG BELİRTİLMEMİŞ'}</span>
+                          <span className="text-slate-500 text-[10px] md:text-xs font-bold">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
+                        </div>
+                        <h3 className="font-bold text-sm md:text-lg text-slate-800 leading-snug mb-1">{mac?.ev_sahibi || '-'} <span className="text-slate-400 mx-1 text-xs md:text-sm font-normal">vs</span> {mac?.misafir_takim || '-'}</h3>
+                        <p className="text-slate-500 text-[10px] md:text-xs mt-1">{mac?.saha || '-'} | {guvenliTarih(mac?.tarih)} - {guvenliSaat(mac?.saat)}</p>
+                      </div>
+                      <div className="w-full sm:w-auto flex justify-end mt-1 sm:mt-0">
+                        <div className="flex items-center gap-3 mt-2 sm:mt-0">
+                            <div className="flex flex-col gap-1.5 items-end w-full sm:w-auto">
+                                <span className={`px-2 py-1.5 rounded text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[150px] md:min-w-[170px] uppercase tracking-widest border ${raporGonderilmis ? 'bg-green-600 text-white border-green-700' : 'bg-red-500 text-white border-red-600'}`}>{raporGonderilmis ? '✓ SKOR GÖNDERİLDİ' : '❌ SKOR GÖNDERİLMEDİ'}</span>
+                                {detayliGoster && (<span className={`px-2 py-1.5 rounded text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[150px] md:min-w-[170px] uppercase tracking-widest border ${detayliGonderilmis ? 'bg-green-600 text-white border-green-700' : 'bg-red-500 text-white border-red-600 animate-pulse'}`}>{detayliGonderilmis ? '✓ DETAYLI TAMAM' : '❌ DETAYLI RAPOR YOK'}</span>)}
+                            </div>
+                            <div className={`hidden sm:flex items-center justify-center w-8 h-8 shrink-0 rounded-full border shadow-sm transition-colors ${acikMi ? 'bg-slate-700 border-slate-800 text-white' : 'bg-slate-100 border-slate-300 text-slate-500'}`}><span className="text-sm font-black leading-none">{acikMi ? '▲' : '▼'}</span></div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {acikMi && (
+                      <div className="p-3 md:p-6 border-t-2 border-slate-100 bg-slate-100 rounded-b-xl animate-fade-in-down">
+                        <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 mb-6 relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                          <h4 className="font-black text-blue-900 border-b border-slate-200 pb-2 mb-4 text-sm md:text-base flex items-center gap-2"><span className="text-xl">⚡</span> {detayliGoster ? '1. AŞAMA: HIZLI SKOR BİLDİRİMİ' : 'MÜSABAKA SKOR VE OLAY BİLDİRİMİ'}</h4>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                            <div>
+                              <label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Maç Durumu</label>
+                              <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full p-2 md:p-3 border-2 border-slate-300 rounded-lg font-bold text-sm md:text-base text-slate-700 bg-white text-center appearance-none cursor-pointer">
+                                <option value="oynandi">Müsabaka Tamamlandı</option><option value="yarida_kaldi">Maç Yarıda Kaldı</option><option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option>
+                              </select>
+                              {macDurumu !== 'takimlar_cikmadi' && (
+                                <div className="mt-4 bg-white p-3 border-2 border-slate-200 rounded-xl flex items-center justify-between gap-2 w-full">
+                                  <div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-bold text-slate-500 mb-1 w-full text-center truncate px-1">{mac.ev_sahibi || '-'}</label><select value={evSkor} onChange={e => setEvSkor(e.target.value)} className="w-16 h-10 md:w-20 md:h-12 text-center text-xl font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50"><option value="" disabled>-</option>{skorSecenekleri.map(s => <option key={`ev-${s}`} value={s}>{s}</option>)}</select></div>
+                                  <span className="text-xl font-black text-slate-300">-</span>
+                                  <div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-bold text-slate-500 mb-1 w-full text-center truncate px-1">{mac.misafir_takim || '-'}</label><select value={misafirSkor} onChange={e => setMisafirSkor(e.target.value)} className="w-16 h-10 md:w-20 md:h-12 text-center text-xl font-black border-2 border-slate-300 rounded-lg focus:border-blue-500 cursor-pointer appearance-none bg-slate-50"><option value="" disabled>-</option>{skorSecenekleri.map(s => <option key={`misafir-${s}`} value={s}>{s}</option>)}</select></div>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Saha Olayları</label>
+                              <div className="grid grid-cols-3 gap-1 md:gap-2 mb-2">
+                                <button onClick={() => setOlayDurumu('olaysiz')} className={`p-1 md:p-3 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[50px] ${olayDurumu === 'olaysiz' ? 'bg-green-100 border-green-500 text-green-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}`}><span className="text-[10px] md:text-sm text-center leading-none">OLAYSIZ</span></button>
+                                <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-1 md:p-3 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[50px] ${olayDurumu === 'teknik_olay' ? 'bg-amber-100 border-amber-500 text-amber-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center">TEKNİK</span><span className="text-[8px] md:text-[9px] font-medium text-center opacity-80 leading-none">(İhraç, vb.)</span></button>
+                                <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-1 md:p-3 rounded-lg font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[50px] ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-100 border-red-500 text-red-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center">EMNİYET</span><span className="text-[8px] md:text-[9px] font-medium text-center opacity-80 leading-none">(Kavga vb.)</span></button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-1 md:gap-2">
+                                <button onClick={() => setOlayDurumu('hava_muhalefeti')} className={`p-2 rounded-lg font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1 min-h-[36px] ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-700 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-600'}`}>☁️ Hava Muhalefeti</button>
+                                <button onClick={() => setOlayDurumu('saha_sorunu')} className={`p-2 rounded-lg font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1 min-h-[36px] ${olayDurumu === 'saha_sorunu' ? 'bg-slate-700 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-600'}`}>🏟️ Tesis Sorunu</button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-4 md:mt-5">
+                            <label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Görev Raporu / Hızlı Not</label>
+                            <textarea value={raporNotu} onChange={e => handleHizliNotChange(e.target.value)} className={`w-full p-3 border-2 rounded-lg font-serif text-[10px] md:text-sm min-h-[60px] md:min-h-[80px] shadow-inner ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white focus:border-blue-500'}`} placeholder={olayDurumu === 'olaysiz' ? "Yönetime iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın detayını kısaca yazınız..."}></textarea>
+                          </div>
+                          <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-base mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                              {skorKaydediliyor ? 'GÖNDERİLİYOR...' : (raporGonderilmis ? (detayliGoster ? 'HIZLI SKORU GÜNCELLE' : 'SKORU GÜNCELLE') : (detayliGoster ? 'HIZLI SKORU MERKEZE İLET' : 'MERKEZE İLET'))}
+                          </button>
+                        </div>
+
+                        {detayliGoster && (
+                          <div className="bg-white border border-slate-300 shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+                            <h4 className="font-black text-red-800 border-b border-slate-200 pb-2 mb-4 text-center text-sm md:text-base uppercase tracking-wider">DETAYLI MÜSABAKA RAPORU</h4>
+                            <div className="mb-6 overflow-x-auto pb-4">
+                              {renderTffRaporu(mac, 'aktif')}
+                            </div>
+
+                            <div className="tff-no-print bg-blue-50 border border-blue-200 p-3 rounded-lg text-[10px] md:text-xs text-blue-800 mb-4 text-center font-medium">
+                                💡 <b>İstihbarat Notu:</b> Yüklediğiniz fotoğraflar güvenlik sebebiyle veritabanına kaydedilmez. Resmi "PNG OLARAK İNDİR" butonuna basarak fotoğraflı kanıt dosyanızı anında cihazınıza kaydedebilirsiniz.
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
+                              <button onClick={() => tffTutanakIndir(mac, 'aktif')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2">📸 FOTOĞRAF (PNG) OLARAK İNDİR</button>
+                              <button onClick={() => skorRaporunuGonder(mac.id, 'detayli')} disabled={skorKaydediliyor} className={`flex-1 text-white font-bold py-3 md:py-4 rounded-lg shadow-md transition-all text-xs md:text-sm flex items-center justify-center gap-2 disabled:opacity-70 ${detayliGonderilmis ? 'bg-amber-600 hover:bg-amber-700' : 'bg-red-700 hover:bg-red-800 animate-pulse'}`}>
+                                {skorKaydediliyor ? 'KAYDEDİLİYOR...' : (detayliGonderilmis ? '💾 DETAYLI RAPORU GÜNCELLE' : '🚨 DETAYLI RAPORU İLET (ZORUNLU)')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+    )
+  }
+
+  // 🔥 GERİ GETİRİLEN VE HATALARDAN ARINDIRILMIŞ MAZERET SAYFASI
+  if (aktifEkran === 'mazeretBildir') {
+    return (
+      <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
+        {renderOrtakHeader(true)}
+        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+           <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-black text-blue-900 mb-4">Müsaitlik / Mazeret Bildirimi</h2>
+              <p className="text-sm text-slate-600 mb-6">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta için görev alma durumunuzu belirtiniz.</p>
+
+              <div className="space-y-4 mb-6">
+                 <button onClick={() => { setMazeretTipi('yok'); setKompleYokum(true); }} className={`w-full p-4 rounded-xl border-2 font-bold text-left transition-all ${mazeretTipi === 'yok' ? 'border-red-500 bg-red-50 text-red-800' : 'border-slate-200 hover:border-red-300'}`}>⛔ Tüm Hafta Mazeretliyim (Görev İstemiyorum)</button>
+                 <button onClick={() => { setMazeretTipi('full'); setKompleYokum(false); }} className={`w-full p-4 rounded-xl border-2 font-bold text-left transition-all ${mazeretTipi === 'full' ? 'border-green-500 bg-green-50 text-green-800' : 'border-slate-200 hover:border-green-300'}`}>✅ Tüm Hafta Müsaitim (Merkez/Deplasman Uyar)</button>
+                 <button onClick={() => { setMazeretTipi('secmeli'); setKompleYokum(false); }} className={`w-full p-4 rounded-xl border-2 font-bold text-left transition-all ${mazeretTipi === 'secmeli' ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-200 hover:border-blue-300'}`}>📅 Sadece Seçtiğim Günler ve Saatler Müsaitim</button>
+              </div>
+
+              {mazeretTipi === 'full' && (
+                  <div className="bg-green-50 p-4 rounded-xl mb-6 border border-green-200 animate-fade-in-down">
+                      <h4 className="font-bold text-green-800 mb-3 text-sm">Hangi bölgelerde görev alabilirsiniz?</h4>
+                      <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={(e) => setGenelMerkez(e.target.checked)} className="w-5 h-5 text-green-600 rounded focus:ring-green-500" /><span className="font-bold text-slate-700">Merkez</span></label>
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={(e) => setGenelDeplasman(e.target.checked)} className="w-5 h-5 text-green-600 rounded focus:ring-green-500" /><span className="font-bold text-slate-700">Deplasman</span></label>
+                      </div>
+                  </div>
+              )}
+
+              {mazeretTipi === 'secmeli' && (
+                  <div className="mb-6 animate-fade-in-down space-y-2">
+                      {renderGunSatiri('cuma', 'Cuma')}
+                      {renderGunSatiri('cumartesi', 'Cumartesi')}
+                      {renderGunSatiri('pazar', 'Pazar')}
+                      {renderGunSatiri('pazartesi', 'Pazartesi')}
+                      {renderGunSatiri('sali', 'Salı')}
+                      {renderGunSatiri('carsamba', 'Çarşamba')}
+                      {renderGunSatiri('persembe', 'Perşembe')}
+                  </div>
+              )}
+
+              <div className="mb-6">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Mazeret Notu (Opsiyonel)</label>
+                  <textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full p-3 border border-slate-300 rounded-lg focus:border-blue-500 min-h-[100px]" placeholder="Varsa eklemek istediğiniz özel bir not..."></textarea>
+              </div>
+
+              <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor || (!mazeretTipi && !kompleYokum)} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-wider transition-colors">
+                  {mazeretKaydediliyor ? 'KAYDEDİLİYOR...' : 'MAZERET / MÜSAİTLİK BİLDİRİMİNİ GÖNDER'}
+              </button>
+           </div>
         </div>
       </main>
     )
