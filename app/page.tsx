@@ -10,15 +10,36 @@ const DERNEK_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
-const raporTurunuBelirle = (kategori: any) => {
+// 🔥 YENİ: 3 ANA KATEGORİ ZEKASI 🔥
+const getAnaKategori = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
-    
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) return 'gelisim';
-    if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'yok';
-    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('SÜPER LİG') || kat.includes('1. LİG') || kat.includes('2. LİG') || kat.includes('3. LİG')) return 'yok';
-    
+
+    // 1. PROFESYONEL (BAL ve Bölgesel HARİÇ)
+    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
+        (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
+        (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
+        (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
+        kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) {
+        return 'profesyonel';
+    }
+
+    // 2. GELİŞİM VE KADIN
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || 
+        kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN') || 
+        kat.includes('TFF U')) {
+        return 'gelisim';
+    }
+
+    // 3. AMATÖR (BAL, Bölgesel, Yerel Amatörler ve Yerel U Ligleri)
     return 'amator';
+}
+
+const raporTurunuBelirle = (kategori: any) => {
+    const anaKat = getAnaKategori(kategori);
+    if (anaKat === 'profesyonel') return 'yok';
+    if (anaKat === 'gelisim') return 'gelisim';
+    return 'amator'; 
 }
 
 const detayliRaporGosterilirMi = (kategori: any) => {
@@ -26,9 +47,11 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return tur !== 'yok'; 
 }
 
-// 🔥 YENİ: KATEGORİYE GÖRE HAKEM GÖSTERİM ZEKASI 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
+    const anaKat = getAnaKategori(kategori);
+    if (anaKat !== 'amator') return 'dort_kutu'; // Gelişim ve Profesyonelde tüm kutular açık kalsın
+
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
     if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
         kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') ||
@@ -42,21 +65,24 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) {
         return 'uc_hakem';
     }
-    return 'dort_kutu'; // U17, U18, Süper Amatör vb.
+    return 'dort_kutu'; 
 };
 
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT')) {
+    
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U')) {
         const yasMatch = kat.match(/(\d{2})/);
         if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ`;
         return 'TFF GELİŞİM LİGİ';
     }
     if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
     if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
+    if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'BÖLGESEL AMATÖR LİG (BAL)';
+    
     const amatorYasMatch = kat.match(/U\s*(\d{2})/);
-    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT')) return `İZMİR U${amatorYasMatch[1]} LİGİ`;
+    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} LİGİ`;
     return kat;
 }
 
@@ -342,17 +368,18 @@ export default function Home() {
   }
 
   const gorevTuruBelirle = (kategori: any, macKodu: any) => {
-    const kat = String(kategori || "").toUpperCase()
-    const kod = String(macKodu || "").toUpperCase()
-    if (kod.includes('DENETÇİ') || kat.includes('BAL') || kat.includes('BÖLGESEL')) return "BAL Ligi Denetçisi"
-    if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri"
-    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('3. LİG') || kat.includes('2. LİG')) return "Saha Komiseri"
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) {
-        if (kat.includes('U17') || kat.includes('U19') || kat.includes('PAF')) return "Gelişim Denetçi"
-        if (kat.includes('U13') || kat.includes('U14') || kat.includes('U15') || kat.includes('U16') || kat.includes('14') || kat.includes('15') || kat.includes('KIZ') || kat.includes('KADIN')) return "Gelişim Denetçi / Saha Komiseri"
-        return "Gelişim Denetçi / Saha Komiseri"
+    const anaKat = getAnaKategori(kategori);
+    const kod = String(macKodu || "").toUpperCase();
+    
+    if (kod.includes('DENETÇİ') || kategori?.toLocaleUpperCase('tr-TR').includes('BAL') || kategori?.toLocaleUpperCase('tr-TR').includes('BÖLGESEL')) return "BAL Ligi Denetçisi";
+    if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri";
+    
+    if (anaKat === 'profesyonel') return "Saha Komiseri";
+    if (anaKat === 'gelisim') {
+        if (kategori?.toLocaleUpperCase('tr-TR').includes('U17') || kategori?.toLocaleUpperCase('tr-TR').includes('U19') || kategori?.toLocaleUpperCase('tr-TR').includes('PAF')) return "Gelişim Denetçi";
+        return "Gelişim Denetçi / Saha Komiseri";
     }
-    return "Saha Komiseri"
+    return "Saha Komiseri";
   }
 
   const renderOrjinalGorevKarti = (mac: any) => {
@@ -780,7 +807,6 @@ export default function Home() {
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">{hakemBaslik}</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       
-                      {/* 🔥 AMATÖR İÇİN DİNAMİK HAKEM KOLONU 🔥 */}
                       <div className="border-r border-black flex flex-col">
                           <div className={`flex p-1.5 items-center justify-between flex-1 ${hakemModu !== 'tek_hakem' ? 'border-b border-dashed border-black' : ''}`}>
                               <span className="text-[10px] font-bold w-20">HAKEM</span> 
@@ -899,20 +925,20 @@ export default function Home() {
                           <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
                       </div>
                       <div className="flex text-center uppercase">
-                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac.saha}</div><div className="w-1/5 p-2 truncate">{mac.kategori_adi}</div>
+                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac?.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac?.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac?.saha}</div><div className="w-1/5 p-2 truncate">{mac?.kategori_adi}</div>
                       </div>
                   </div>
 
                   <div className="border-2 border-black text-xs font-bold mb-6">
                       <div className="grid grid-cols-6 border-b border-black">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac?.ev_sahibi}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
                               <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</div>
                           </div>
                       </div>
                       <div className="grid grid-cols-6">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac?.misafir_takim}</span></div>
                           <div className="col-span-1 grid grid-cols-2 bg-slate-100">
                               <div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div>
                               <div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</div>
@@ -927,6 +953,7 @@ export default function Home() {
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_1 || '') : temizHakem(safeRaporDetay?.y_hakem_1)} onChange={e => raporDetayGuncelle('y_hakem_1', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.y_hakem_2 || '') : temizHakem(safeRaporDetay?.y_hakem_2)} onChange={e => raporDetayGuncelle('y_hakem_2', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input list="hakem-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.hakem_4 || '') : temizHakem(safeRaporDetay?.hakem_4)} onChange={e => raporDetayGuncelle('hakem_4', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
+                      
                       <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input list="gozlemci-listesi" type="text" value={prefix === 'aktif' ? (safeRaporDetay?.gozlemci || '') : temizHakem(safeRaporDetay?.gozlemci)} onChange={e => raporDetayGuncelle('gozlemci', e.target.value.toLocaleUpperCase('tr-TR'))} readOnly={prefix !== 'aktif'} className="w-full outline-none bg-transparent uppercase text-blue-900 font-black" placeholder="Seç veya Yeni İsim Yaz..." /></div></div>
                   </div>
 
@@ -1050,7 +1077,7 @@ export default function Home() {
               </div>
               )}
 
-              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- MAP DÖNGÜSÜ GÜVENCE ALTINDA */}
+              {/* --- EK RAPORLAR (KANIT DOSYALARI) --- */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
@@ -1280,18 +1307,25 @@ export default function Home() {
   }
 
   if (aktifEkran === 'istatistiklerim') {
-    let amatorCount = 0; let profCount = 0;
+    let amatorCount = 0; let profCount = 0; let gelisimCount = 0;
     const amatorKategoriler: Record<string, number> = {};
     const profKategoriler: Record<string, number> = {};
+    const gelisimKategoriler: Record<string, number> = {};
     const sahaGruplari: Record<string, { gidisler: Set<string>, maclar: any[] }> = {};
 
     const maclar = Array.isArray(komiserMaclari) ? komiserMaclari : [];
     maclar.forEach(mac => {
         if (!mac) return;
-        const isProf = !detayliRaporGosterilirMi(mac?.kategori_adi);
+        const anaKat = getAnaKategori(mac?.kategori_adi);
         const katAdi = formatKategori(mac?.kategori_adi);
-        if (isProf) { profCount++; profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1; } 
-        else { amatorCount++; amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1; }
+        
+        if (anaKat === 'profesyonel') { 
+            profCount++; profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1; 
+        } else if (anaKat === 'gelisim') { 
+            gelisimCount++; gelisimKategoriler[katAdi] = (gelisimKategoriler[katAdi] || 0) + 1; 
+        } else { 
+            amatorCount++; amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1; 
+        }
         
         const sahaAdi = mac?.saha || 'BELİRTİLMEMİŞ SAHA';
         if (!sahaGruplari[sahaAdi]) { sahaGruplari[sahaAdi] = { gidisler: new Set(), maclar: [] }; }
@@ -1301,12 +1335,13 @@ export default function Home() {
 
     const siraliAmatorler = Object.entries(amatorKategoriler).sort((a,b) => b[1] - a[1]);
     const siraliProflar = Object.entries(profKategoriler).sort((a,b) => b[1] - a[1]);
+    const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a,b) => b[1] - a[1]);
     const siraliSahalarDetayli = Object.entries(sahaGruplari).sort((a, b) => b[1].maclar.length - a[1].maclar.length);
 
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
         {renderOrtakHeader(true)}
-        <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+        <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
             <div className="bg-white rounded-xl p-4 md:p-6 border-t-4 border-indigo-600 shadow-lg">
                 <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-200 pb-4 mb-6 gap-4">
                     <div className="text-center md:text-left">
@@ -1319,38 +1354,56 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {/* Kolon 1: Amatör */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                         <h4 className="text-blue-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span>🛡️ Amatör Ligler</span>
-                            <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{amatorCount} Maç</span>
+                            <span>🛡️ Amatör</span>
+                            <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">{amatorCount}</span>
                         </h4>
-                        <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
-                            {siraliAmatorler.length === 0 && <li className="text-xs text-slate-400 italic">Görev kaydı yok.</li>}
+                        <ul className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                            {siraliAmatorler.length === 0 && <li className="text-xs text-slate-400 italic">Kayıt yok.</li>}
                             {siraliAmatorler.map(([kat, count]) => (
-                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold">{kat}</span><span className="font-black text-blue-600">{count}</span></li>
+                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-[10px] sm:text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-blue-600">{count}</span></li>
                             ))}
                         </ul>
                     </div>
+
+                    {/* Kolon 2: Gelişim ve Kadın */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                        <h4 className="text-emerald-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span>🌱 Gelişim ve Kadın</span>
+                            <span className="bg-emerald-600 text-white px-2 py-0.5 rounded text-xs">{gelisimCount}</span>
+                        </h4>
+                        <ul className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                            {siraliGelisimler.length === 0 && <li className="text-xs text-slate-400 italic">Kayıt yok.</li>}
+                            {siraliGelisimler.map(([kat, count]) => (
+                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-[10px] sm:text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-emerald-600">{count}</span></li>
+                            ))}
+                        </ul>
+                    </div>
+                    
+                    {/* Kolon 3: Profesyonel */}
                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm">
                         <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
                         <h4 className="text-purple-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span>🏆 Profesyonel / Gelişim</span>
-                            <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-xs">{profCount} Maç</span>
+                            <span>🏆 Profesyonel</span>
+                            <span className="bg-purple-600 text-white px-2 py-0.5 rounded text-xs">{profCount}</span>
                         </h4>
-                        <ul className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
-                            {siraliProflar.length === 0 && <li className="text-xs text-slate-400 italic">Görev kaydı yok.</li>}
+                        <ul className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                            {siraliProflar.length === 0 && <li className="text-xs text-slate-400 italic">Kayıt yok.</li>}
                             {siraliProflar.map(([kat, count]) => (
-                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold">{kat}</span><span className="font-black text-purple-600">{count}</span></li>
+                                <li key={kat} className="flex justify-between items-center bg-white p-2 rounded text-[10px] sm:text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-purple-600">{count}</span></li>
                             ))}
                         </ul>
                     </div>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative overflow-hidden shadow-sm mt-6">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                    <h4 className="text-emerald-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center gap-2 border-b border-slate-200 pb-2"><span className="text-lg">🏟️</span> GÖREV YAPILAN SAHALAR VE DETAYLI ARŞİV</h4>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                    <h4 className="text-amber-800 font-bold text-sm tracking-wider uppercase mb-3 flex items-center gap-2 border-b border-slate-200 pb-2"><span className="text-lg">🏟️</span> GÖREV YAPILAN SAHALAR VE DETAYLI ARŞİV</h4>
                     <div className="space-y-3 max-h-[700px] overflow-y-auto custom-scrollbar pr-2">
                         {siraliSahalarDetayli.length === 0 && <span className="text-xs text-slate-500 italic">Görev kaydı yok.</span>}
                         {siraliSahalarDetayli.map(([saha, data]) => {
@@ -1363,7 +1416,7 @@ export default function Home() {
                                     <button onClick={() => setAcikSicilSaha(isSahaAcik ? null : saha)} className="w-full text-left p-3 flex justify-between items-center hover:bg-slate-50 transition-colors focus:outline-none">
                                         <div>
                                             <span className="text-slate-800 font-bold block">{saha}</span>
-                                            <span className="text-[10px] text-emerald-700 font-mono mt-1 block bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 inline-block">{gidisSayisi} Farklı Gün Gidildi (Toplam {gorevSayisi} Görev)</span>
+                                            <span className="text-[10px] text-amber-700 font-mono mt-1 block bg-amber-100 px-2 py-0.5 rounded border border-amber-200 inline-block">{gidisSayisi} Farklı Gün Gidildi (Toplam {gorevSayisi} Görev)</span>
                                         </div>
                                         <span className="text-slate-400 text-lg leading-none">{isSahaAcik ? '▲' : '▼'}</span>
                                     </button>
@@ -1522,7 +1575,6 @@ export default function Home() {
     return (
       <main className="min-h-screen bg-slate-200 flex flex-col font-sans">
         
-        {/* 🔥 YENİ EKLENEN HAKEM VE GÖZLEMCİ DATALİST'LERİ 🔥 */}
         <datalist id="hakem-listesi">
             {hakemListesi?.map((hakem, i) => <option key={`hakem-${i}`} value={hakem || ''} />)}
         </datalist>
@@ -1547,8 +1599,7 @@ export default function Home() {
                 if(!mac) return null;
                 const acikMi = acikSkorMacId === mac.id;
                 const raporGonderilmis = mac.skor_girildi === true;
-                const raporTuru = raporTurunuBelirle(mac?.kategori_adi);
-                const detayliGoster = raporTuru !== 'yok';
+                const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
                 
                 let pDetay = mac?.tff_rapor_detaylari || {};
                 if (typeof pDetay === 'string') {
