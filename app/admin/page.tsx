@@ -1,7 +1,6 @@
 "use client"
 import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../../lib/supabase'
-import { toPng } from 'html-to-image' 
 import * as XLSX from 'xlsx'
 
 const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
@@ -228,26 +227,58 @@ export default function AdminPage() {
     return komiser ? komiser.ad_soyad : 'Atanmamış'
   }
 
-  const indirBulten = async () => {
-      const element = document.getElementById('bulten-print-area');
-      if (element) {
-          try {
-              const style = document.createElement('style');
-              style.innerHTML = '.tff-no-print { display: none !important; }';
-              document.head.appendChild(style);
-              
-              const fullWidth = element.scrollWidth;
-              const fullHeight = element.scrollHeight;
-              const dataURL = await toPng(element, { 
-                  backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
-                  style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' } 
-              });
-              const link = document.createElement('a'); 
-              link.href = dataURL; 
-              link.download = `Izmir_Saha_Komiserleri_${goruntulenenHafta}_Hafta_${bultenTab.toUpperCase()}.png`;
-              document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
-          } catch (err) { alert("Bülten indirilirken bir sorun oluştu."); }
-      }
+  // A'DAN Z'YE SIRALANMIŞ BÜLTEN MAÇLARI
+  const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
+      const kA = komiserIsmiBul(a.komiser_id);
+      const kB = komiserIsmiBul(b.komiser_id);
+      return kA.localeCompare(kB, 'tr-TR');
+  });
+
+  // 🔥 YENİ: EXCEL DOSYASI İNDİRME 🔥
+  const indirExcel = () => {
+      const data = siraliBultenMaclari.map((m, idx) => {
+          const komiser = komiserIsmiBul(m.komiser_id);
+          let isIptal = m.mac_durumu === 'iptal_edildi';
+          let skor = m.skor_girildi ? `${m.ev_sahibi_skor ?? '-'} - ${m.misafir_skor ?? '-'}` : '';
+          if(isIptal) skor = 'İPTAL';
+          
+          let durum = '-';
+          if (m.olay_durumu === 'emniyetlik_olay') durum = 'EMNİYETLİK';
+          else if (m.olay_durumu === 'teknik_olay') durum = 'İHRAÇ VAR';
+          else if (m.olay_durumu === 'olaysiz') durum = 'OLAYSIZ';
+          
+          if (m.mac_durumu === 'takimlar_cikmadi') durum = 'ÇIKMADI';
+          else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
+          else if (isIptal) durum = 'İPTAL';
+
+          const row: any = {
+              "SIRA": idx + 1,
+              "KOD": m.mac_kodu,
+              "TARİH": guvenliTarih(m.tarih),
+              "SAAT": guvenliSaat(m.saat),
+              "SAHA": m.saha,
+              "KATEGORİ": m.kategori_adi,
+              "EV SAHİBİ": m.ev_sahibi
+          };
+
+          if (bultenTab === 'sonuc') row["SKOR"] = skor;
+          row["MİSAFİR TAKIM"] = m.misafir_takim;
+          row["SAHA KOMİSERİ"] = komiser;
+          if (bultenTab === 'sonuc') row["DURUM"] = durum;
+
+          return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Bulten_Ozeti");
+      XLSX.writeFile(wb, `Izmir_Saha_Komiserleri_${goruntulenenHafta}_Hafta_${bultenTab.toUpperCase()}.xlsx`);
+  }
+
+  // 🔥 YENİ: PDF OLARAK YAZDIR/KAYDET 🔥
+  const indirPDF = () => {
+      alert("Açılan pencerede 'Yazıcı / Hedef' kısmından 'PDF Olarak Kaydet'i seçerek mükemmel kalitede (yakınlaştırınca bozulmayan) belgenizi alabilirsiniz.");
+      window.print();
   }
 
   const komiserEkle = async (e: React.FormEvent) => {
@@ -1104,13 +1135,6 @@ export default function AdminPage() {
     )
   }
 
-  // A'DAN Z'YE SIRALANMIŞ BÜLTEN MAÇLARI
-  const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
-      const kA = komiserIsmiBul(a.komiser_id);
-      const kB = komiserIsmiBul(b.komiser_id);
-      return kA.localeCompare(kB, 'tr-TR');
-  });
-
   return (
     <div className="min-h-screen bg-[#0f172a] font-sans text-slate-200">
       
@@ -1122,9 +1146,31 @@ export default function AdminPage() {
         .police-siren-active {
             animation: siren-police 0.8s infinite;
         }
+
+        /* 🔥 PDF YAZDIRMA İÇİN ÖZEL ZIRH (Ekranda görünmez, sadece yazıcıda görünür) 🔥 */
+        @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body * { visibility: hidden !important; }
+            #bulten-print-area, #bulten-print-area * { 
+                visibility: visible !important; 
+                color-adjust: exact !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            #bulten-print-area { 
+                position: absolute !important; 
+                left: 0 !important; 
+                top: 0 !important; 
+                width: 100% !important; 
+                margin: 0 !important; 
+                box-shadow: none !important; 
+                border: none !important; 
+            }
+            .tff-no-print { display: none !important; }
+        }
       `}} />
 
-      <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-xl">
+      <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-xl tff-no-print">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl hidden md:block">🇹🇷</span>
@@ -1151,15 +1197,19 @@ export default function AdminPage() {
         
         {/* 🔥 YENİ: HAFTALIK BÜLTEN VE ÖZET MODALI 🔥 */}
         {bultenModalAcik && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
                     <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
                         <h2 className="text-base md:text-xl font-black text-white tracking-widest uppercase flex items-center gap-2">
                             📋 {goruntulenenHafta}. HAFTA BÜLTEN VE PANORAMA
                         </h2>
                         <div className="flex items-center gap-4 flex-wrap justify-end">
-                            <button onClick={() => indirBulten()} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
-                                📸 A4 ÇIKTISI (PNG) İNDİR
+                            {/* 🔥 YENİ EXCEL VE PDF BUTONLARI BURADA 🔥 */}
+                            <button onClick={() => indirExcel()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
+                                📊 EXCEL İNDİR
+                            </button>
+                            <button onClick={() => indirPDF()} className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">
+                                📄 PDF İNDİR (YAZDIR)
                             </button>
                             <button onClick={() => setBultenModalAcik(false)} className="text-slate-400 hover:text-red-500 font-bold text-3xl leading-none transition-colors ml-2">
                                 ✕
@@ -1181,7 +1231,6 @@ export default function AdminPage() {
                                     <h2 className="font-black text-2xl uppercase tracking-widest text-black">İZMİR SAHA KOMİSERLERİ DERNEĞİ</h2>
                                     <p className="font-bold text-base mt-2 text-slate-800">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA VE BAŞLANGIÇ GÖREV LİSTESİ' : 'BİTİMİ TOPLU MÜSABAKA SONUÇLARI'}</p>
                                 </div>
-                                {/* Özel logo geldiğinde src eklenecek, şimdilik şablon hizası için görünmez div */}
                                 <div className="h-20 w-20"></div> 
                             </div>
 
@@ -1226,10 +1275,10 @@ export default function AdminPage() {
                                                 <td className="border border-black p-1.5 font-bold truncate max-w-[120px]">{m.saha}</td>
                                                 <td className="border border-black p-1.5 font-bold text-[10px]">{m.kategori_adi}</td>
                                                 <td className="border border-black p-1.5 font-black uppercase">{m.ev_sahibi}</td>
-                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black ${isIptal ? 'bg-red-600 text-white' : 'bg-slate-100/50'}`}>{skor}</td>}
+                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black ${isIptal ? 'bg-red-600 text-white !important' : 'bg-slate-100/50'}`}>{skor}</td>}
                                                 <td className="border border-black p-1.5 font-black uppercase">{m.misafir_takim}</td>
                                                 <td className="border border-black p-1.5 font-black uppercase text-[10px]">{komiser}</td>
-                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black text-[9px] ${isIptal ? 'bg-red-600 text-white' : (durum === 'EMNİYETLİK' ? 'text-red-600' : (durum==='OLAYSIZ' ? 'text-green-600' : ''))}`}>{durum}</td>}
+                                                {bultenTab === 'sonuc' && <td className={`border border-black p-1.5 text-center font-black text-[9px] ${isIptal ? 'bg-red-600 text-white !important' : (durum === 'EMNİYETLİK' ? 'text-red-600 !important' : (durum==='OLAYSIZ' ? 'text-green-600 !important' : ''))}`}>{durum}</td>}
                                             </tr>
                                         );
                                     })}
@@ -1247,7 +1296,7 @@ export default function AdminPage() {
 
         {/* SİSTEM YÖNETİMİ MODALI (KOMİSER, HAKEM & MAÇ EKLEME) */}
         {sistemYonetimModalAcik && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
                     <div className="bg-indigo-900/50 p-4 border-b border-indigo-500/50 flex justify-between items-center">
                         <h2 className="text-xl font-black text-indigo-400 tracking-widest uppercase flex items-center gap-2"><span className="text-2xl">⚙️</span> SİSTEM YÖNETİMİ VE MANUEL EKLEMELER</h2>
@@ -1360,7 +1409,7 @@ export default function AdminPage() {
 
         {/* TAM EKRAN TFF RAPOR MODALI */}
         {tamEkranRaporMac && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
                     <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
                         <h2 className="text-base md:text-lg font-black text-white tracking-widest uppercase flex items-center gap-2">
@@ -1385,7 +1434,7 @@ export default function AdminPage() {
         )}
 
         {excelModalAcik && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                     <div className="bg-emerald-900/50 p-4 border-b border-emerald-500/50 flex justify-between items-center">
                         <h2 className="text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2"><span className="text-2xl">📥</span> YENİ BÜLTEN YÜKLEME MERKEZİ (EXCEL)</h2>
