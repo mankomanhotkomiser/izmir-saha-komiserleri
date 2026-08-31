@@ -1,12 +1,23 @@
 "use client"
 import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../../lib/supabase'
-import { toPng } from 'html-to-image' 
+import { toPng, toJpeg } from 'html-to-image' 
 import * as XLSX from 'xlsx'
 
-const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
-const GELISIM_SOL_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
-const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original"; 
+// 🔥 LOGOLAR LOKAL DOSYADAN ÇEKİLEREK 129 BYTE HATASI ENGELLENİR 🔥
+const AMATOR_MERKEZ_LOGO = "/tff_logo.png";
+const GELISIM_SOL_LOGO = "/tff_logo.png";
+const GELISIM_SAG_LOGO = "/tff_logo.png"; 
+
+const parseDetay = (raw: any) => {
+    if (!raw) return {};
+    let obj = raw;
+    if (typeof obj === 'string') {
+        try { obj = JSON.parse(obj); } catch(e) { return {}; }
+    }
+    if (typeof obj !== 'object' || obj === null) return {};
+    return obj;
+};
 
 const raporTurunuBelirle = (kategori: any) => {
     if (!kategori) return 'amator';
@@ -21,10 +32,21 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return tur !== 'yok'; 
 }
 
-const guvenliTarih = (tarihMetni: string | null | undefined) => {
+// 🔥 ÇÖKMEYİ ENGELLEYEN ZIRHLI TARİH FORMATLAYICI 🔥
+const guvenliTarih = (tarihMetni: any) => {
     if (!tarihMetni) return "-";
-    try { return new Date(tarihMetni).toLocaleDateString('tr-TR'); } 
-    catch (e) { return tarihMetni; }
+    try {
+        const str = String(tarihMetni).trim();
+        if (str.includes('.')) return str;
+        if (str.includes('-')) {
+            const parts = str.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                return `${parts[0]}.${parts[1]}.${parts[2]}`;
+            }
+        }
+        return str;
+    } catch (e) { return "-"; }
 }
 
 const guvenliSaat = (saatMetni: any) => {
@@ -33,17 +55,29 @@ const guvenliSaat = (saatMetni: any) => {
     catch (e) { return "-"; }
 }
 
+// 🔥 TÜM TARİH FORMATLARINI (NOKTA / TİRE) DESTEKLEYEN ZAMAN HESAPLAYICI 🔥
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
-        const parcaTarih = String(mac.tarih).split('-');
+        const str = String(mac.tarih).trim();
+        let y = 0, m = 0, dNum = 0;
+        if (str.includes('.')) {
+            const p = str.split('.');
+            if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        } else if (str.includes('-')) {
+            const p = str.split('-');
+            if (p.length === 3) {
+                if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+                else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            }
+        }
         let saat = 0, dakika = 0;
         if (mac.saat) {
-            const parcaSaat = String(mac.saat).split(':');
-            saat = parseInt(parcaSaat[0] || '0', 10);
-            dakika = parseInt(parcaSaat[1] || '0', 10);
+            const pSaat = String(mac.saat).split(':');
+            saat = parseInt(pSaat[0] || '0', 10);
+            dakika = parseInt(pSaat[1] || '0', 10);
         }
-        const d = new Date(parseInt(parcaTarih[0]), parseInt(parcaTarih[1])-1, parseInt(parcaTarih[2]), saat, dakika);
+        const d = new Date(y, m, dNum, saat, dakika);
         return isNaN(d.getTime()) ? 0 : d.getTime();
     } catch (e) { return 0; }
 };
@@ -77,7 +111,6 @@ const formatMacKodu = (kod: any) => {
     return s;
 }
 
-// 🔥 VERCEL'İN VE SENİN EKRANININ BULAMADIĞI SORULAR BURADA 🔥
 const gelisimOrganizasyon = [
     { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
     { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
@@ -139,7 +172,12 @@ export default function AdminPage() {
   const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle'>('komiser_ekle')
   
   const [tumStatuler, setTumStatuler] = useState<any[]>([])
-  const [statuForm, setStatuForm] = useState<any>({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })
+  
+  // 🔥 DEVRE ARASI ALANI EKLENMİŞ STATÜ STATE'İ 🔥
+  const [statuForm, setStatuForm] = useState<any>({ 
+      id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', 
+      sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' 
+  })
   const [statuKaydediliyor, setStatuKaydediliyor] = useState(false)
 
   const [yeniPersonelAd, setYeniPersonelAd] = useState('')
@@ -164,17 +202,33 @@ export default function AdminPage() {
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
-  const cumaBul = (tarihMetni: string) => {
+  // 🔥 HER TÜRLÜ TARİHİ HATASIZ OKUYAN CUMA BULUCU 🔥
+  const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
-      const parcalar = String(tarihMetni).split('-')
-      if (parcalar.length !== 3) return 0
-      const d = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]))
-      const gun = d.getDay()
-      const fark = gun >= 5 ? gun - 5 : gun + 2
-      d.setDate(d.getDate() - fark)
-      d.setHours(0, 0, 0, 0)
-      return d.getTime()
+      const str = String(tarihMetni).trim();
+      let y = 0, m = 0, dNum = 0;
+      if (str.includes('.')) {
+          const p = str.split('.');
+          if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+      } else if (str.includes('/')) {
+          const p = str.split('/');
+          if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+      } else if (str.includes('-')) {
+          const p = str.split('-');
+          if (p.length === 3) {
+              if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+              else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+          }
+      }
+      if (!y || isNaN(y)) return 0;
+      const d = new Date(y, m, dNum);
+      if (isNaN(d.getTime())) return 0;
+      const gun = d.getDay();
+      const fark = gun >= 5 ? gun - 5 : gun + 2;
+      d.setDate(d.getDate() - fark);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
     } catch (e) { return 0; }
   }
 
@@ -206,16 +260,16 @@ export default function AdminPage() {
           if (data.length < limit) veriKaldimi = false; else sayfa++;
         } else { veriKaldimi = false }
       }
-      setSezonlukMaclar(maclarVerisi);
+      setSezonlukMaclar(maclarVerisi || []);
       
       const { data: komiserlerData } = await supabase.from('komiserler').select('*')
-      if (komiserlerData) setTumKomiserler(komiserlerData)
+      if (komiserlerData) setTumKomiserler(komiserlerData || [])
 
       const { data: mazeretData } = await supabase.from('mazeretler').select('*');
-      if (mazeretData) setTumMazeretler(mazeretData);
+      if (mazeretData) setTumMazeretler(mazeretData || []);
 
       const { data: statuData } = await supabase.from('lig_statuleri').select('*');
-      if (statuData) setTumStatuler(statuData);
+      if (statuData) setTumStatuler(statuData || []);
 
       if (maclarVerisi.length > 0) {
         const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
@@ -234,7 +288,7 @@ export default function AdminPage() {
         Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
         setHaftalikGruplar(gruplar);
         
-        const aktifHafta = cumalar.length;
+        const aktifHafta = cumalar.length > 0 ? cumalar.length : 1;
         setGlobalAktifHaftaNo(aktifHafta);
         
         if (goruntulenenHafta === null) {
@@ -246,13 +300,14 @@ export default function AdminPage() {
   }
 
   const komiserIsmiBul = (id: any) => {
-    const komiser = tumKomiserler.find(k => String(k.komiser_id) === String(id))
-    return komiser ? komiser.ad_soyad : 'Atanmamış'
+    if (!id || id === 'null' || id === '') return 'Atanmamış';
+    const komiser = (tumKomiserler || []).find(k => String(k?.komiser_id) === String(id))
+    return komiser?.ad_soyad || 'Atanmamış'
   }
 
   const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
-      const kA = komiserIsmiBul(a.komiser_id);
-      const kB = komiserIsmiBul(b.komiser_id);
+      const kA = String(komiserIsmiBul(a?.komiser_id) || '');
+      const kB = String(komiserIsmiBul(b?.komiser_id) || '');
       return kA.localeCompare(kB, 'tr-TR');
   });
 
@@ -292,7 +347,7 @@ export default function AdminPage() {
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Bulten_Ozeti");
+      XLS.utils.book_append_sheet(wb, ws, "Bulten_Ozeti");
       XLSX.writeFile(wb, `Izmir_Saha_Komiserleri_${goruntulenenHafta}_Hafta_${bultenTab.toUpperCase()}.xlsx`);
   }
 
@@ -301,13 +356,22 @@ export default function AdminPage() {
       window.print();
   }
 
+  // 🔥 DEVRE ARASI DESTEKLİ STATÜ KAYDETME FONKSİYONU 🔥
   const statuKaydetSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setStatuKaydediliyor(true);
       try {
-          const payload = { ...statuForm };
-          delete payload.id;
-          payload.kategori_anahtar = payload.kategori_anahtar.toLocaleUpperCase('tr-TR').trim();
+          const payload = {
+              kategori_anahtar: String(statuForm.kategori_anahtar || '').toLocaleUpperCase('tr-TR').trim(),
+              baslik: statuForm.baslik,
+              yas_siniri: statuForm.yas_siniri,
+              sure: statuForm.sure,
+              devre_arasi: statuForm.devre_arasi, // YENİ DEVRE ARASI ALANI
+              top: statuForm.top,
+              hakem: statuForm.hakem,
+              degisiklik: statuForm.degisiklik,
+              beraberlik: statuForm.beraberlik
+          };
           
           if (statuForm.id) {
               const { error } = await supabase.from('lig_statuleri').update(payload).eq('id', statuForm.id);
@@ -322,7 +386,7 @@ export default function AdminPage() {
                   alert("✅ Statü başarıyla EKLENDİ.");
               }
           }
-          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' });
+          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' });
           veriGetir();
       } catch (err: any) { alert("Hata: " + err.message); }
       setStatuKaydediliyor(false);
@@ -395,7 +459,7 @@ export default function AdminPage() {
           const { data, error } = await supabase.from('musabakalar').select('id, mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim, komiser_id').order('id', { ascending: true });
           if(error) throw error;
           const dnaMap = new Map(); const silinecekIdler: number[] = [];
-          data.forEach(m => {
+          (data || []).forEach(m => {
               if(!m.ev_sahibi || !m.misafir_takim) return;
               const temizle = (str: any) => String(str || 'bos').replace(/\s+/g, '').toLocaleUpperCase('tr-TR');
               const anahtar = `${temizle(m.mac_kodu)}_${temizle(m.tarih)}_${temizle(m.kategori_adi)}_${temizle(m.ev_sahibi)}_${temizle(m.misafir_takim)}_${String(m.komiser_id || 'atanmamis')}`;
@@ -523,7 +587,7 @@ export default function AdminPage() {
       setHaftalikGruplar(prev => {
           const yeniGruplar = { ...prev };
           Object.keys(yeniGruplar).forEach(haftaNo => {
-              yeniGruplar[Number(haftaNo)] = yeniGruplar[Number(haftaNo)].map(m => m.id === macId ? { ...m, ...yeniVeriler } : m);
+              yeniGruplar[Number(haftaNo)] = (yeniGruplar[Number(haftaNo)] || []).map(m => m.id === macId ? { ...m, ...yeniVeriler } : m);
           });
           return yeniGruplar;
       });
@@ -562,22 +626,39 @@ export default function AdminPage() {
       }
   }
 
-  const tffTutanakIndir = async (mac: any, prefix: string) => {
+  // 🔥 129 BYTE HATASINI ÇÖZEN HD JPEG / PNG İNDİRME MOTORU 🔥
+  const tffTutanakIndir = async (mac: any, prefix: string, format: 'jpg' | 'png' = 'jpg') => {
       const element = document.getElementById(`${prefix}-tff-form-${mac.id}`);
       if (element) {
         try {
           const style = document.createElement('style');
-          style.innerHTML = '.tff-no-print { display: none !important; }';
+          style.innerHTML = '.tff-no-print { display: none !important; } .mobile-zoom { zoom: 1 !important; transform: scale(1) !important; max-width: none !important; }';
           document.head.appendChild(style);
-          const fullWidth = element.scrollWidth;
-          const fullHeight = element.scrollHeight;
-          const dataURL = await toPng(element as HTMLElement, { 
-              backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
-              style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' } 
-          });
-          const link = document.createElement('a'); link.href = dataURL; link.download = `Sistem_TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
-          document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
-        } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
+          
+          const options = { 
+              quality: 0.98,
+              pixelRatio: 2.5,
+              backgroundColor: '#ffffff',
+              cacheBust: true,
+              style: { margin: '0', padding: '24px' } 
+          };
+
+          const dataURL = format === 'jpg' 
+              ? await toJpeg(element as HTMLElement, options) 
+              : await toPng(element as HTMLElement, options);
+              
+          const link = document.createElement('a'); 
+          link.href = dataURL; 
+          link.download = `TFF_Raporu_${String(mac.ev_sahibi || '').replace(/\s+/g, '_')}_vs_${String(mac.misafir_takim || '').replace(/\s+/g, '_')}.${format}`;
+          
+          document.body.appendChild(link); 
+          link.click(); 
+          document.body.removeChild(link); 
+          document.head.removeChild(style);
+        } catch (err) { 
+          alert("Resmi Tutanak indirilirken bir sorun oluştu."); 
+          console.error(err);
+        }
       }
   }
 
@@ -596,8 +677,12 @@ export default function AdminPage() {
           <div className="flex items-center gap-4 pointer-events-none"><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Evet</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div></div><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Hayır</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div></div></div>
       );
 
+      const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
+
       return (
-          <div id={`${prefix}-tff-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6">
+          <div id={`${prefix}-tff-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
+              <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
+
               {raporTuru === 'amator' && (
               <div className="border-[3px] border-double border-slate-600 p-4">
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
@@ -676,7 +761,7 @@ export default function AdminPage() {
                       <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2 pointer-events-none"></textarea>
                   </div>
                   <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black">
-                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{new Date().toLocaleDateString('tr-TR')}</span></div>
+                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
                       <div className="text-center">
                           <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
                           <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
@@ -828,7 +913,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black">
-                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{new Date().toLocaleDateString('tr-TR')}</span></div>
+                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
                       <div className="text-center">
                           <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
                           <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
@@ -901,7 +986,7 @@ export default function AdminPage() {
              )}
              {detayliRaporGosterilirMi(mac.kategori_adi) && (tip === 'emniyet' || tip === 'teknik' || tip === 'olaysiz') && (
                  <div className="mt-4">
-                    {mac.tff_rapor_detaylari?.detayli_kaydedildi ? (
+                    {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">📄 TFF RESMİ TUTANAĞINI TAM EKRAN GÖRÜNTÜLE</button>
                     ) : (
                         <div className="bg-red-950/40 border border-red-900/50 text-red-400 p-3 rounded-lg text-center text-xs font-bold flex items-center justify-center gap-2 animate-pulse">🚨 KOMİSER DETAYLI TFF RAPORUNU HENÜZ GÖNDERMEDİ</div>
@@ -912,7 +997,7 @@ export default function AdminPage() {
                  <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4"><button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button><button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button></div>
              )}
              {!isArsiv && degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
-                 <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down"><select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer"><option value="">-- Devredilecek Yeni Komiseri Seçin --</option>{tumKomiserler.sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select><button onClick={() => islemYapDevir(mac.id)} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded">DEVRİ ONAYLA</button></div>
+                 <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down"><select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer"><option value="">-- Devredilecek Yeni Komiseri Seçin --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select><button onClick={() => islemYapDevir(mac.id)} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded">DEVRİ ONAYLA</button></div>
              )}
           </div>
         )}
@@ -931,15 +1016,13 @@ export default function AdminPage() {
   const atanmayanMaclar = gosterilenMaclar.filter(m => (!m.komiser_id || m.komiser_id === 'null' || m.komiser_id === '') && m.mac_durumu !== 'iptal_edildi');
   
   const gelecekHaftaNo = globalAktifHaftaNo + 1;
-  const gelecekHaftaMazeretleri = tumMazeretler.filter(m => m.hafta_no === gelecekHaftaNo).map(m => {
+  const gelecekHaftaMazeretleri = (tumMazeretler || []).filter(m => m.hafta_no === gelecekHaftaNo).map(m => {
       const komiserData = tumKomiserler.find(k => String(k.komiser_id) === String(m.komiser_id));
       return { ...m, isim: komiserData ? komiserData.ad_soyad : 'Bilinmeyen Komiser' };
   });
 
   const islemZamaniAl = (m: any) => {
-      if (!m.tff_rapor_detaylari) return 0;
-      let d = m.tff_rapor_detaylari;
-      if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e){ d={}; } }
+      const d = parseDetay(m.tff_rapor_detaylari);
       return d.islem_saati || 0;
   }
 
@@ -966,7 +1049,7 @@ export default function AdminPage() {
         }
         map.get(mac.komiser_id).count++; map.get(mac.komiser_id).maclar.push(mac);
         return map;
-  }, new Map()).values()).sort((a: any, b: any) => a.isim.localeCompare(b.isim, 'tr-TR'));
+  }, new Map()).values()).sort((a: any, b: any) => String(a?.isim || '').localeCompare(String(b?.isim || ''), 'tr-TR'));
 
   const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
   const sirenAktif = aktifEmniyetlikler.length > 0;
@@ -1035,6 +1118,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
+        {/* 🔥 HAFTALIK BÜLTEN MODALI 🔥 */}
         {bultenModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
@@ -1126,6 +1210,7 @@ export default function AdminPage() {
             </div>
         )}
 
+        {/* 🔥 SİSTEM YÖNETİMİ MODALI (DEVRE ARASI VE İZMİR U14 ÖRNEĞİ EKLENDİ) 🔥 */}
         {sistemYonetimModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl animate-fade-in-down">
@@ -1150,18 +1235,19 @@ export default function AdminPage() {
                                         <h3 className="text-emerald-400 font-bold mb-1">Müsabaka Statü ve Kural Zekası</h3>
                                         <p className="text-slate-300 text-xs">Saha komiserlerinin mobil cihazlarında göreceği statüleri buradan yönetebilirsiniz.</p>
                                     </div>
-                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
+                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
                                 </div>
                                 
                                 <form onSubmit={statuKaydetSubmit} className="bg-slate-900 border border-indigo-500/50 p-5 rounded-xl space-y-4 shadow-lg relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Kategori / Lig Anahtarı (Örn: U14)</label><input type="text" value={statuForm.kategori_anahtar} onChange={e => setStatuForm({...statuForm, kategori_anahtar: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Lig kodunu yazın..." /></div>
-                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Pencere Başlığı (Örn: U14 Ligi Statüsü)</label><input type="text" value={statuForm.baslik} onChange={e => setStatuForm({...statuForm, baslik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Görünecek büyük başlık..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Kategori / Lig Anahtarı (Örn: İZMİR U14 LİGİ)</label><input type="text" value={statuForm.kategori_anahtar} onChange={e => setStatuForm({...statuForm, kategori_anahtar: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Örn: İZMİR U14 LİGİ" /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Pencere Başlığı (Örn: İZMİR U14 LİGİ STATÜSÜ)</label><input type="text" value={statuForm.baslik} onChange={e => setStatuForm({...statuForm, baslik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" required placeholder="Örn: İZMİR U14 LİGİ STATÜSÜ" /></div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⏱️ Süre (Örn: 2x35 Dk)</label><input type="text" value={statuForm.sure} onChange={e => setStatuForm({...statuForm, sure: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Maç süresi..." /></div>
-                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚽ Top No (Örn: 4 Numara)</label><input type="text" value={statuForm.top} onChange={e => setStatuForm({...statuForm, top: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Top no..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">☕ Devre Arası (Örn: 15 Dk)</label><input type="text" value={statuForm.devre_arasi} onChange={e => setStatuForm({...statuForm, devre_arasi: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Devre arası..." /></div>
+                                        <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚽ Top No (Örn: 4)</label><input type="text" value={statuForm.top} onChange={e => setStatuForm({...statuForm, top: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Top no..." /></div>
                                         <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">⚖️ Hakem (Örn: Tek Hakem)</label><input type="text" value={statuForm.hakem} onChange={e => setStatuForm({...statuForm, hakem: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 focus:outline-none" placeholder="Hakem sayısı..." /></div>
                                     </div>
                                     <div><label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">🏃 Yaş Sınırı Kuralları</label><textarea value={statuForm.yas_siniri} onChange={e => setStatuForm({...statuForm, yas_siniri: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-xs px-3 py-2 rounded focus:border-indigo-500 focus:outline-none min-h-[60px]" placeholder="Kimler oynayabilir, kimler oynayamaz..." /></div>
@@ -1176,11 +1262,11 @@ export default function AdminPage() {
                                         {tumStatuler.length === 0 ? (
                                             <div className="col-span-1 md:col-span-2 text-center text-slate-500 text-xs italic bg-slate-800/50 p-4 rounded-lg border border-slate-700">Sistemde henüz kayıtlı bir statü bulunmuyor.</div>
                                         ) : (
-                                            tumStatuler.sort((a,b) => a.kategori_anahtar.localeCompare(b.kategori_anahtar)).map((st, i) => (
+                                            tumStatuler.sort((a,b) => String(a?.kategori_anahtar || '').localeCompare(String(b?.kategori_anahtar || ''), 'tr-TR')).map((st, i) => (
                                                 <div key={i} className="bg-slate-950 border border-slate-700 rounded-lg p-3 flex justify-between items-start hover:border-indigo-500/50 transition-colors">
                                                     <div>
                                                         <div className="text-indigo-400 font-black text-sm mb-1">{st.kategori_anahtar}</div>
-                                                        <div className="text-[10px] text-slate-400 line-clamp-1">{st.baslik}</div>
+                                                        <div className="text-[10px] text-slate-400 line-clamp-1">{st.baslik} | Süre: {st.sure || '-'} | Devre: {st.devre_arasi || '-'}</div>
                                                     </div>
                                                     <div className="flex flex-col gap-2 shrink-0 ml-2">
                                                         <button onClick={() => setStatuForm(st)} className="bg-slate-800 hover:bg-slate-700 text-blue-400 px-3 py-1 rounded text-[10px] font-bold transition-colors border border-slate-600 shadow-sm">DÜZENLE</button>
@@ -1244,14 +1330,16 @@ export default function AdminPage() {
             </div>
         )}
 
+        {/* 🔥 TFF RAPORU İNDİRME MODALI (HD JPEG VE PNG SEÇENEKLİ) 🔥 */}
         {tamEkranRaporMac && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
                     <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
                         <h2 className="text-base md:text-lg font-black text-white tracking-widest uppercase flex items-center gap-2">📄 TFF RAPORU: {tamEkranRaporMac.ev_sahibi} vs {tamEkranRaporMac.misafir_takim}</h2>
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => tffTutanakIndir(tamEkranRaporMac, 'tam-ekran')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">📸 PNG İNDİR</button>
-                            <button onClick={() => setTamEkranRaporMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-3xl leading-none transition-colors">✕</button>
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => tffTutanakIndir(tamEkranRaporMac, 'tam-ekran', 'jpg')} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-1 transition-colors">🖼️ HD JPEG</button>
+                            <button onClick={() => tffTutanakIndir(tamEkranRaporMac, 'tam-ekran', 'png')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-1 transition-colors">📸 PNG İNDİR</button>
+                            <button onClick={() => setTamEkranRaporMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-3xl leading-none transition-colors ml-2">✕</button>
                         </div>
                     </div>
                     <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar flex justify-center bg-slate-300">
@@ -1261,6 +1349,7 @@ export default function AdminPage() {
             </div>
         )}
 
+        {/* 🔥 EXCEL YÜKLEME MODALI 🔥 */}
         {excelModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -1322,6 +1411,7 @@ export default function AdminPage() {
             </div>
         )}
 
+        {/* 🔥 ANA İÇERİK EKRANI (ZAMAN MAKİNESİ VE LİSTELER) 🔥 */}
         {yukleniyor ? (
           <div className="flex flex-col items-center justify-center py-20"><div className="w-12 h-12 border-4 border-slate-700 border-t-red-600 rounded-full animate-spin mb-4"></div><p className="text-slate-400 font-bold animate-pulse tracking-widest">VERİLER ÇEKİLİYOR...</p></div>
         ) : (
@@ -1346,7 +1436,7 @@ export default function AdminPage() {
                                     <div className="text-[11px] text-slate-400 font-mono mt-1">{mac.saha} | {guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</div>
                                 </div>
                                 <div className="flex gap-2 w-full md:w-auto">
-                                    <select value={atamaSelects[mac.id] || ''} onChange={(e) => setAtamaSelects({...atamaSelects, [mac.id]: e.target.value})} className="flex-1 bg-slate-950 text-white border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 cursor-pointer font-bold"><option value="">-- Komiser Seç --</option>{tumKomiserler.sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select>
+                                    <select value={atamaSelects[mac.id] || ''} onChange={(e) => setAtamaSelects({...atamaSelects, [mac.id]: e.target.value})} className="flex-1 bg-slate-950 text-white border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 cursor-pointer font-bold"><option value="">-- Komiser Seç --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select>
                                     <button onClick={() => islemYapAta(mac.id)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black px-4 py-2 rounded-lg shadow-lg">ATA</button>
                                 </div>
                             </div>
@@ -1472,7 +1562,7 @@ export default function AdminPage() {
                         {kategoriSicilAcik && (
                             <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl animate-fade-in-down mb-3">
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Saha Komiseri Seçin</label>
-                                <select value={seciliSicilKomiserId} onChange={(e) => setSeciliSicilKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none mb-4 font-bold cursor-pointer"><option value="">-- Komiser Seçiniz --</option>{tumKomiserler.sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad, 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select>
+                                <select value={seciliSicilKomiserId} onChange={(e) => setSeciliSicilKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none mb-4 font-bold cursor-pointer"><option value="">-- Komiser Seçiniz --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select>
                                 {seciliSicilKomiserId && (
                                     <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                                         {(() => {
@@ -1480,7 +1570,7 @@ export default function AdminPage() {
                                             if (komiserinMaclari.length === 0) return <div className="text-center text-slate-500 text-sm py-4">Bu komisere ait geçmiş görev kaydı bulunamadı.</div>;
                                             return komiserinMaclari.map((mac, idx) => {
                                                 const skorMetni = mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Bekleniyor';
-                                                let pDetay:any = {}; if(mac.tff_rapor_detaylari){ try{ pDetay = typeof mac.tff_rapor_detaylari === 'string' ? JSON.parse(mac.tff_rapor_detaylari) : mac.tff_rapor_detaylari; }catch(e){}}
+                                                const pDetay = parseDetay(mac.tff_rapor_detaylari);
                                                 return (
                                                     <div key={`sicil-${idx}`} className="bg-slate-900 border border-slate-700 rounded-lg p-3">
                                                         <div className="flex justify-between items-start">
