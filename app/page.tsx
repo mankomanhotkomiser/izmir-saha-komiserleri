@@ -14,9 +14,7 @@ type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazere
 const parseDetay = (raw: any) => {
     if (!raw) return {};
     let obj = raw;
-    if (typeof obj === 'string') {
-        try { obj = JSON.parse(obj); } catch(e) { return {}; }
-    }
+    if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch(e) { return {}; } }
     if (typeof obj !== 'object' || obj === null) return {};
     return obj;
 };
@@ -24,24 +22,9 @@ const parseDetay = (raw: any) => {
 const getAnaKategori = (kategori: any) => {
     if (!kategori) return 'amator';
     const kat = String(kategori || "").toLocaleUpperCase('tr-TR');
-
-    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
-        (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
-        (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
-        (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || 
-        kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) {
-        return 'profesyonel';
-    }
-
-    if (kat.includes('KADIN') || kat.includes('KIZ')) {
-        return 'kadin';
-    }
-
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || 
-        kat.includes('PAF') || kat.includes('TFF U')) {
-        return 'gelisim';
-    }
-
+    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
+    if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
     return 'amator';
 }
 
@@ -52,36 +35,21 @@ const raporTurunuBelirle = (kategori: any) => {
     return 'amator'; 
 }
 
-const detayliRaporGosterilirMi = (kategori: any) => {
-  const tur = raporTurunuBelirle(kategori);
-  return tur !== 'yok'; 
-}
+const detayliRaporGosterilirMi = (kategori: any) => raporTurunuBelirle(kategori) !== 'yok'; 
 
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const anaKat = getAnaKategori(kategori);
     if (anaKat !== 'amator') return 'dort_kutu'; 
-
     const kat = String(kategori || "").toLocaleUpperCase('tr-TR');
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') ||
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') ||
-        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
-        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ') || kat.includes('14 YAŞ')) {
-        return 'tek_hakem';
-    }
-    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
-        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') ||
-        kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) {
-        return 'uc_hakem';
-    }
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ') || kat.includes('14 YAŞ')) return 'tek_hakem';
+    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) return 'uc_hakem';
     return 'dort_kutu'; 
 };
 
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = String(rawKategori).toLocaleUpperCase('tr-TR').trim();
-    
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U')) {
         const yasMatch = kat.match(/(\d{2})/);
         if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ`;
@@ -90,7 +58,6 @@ const formatKategori = (rawKategori: any) => {
     if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
     if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
     if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'BÖLGESEL AMATÖR LİG (BAL)';
-    
     const amatorYasMatch = kat.match(/U\s*(\d{2})/);
     if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} LİGİ`;
     return kat;
@@ -171,14 +138,8 @@ const renderGelisimCheckbox = (etiket: string, deger: any, onChange: (val: strin
     <div key={id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1">
         <span className="text-[10px] w-3/4">{etiket}</span>
         <div className="flex gap-4 w-1/4 justify-end pr-2">
-            <label className={`flex items-center gap-1 text-[10px] ${isAktif ? 'cursor-pointer' : 'pointer-events-none'}`}>
-                Evet <div className={`w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white ${deger === 'evet' ? 'bg-slate-200' : ''}`}>{deger === 'evet' ? 'X' : ''}</div>
-                <input type="radio" className="hidden" checked={deger === 'evet'} onChange={() => onChange('evet')} disabled={!isAktif} />
-            </label>
-            <label className={`flex items-center gap-1 text-[10px] ${isAktif ? 'cursor-pointer' : 'pointer-events-none'}`}>
-                Hayır <div className={`w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white ${deger === 'hayir' ? 'bg-slate-200' : ''}`}>{deger === 'hayir' ? 'X' : ''}</div>
-                <input type="radio" className="hidden" checked={deger === 'hayir'} onChange={() => onChange('hayir')} disabled={!isAktif} />
-            </label>
+            <label className={`flex items-center gap-1 text-[10px] ${isAktif ? 'cursor-pointer' : 'pointer-events-none'}`}>Evet <div className={`w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white ${deger === 'evet' ? 'bg-slate-200' : ''}`}>{deger === 'evet' ? 'X' : ''}</div><input type="radio" className="hidden" checked={deger === 'evet'} onChange={() => onChange('evet')} disabled={!isAktif} /></label>
+            <label className={`flex items-center gap-1 text-[10px] ${isAktif ? 'cursor-pointer' : 'pointer-events-none'}`}>Hayır <div className={`w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white ${deger === 'hayir' ? 'bg-slate-200' : ''}`}>{deger === 'hayir' ? 'X' : ''}</div><input type="radio" className="hidden" checked={deger === 'hayir'} onChange={() => onChange('hayir')} disabled={!isAktif} /></label>
         </div>
     </div>
 );
@@ -191,33 +152,23 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
-  // ==========================================
-  // 1. TÜM STATE TANIMLAMALARI (EN ÜSTTE)
-  // ==========================================
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   const [kullaniciIdInput, setKullaniciIdInput] = useState('')
   const [sifreInput, setSifreInput] = useState('')
-  
   const [girisHatasi, setGirisHatasi] = useState<string | null>(null)
   const [girisYukleniyor, setGirisYukleniyor] = useState(false)
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
-  
   const [sifreDegistirAcik, setSifreDegistirAcik] = useState(false)
   const [eskiSifre, setEskiSifre] = useState('')
   const [yeniSifre, setYeniSifre] = useState('')
   const [sifremiUnuttumAcik, setSifremiUnuttumAcik] = useState(false)
-
-  // 🔥 REHBER MODALI İÇİN YENİ STATE 🔥
   const [rehberAcik, setRehberAcik] = useState(false)
-
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   const [tumStatuler, setTumStatuler] = useState<any[]>([]) 
-  
   const [hakemListesi, setHakemListesi] = useState<string[]>([])
   const [gozlemciListesi, setGozlemciListesi] = useState<string[]>([]) 
-  
   const [aramaTuruAcik, setAramaTuruAcik] = useState(true)
   const [aramaKomiser, setAramaKomiser] = useState('')
   const [aramaSaha, setAramaSaha] = useState('')
@@ -236,9 +187,6 @@ export default function Home() {
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
-
-  const [acikSicilSaha, setAcikSicilSaha] = useState<string | null>(null)
-  const [acikSicilTffMacId, setAcikSicilTffMacId] = useState<number | null>(null)
   const [acikStatu, setAcikStatu] = useState<any | null>(null) 
   const [arsivTamEkranMac, setArsivTamEkranMac] = useState<any | null>(null) 
 
@@ -279,10 +227,6 @@ export default function Home() {
   const [raporDetay, setRaporDetay] = useState<any>(defaultRaporDetay);
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
 
-
-  // ==========================================
-  // 2. HESAPLANAN DEĞİŞKENLER VE LİSTELER
-  // ==========================================
   let gecerliAktifMaclar: any[] = [];
   const gecmisHaftalar: Record<number, any[]> = {};
 
@@ -314,13 +258,10 @@ export default function Home() {
   const herSeyTamam = gecerliAktifMaclar.length > 0 && tebellugBekleyenSayisi === 0 && eksikSkorSayisi === 0 && eksikDetayliSayisi === 0;
 
   const skorSecenekleri = Array.from({ length: 31 }, (_, i) => String(i));
+  const sifreUyariGoster = seciliKomiser?.sifre === '1923';
+  const mazeretKapisiAcikMi = () => true; 
+  const mazeretAcik = mazeretKapisiAcikMi();
 
-
-  // ==========================================
-  // 3. USEEFFECT (OTOMATİK ÇALIŞAN FONKSİYONLAR)
-  // ==========================================
-  
-  // 🔥 REHBERİ OTOMATİK AÇAN YENİ KOD 🔥
   useEffect(() => {
     if (aktifEkran === 'dashboard') {
       const okunduMu = localStorage.getItem('izmirSahaRehberOkundu');
@@ -330,7 +271,6 @@ export default function Home() {
     }
   }, [aktifEkran]);
 
-  // Rehberi kalıcı kapatma fonksiyonu
   const rehberiKapatVeKaydet = () => {
     localStorage.setItem('izmirSahaRehberOkundu', 'true');
     setRehberAcik(false);
@@ -416,14 +356,10 @@ export default function Home() {
         if (statuData && aktif) setTumStatuler(statuData);
 
         const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').order('ad_soyad')
-        if (hakemData && aktif) {
-            setHakemListesi(hakemData.map((h: any) => h.ad_soyad));
-        }
+        if (hakemData && aktif) { setHakemListesi(hakemData.map((h: any) => h.ad_soyad)); }
 
         const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').order('ad_soyad')
-        if (gozlemciData && aktif) {
-            setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad));
-        }
+        if (gozlemciData && aktif) { setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad)); }
 
       } catch (err: any) { console.error(err) }
     }
@@ -431,13 +367,7 @@ export default function Home() {
     return () => { aktif = false; }
   }, [aktifEkran])
 
-
-  // ==========================================
-  // 4. TETİKLENEN YARDIMCI FONKSİYONLAR
-  // ==========================================
   const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
-  const mazeretKapisiAcikMi = () => true; 
-  const mazeretAcik = mazeretKapisiAcikMi();
 
   const girisYap = async (e?: React.FormEvent) => {
     if (e) e.preventDefault() 
@@ -501,7 +431,7 @@ export default function Home() {
     setSeciliKomiser(null); setKullaniciIdInput(''); setSifreInput(''); setKomiserMaclari([]);
     setAramaKomiser(''); setAramaSaha(''); setAramaTakim('');
     setAktifEkran('giris'); setArsivAcik(false); setAcikHaftalar([]);
-    setAcikSicilSaha(null); setAcikSicilTffMacId(null); setAcikStatu(null); setArsivTamEkranMac(null);
+    setAcikStatu(null); setArsivTamEkranMac(null);
     setMazeretTipi(null); setKompleYokum(false); setGenelMerkez(true); setGenelDeplasman(false); setMazeretNotu('');
     setGunler({
       cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
@@ -799,9 +729,6 @@ export default function Home() {
 
   const haftaToggle = (haftaNo: number) => { setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo]) }
   
-  // ==========================================
-  // 5. GÖRSEL RENDER FONKSİYONLARI
-  // ==========================================
   const renderOrtakHeader = (geriButonuGoster = false) => (
     <header className="bg-slate-800 text-white shadow-md sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
@@ -818,7 +745,7 @@ export default function Home() {
           </div>
         </div>
         {geriButonuGoster ? (
-          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikSicilSaha(null); setAcikSicilTffMacId(null); setAcikStatu(null); setArsivTamEkranMac(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm transition-colors border border-slate-300 uppercase tracking-widest">Geri Dön</button>
+          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm transition-colors border border-slate-300 uppercase tracking-widest">Geri Dön</button>
         ) : (
           <button onClick={cikisYap} className="bg-red-700 hover:bg-red-800 text-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow transition-colors uppercase tracking-widest border border-red-800">Çıkış</button>
         )}
@@ -934,14 +861,6 @@ export default function Home() {
             </div>
           )}
         </div>
-
-        {isArsiv && mac.skor_girildi && parsedDetay.detayli_kaydedildi && (
-            <div className="mt-3 pt-3 border-t border-slate-200">
-                <button onClick={() => setArsivTamEkranMac(mac)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-lg shadow-sm text-xs md:text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
-                    📄 TFF Detaylı Raporunu Görüntüle
-                </button>
-            </div>
-        )}
       </div>
     )
   }
@@ -1390,16 +1309,162 @@ export default function Home() {
       );
   }
 
-  // --- REHBER MODALININ ENJEKTE EDİLDİĞİ YER ---
+  // ==========================================
+  // 6. ANA EKRAN YÖNETİMİ
+  // ==========================================
   return (
-      <Fragment>
-          <div className="min-h-screen flex items-center justify-center bg-slate-100 font-sans">
-              <div className="text-center">
-                  <h1 className="text-2xl font-black text-slate-800 mb-2">SİSTEM YÜKLENİYOR...</h1>
-                  <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <Fragment>
+      {aktifEkran === 'giris' && (
+        <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+          {sifremiUnuttumAcik && (
+              <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6 text-center">
+                      <span className="text-5xl block mb-4">🔐</span>
+                      <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-2">ŞİFRENİZİ Mİ UNUTTUNUZ?</h2>
+                      <p className="text-sm font-bold text-slate-500 mb-6 leading-relaxed">Hesabınızın güvenliği nedeniyle şifre sıfırlama işlemleri sadece sistem yöneticisi tarafından yapılmaktadır. Lütfen Yönetim ile iletişime geçiniz.</p>
+                      <a href={`https://wa.me/905xxxxxxxxx?text=Selçuk%20hocam%20merhaba,%20saha%20komiseri%20sistemi%20şifremi%20unuttum.%20Sıfırlar%20mısınız?`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-black py-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 mb-3">💬 WHATSAPP&apos;TAN YAZ</a>
+                      <button onClick={() => setSifremiUnuttumAcik(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">Giriş Ekranına Dön</button>
+                  </div>
               </div>
+          )}
+          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
+          <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
+            <div className="flex justify-center mb-6">
+              <div className="w-24 h-24 bg-white rounded-full p-2 shadow-lg border border-slate-100 -mt-16 flex items-center justify-center">
+                <img src={DERNEK_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="w-[85%] h-[85%] object-contain" />
+              </div>
+            </div>
+            <h1 className="text-sm font-black tracking-widest text-slate-800 uppercase leading-snug mb-1">TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ</h1>
+            <h2 className="text-[11px] font-bold text-red-600 tracking-widest uppercase mb-8">İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ</h2>
+            <form onSubmit={girisYap} className="space-y-4">
+              <div><input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
+              <div><input type="password" placeholder="4 Haneli Şifreniz" value={sifreInput} onChange={(e) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={4} inputMode="numeric" pattern="\d{4}" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
+              {girisHatasi && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100">{girisHatasi}</p>}
+              <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl uppercase tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2">{girisYukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}</button>
+              <div className="pt-2"><button type="button" onClick={() => setSifremiUnuttumAcik(true)} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button></div>
+            </form>
           </div>
+          <div className="absolute bottom-6 text-[10px] text-slate-400 font-medium tracking-widest uppercase text-center w-full z-10">SahaKom-OS Türkiye © 2026<br/>Tüm Hakları Saklıdır</div>
+        </div>
+      )}
+
+      {aktifEkran === 'dashboard' && (
+        <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
+          {renderOrtakHeader(false)}
+          <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6">
+            {sifreUyariGoster && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse">
+                    <div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm uppercase tracking-wide">Güvenlik Uyarısı</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div>
+                    <button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs uppercase tracking-widest w-full sm:w-auto">Şifremi Değiştir</button>
+                </div>
+            )}
+            <div className="bg-slate-800 rounded-2xl shadow-xl p-6 mb-6 flex flex-col md:flex-row items-center gap-6 border-t-4 border-blue-500 relative overflow-hidden">
+              <div className="text-center md:text-left flex-1 relative z-10">
+                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">{seciliKomiser?.ad_soyad || 'Komiser'}</h2>
+                <div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2">
+                  <span className="bg-slate-700 text-blue-100 font-mono text-xs font-bold px-3 py-1.5 rounded-md border border-slate-600 shadow-sm">SİCİL NO: {seciliKomiser?.komiser_id || '-'}</span>
+                  <span className="bg-blue-900/50 text-blue-200 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-800 shadow-sm">BU SEZON: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} GÖREV</span>
+                </div>
+                <div className="mt-5 space-y-3 animate-fade-in-down">
+                  {tebellugBekleyenSayisi > 0 ? (
+                    <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm animate-pulse gap-3">
+                      <span className="font-bold text-xs md:text-sm flex items-center gap-2">🔔 Yeni Atanan {tebellugBekleyenSayisi} Göreviniz Var!</span>
+                      <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full sm:w-auto text-[10px] md:text-xs bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow uppercase border border-blue-600">Önce Tebellüğ Et</button>
+                    </div>
+                  ) : (
+                    <>
+                      {eksikSkorSayisi > 0 && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-lg flex items-center justify-between shadow-sm">
+                          <span className="font-bold text-xs md:text-sm flex items-center gap-2">⏳ Skoru Beklenen {eksikSkorSayisi} Maçınız Var</span>
+                          <button onClick={() => setAktifEkran('skorRapor')} className="text-[10px] md:text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3 rounded shadow border border-amber-500">GİRİŞ YAP</button>
+                        </div>
+                      )}
+                      {eksikDetayliSayisi > 0 && (
+                        <div className="bg-red-50 border border-red-300 text-red-900 px-4 py-3 rounded-lg flex items-center justify-between shadow-sm">
+                          <span className="font-bold text-xs md:text-sm flex items-center gap-2">📝 Detaylı Raporu Beklenen {eksikDetayliSayisi} Maçınız Var <span className="hidden md:inline">(ZORUNLU)</span></span>
+                          <button onClick={() => setAktifEkran('skorRapor')} className="text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded shadow border border-red-500">RAPORLA</button>
+                        </div>
+                      )}
+                      {herSeyTamam && (
+                         <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-lg flex items-start shadow-sm animate-fade-in-up">
+                            <span className="text-2xl md:text-3xl mr-3 mt-1">✅</span>
+                            <div>
+                                <h4 className="font-black text-sm md:text-base uppercase tracking-wider text-emerald-900">{globalAktifHaftaNo}. Hafta Görevleri Tamamlandı</h4>
+                                <p className="text-[10px] md:text-xs font-medium mt-0.5 text-emerald-800">Tarafınıza tevdi edilen tüm müsabakaları tebellüğ ettiniz ve raporlamalarını eksiksiz tamamladınız. İzmir Şube Yönetimi adına teşekkür ederiz.</p>
+                            </div>
+                         </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                  <button onClick={() => setRehberAcik(true)} className="bg-blue-600/90 hover:bg-blue-600 text-white border border-blue-500 p-2 rounded-lg shadow transition-colors text-xs font-bold flex items-center gap-1">
+                      ℹ️ Kullanım Rehberi
+                  </button>
+                  <button onClick={() => setSifreDegistirAcik(true)} className="bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 p-2 rounded-lg shadow transition-colors text-xs font-bold flex items-center gap-1">
+                      🔑 Şifremi Değiştir
+                  </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <button onClick={() => setAktifEkran('gorevKartlari')} className="flex flex-col items-center justify-center p-6 md:p-8 rounded-2xl shadow-md bg-gradient-to-br from-teal-500 to-emerald-600 border-2 border-teal-700 hover:scale-[1.02] transition-transform relative group">
+                  <h4 className="font-black text-xl md:text-2xl text-white uppercase relative z-10">Görev Kartım</h4>
+                  <p className="text-sm text-center mt-2 text-teal-100 font-medium relative z-10">Atanan maçlarınızı görün ve görevi tebellüğ edin.</p>
+                  {tebellugBekleyenSayisi > 0 && <span className="mt-3 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full animate-bounce relative z-10 shadow-lg">{tebellugBekleyenSayisi} YENİ GÖREV</span>}
+              </button>
+              <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 md:p-8 rounded-2xl shadow-md bg-gradient-to-br from-sky-500 to-blue-700 border-2 border-blue-800 hover:scale-[1.02] transition-transform relative group">
+                  <h4 className="font-black text-xl md:text-2xl text-white uppercase relative z-10 text-center">Skor & Saha Raporu</h4>
+                  <p className="text-sm text-center mt-2 text-sky-100 font-medium relative z-10">Hızlı skoru bildirin ve detaylı müsabaka raporu oluşturun.</p>
+              </button>
+            </div>
+            <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative">
+              <div className="text-left relative z-10">
+                <h4 className="font-black text-lg md:text-xl text-white uppercase tracking-wide">🔍 Haftalık Bülten & Görev Arama</h4>
+                <p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Saha, takım veya komiser ismine göre İzmir&apos;deki tüm güncel görevleri sorgulayın.</p>
+              </div>
+            </button>
+            <button onClick={() => setAktifEkran('istatistiklerim')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative">
+              <div className="text-left relative z-10">
+                <h4 className="font-black text-lg md:text-xl text-white uppercase tracking-wide">Sezonluk İstatistiklerim</h4>
+                <p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Görev aldığınız liglerin detaylı dökümü.</p>
+              </div>
+            </button>
+            {mazeretAcik ? (
+              <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative">
+                <div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white uppercase tracking-wide">📅 Müsaitlik / Mazeret Bildir</h4></div>
+              </button>
+            ) : (
+              <button disabled className="w-full p-5 rounded-2xl bg-slate-200 opacity-60 cursor-not-allowed border-2 border-slate-300"><h4 className="font-black text-sm text-slate-500 text-left uppercase">Sistem Kapalı</h4></button>
+            )}
+          </div>
+          
+          {sifreDegistirAcik && (
+              <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6">
+                      <h2 className="text-lg font-black text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">ŞİFREYİ DEĞİŞTİR</h2>
+                      <form onSubmit={sifreDegistirSubmit} className="space-y-4">
+                          <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Mevcut Şifreniz</label>
+                              <input type="password" value={eskiSifre} onChange={e => setEskiSifre(e.target.value)} maxLength={4} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Yeni Şifreniz (4 Haneli Rakam)</label>
+                              <input type="password" value={yeniSifre} onChange={e => setYeniSifre(e.target.value)} maxLength={4} pattern="\d{4}" className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
+                          </div>
+                          <div className="flex gap-3 mt-6">
+                              <button type="button" onClick={() => setSifreDegistirAcik(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">İptal</button>
+                              <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors text-sm shadow-md">Kaydet</button>
+                          </div>
+                      </form>
+                  </div>
+              </div>
+          )}
+
           <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-      </Fragment>
+        </main>
+      )}
+    </Fragment>
   );
 }
