@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 
@@ -160,13 +160,12 @@ const temizHakem = (isim: any) => {
 export default function Home() {
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   const [kullaniciIdInput, setKullaniciIdInput] = useState('')
-  const [sifreInput, setSifreInput] = useState('') // 🔥 YENİ ŞİFRE İNPUTU 🔥
+  const [sifreInput, setSifreInput] = useState('')
   
   const [girisHatasi, setGirisHatasi] = useState<string | null>(null)
   const [girisYukleniyor, setGirisYukleniyor] = useState(false)
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
   
-  // 🔥 ŞİFRE DEĞİŞTİRME VE UNUTMA MODALLARI 🔥
   const [sifreDegistirAcik, setSifreDegistirAcik] = useState(false)
   const [eskiSifre, setEskiSifre] = useState('')
   const [yeniSifre, setYeniSifre] = useState('')
@@ -276,12 +275,12 @@ export default function Home() {
   };
   const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const kayitliId = localStorage.getItem('izmirKomiserId')
         const kayitliSifre = localStorage.getItem('izmirKomiserSifre')
-        // Şifre sistemi geldiği için otomatik girişte şifreyi de kontrol ettiriyoruz
         if (kayitliId && kayitliSifre) { otomatikGirisYap(kayitliId, kayitliSifre) }
       } catch (e) { console.error(e) }
     }
@@ -291,7 +290,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).single()
       if (data && !error) {
-        const dbSifre = data.sifre || '1923'; // Veritabanında şifre yoksa 1923 kabul et
+        const dbSifre = data.sifre || '1923'; 
         if (dbSifre === sifre) {
             setSeciliKomiser(data)
             await komiserDetayGetir(data)
@@ -307,6 +306,7 @@ export default function Home() {
     } catch (err) { console.error(err) }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let aktif = true;
     async function arkaPlaniHazirla() {
@@ -374,7 +374,6 @@ export default function Home() {
   const mazeretKapisiAcikMi = () => true; 
   const mazeretAcik = mazeretKapisiAcikMi();
 
-  // 🔥 ŞİFRE ZEKASI GİRİŞ KONTROLÜNE EKLENDİ 🔥
   const girisYap = async (e?: React.FormEvent) => {
     if (e) e.preventDefault() 
     setGirisYukleniyor(true); setGirisHatasi(null);
@@ -391,7 +390,7 @@ export default function Home() {
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       
-      const dbSifre = data.sifre || '1923'; // Veritabanında şifre sütunu boşsa 1923 say
+      const dbSifre = data.sifre || '1923'; 
       if (dbSifre !== sifreInput) {
           setGirisHatasi("Hatalı şifre girdiniz!"); 
           setGirisYukleniyor(false); 
@@ -409,7 +408,6 @@ export default function Home() {
 
   const enterTusuKontrol = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') girisYap() }
 
-  // 🔥 ŞİFRE DEĞİŞTİRME FONKSİYONU 🔥
   const sifreDegistirSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       const guncelSifre = seciliKomiser?.sifre || '1923';
@@ -417,17 +415,27 @@ export default function Home() {
       if (yeniSifre.length !== 4 || !/^\d+$/.test(yeniSifre)) { alert("Yeni şifreniz 4 haneli RAKAM olmalıdır!"); return; }
       
       try {
-          const { error } = await supabase.from('komiserler').update({ sifre: yeniSifre }).eq('id', seciliKomiser.id);
+          if (!seciliKomiser?.komiser_id) {
+              alert("Kullanıcı sicil numarası bulunamadı!"); return;
+          }
+          
+          const { error } = await supabase
+              .from('komiserler')
+              .update({ sifre: yeniSifre })
+              .eq('komiser_id', seciliKomiser.komiser_id);
+              
           if (!error) {
-              alert("Şifreniz başarıyla güncellendi!");
+              alert("✅ Şifreniz başarıyla güncellendi!");
               setSeciliKomiser({...seciliKomiser, sifre: yeniSifre});
               localStorage.setItem('izmirKomiserSifre', yeniSifre);
               setSifreDegistirAcik(false);
               setEskiSifre(''); setYeniSifre('');
           } else {
-              alert("Şifre güncellenirken bir hata oluştu.");
+              alert("Hata oluştu: " + error.message);
           }
-      } catch(err) { alert("Bağlantı hatası!"); }
+      } catch(err: any) { 
+          alert("Bağlantı hatası: " + err.message); 
+      }
   }
 
   const cikisYap = () => {
@@ -496,7 +504,7 @@ export default function Home() {
     return (
       <div key={key} className={`border ${g.active ? 'border-blue-400 bg-blue-50/50 shadow-sm' : 'border-slate-200 bg-white'} rounded-xl overflow-hidden mb-3 transition-colors`}>
         <label className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${g.active ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
-          <input type="checkbox" checked={g.active} onChange={e => updateGun(key, 'active', e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
+          <input type="checkbox" checked={g.active} onChange={e => updateGun(key, 'active', e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-50 cursor-pointer" />
           <span className={`font-bold text-lg ${g.active ? 'text-blue-800' : 'text-slate-600'}`}>{label}</span>
         </label>
         {g.active && (
@@ -860,7 +868,7 @@ export default function Home() {
 
   const skorRaporunuGonder = async (macId: number, kayitTuru: 'hizli' | 'detayli') => {
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) { alert("⚠️ Lütfen maçın skorunu giriniz."); return; }
-    if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') { alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen 'Görev Raporu / Hızlı Not' kısmına detayı yazınız."); return; }
+    if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') { alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen detaylıca durumu yazınız."); return; }
     if (kayitTuru === 'detayli') {
         if (!raporDetay.hakem || raporDetay.hakem.trim() === '' || raporDetay.hakem.includes('TIKLA VE') || raporDetay.hakem.includes('YAZ')) { 
             alert("⚠️ Detaylı Raporu iletmek için lütfen en azından Orta Hakem bilgisini giriniz!"); 
@@ -877,7 +885,6 @@ export default function Home() {
     kaydedilecekDetay.hakem_4 = temizHakem(kaydedilecekDetay.hakem_4);
     kaydedilecekDetay.gozlemci = temizHakem(kaydedilecekDetay.gozlemci);
     
-    // 🔥 SADECE İLK KAYITTA TARİH ATILIR, SONRA GÜNCELLENMEZ 🔥
     const mevcutDetay = parseDetay(gecerliAktifMaclar.find(m => m.id === macId)?.tff_rapor_detaylari);
     kaydedilecekDetay.islem_saati = mevcutDetay.islem_saati || Date.now();
 
@@ -909,11 +916,7 @@ export default function Home() {
   const skorSecenekleri = Array.from({ length: 31 }, (_, i) => String(i));
   const haftaToggle = (haftaNo: number) => { setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo]) }
 
-  // 🔥 EKRAN ANA YÖNLENDİRİCİSİ (APP ROUTER) 🔥
-  
   if (aktifEkran === 'dashboard') {
-    // Şifre kontrolü için dashboard yüklenirken bir güvenlik kontrolü yapalım
-    // Eğer seciliKomiser.sifre '1923' ise ana ekranda bir uyarı banner'ı gösterilir
     const sifreUyariGoster = seciliKomiser?.sifre === '1923';
 
     return (
@@ -977,7 +980,6 @@ export default function Home() {
               </div>
             </div>
             
-            {/* ŞİFRE DEĞİŞTİRME BUTONU (DASHBOARD) */}
             <div className="absolute top-4 right-4 z-20">
                 <button onClick={() => setSifreDegistirAcik(true)} className="bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 p-2 rounded-lg shadow transition-colors text-xs font-bold flex items-center gap-1">
                     🔑 Şifremi Değiştir
@@ -1372,7 +1374,7 @@ export default function Home() {
     )
   }
 
-  // 🔥 EKRAN 5: SKOR VE SAHA RAPORU (BEYAZ EKRAN HATASI GİDERİLDİ) 🔥
+  // 🔥 EKRAN 5: SKOR VE SAHA RAPORU 🔥
   if (aktifEkran === 'skorRapor') {
     const tebellugEdilenMaclar = Array.isArray(gecerliAktifMaclar) ? gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true) : [];
 
@@ -1405,7 +1407,7 @@ export default function Home() {
                 const raporGonderilmis = mac.skor_girildi === true;
                 const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
                 
-                const pDetay = parseDetay(mac.tff_rapor_detaylari); // 🔥 GÜVENLİ PARSE 🔥
+                const pDetay = parseDetay(mac.tff_rapor_detaylari); 
                 const detayliGonderilmis = pDetay?.detayli_kaydedildi === true;
 
                 let borderClass = 'border-slate-200';
@@ -1424,7 +1426,6 @@ export default function Home() {
                           <span className="text-slate-500 text-[10px] md:text-xs font-bold uppercase">{gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu)}</span>
                         </div>
                         
-                        {/* AKTİF MAÇ KARTINDA DA "EV SAHİBİ ÜSTTE, MİSAFİR ALTTA" TASARIMI */}
                         <div className="flex flex-col gap-1 mb-1 mt-2">
                             <span className="font-black text-base md:text-xl text-slate-900 leading-snug uppercase truncate">{mac?.ev_sahibi || '-'}</span>
                             <span className="font-black text-base md:text-xl text-slate-900 leading-snug uppercase truncate">{mac?.misafir_takim || '-'}</span>
@@ -1466,7 +1467,7 @@ export default function Home() {
                               {macDurumu === 'yarida_kaldi' && (
                                 <div className="mt-5 bg-red-50 p-5 border border-red-200 rounded-xl text-center shadow-sm">
                                     <span className="text-4xl block mb-2">🛑</span>
-                                    <p className="text-xs font-bold text-red-800 leading-relaxed">Maç yarıda kaldığı için skor kilitlenmiştir. <br/>Lütfen yarıda kalma sebebini ve (eğer varsa) o anki skoru aşağıdaki 'Sistem Notu' kısmına detaylıca yazınız.</p>
+                                    <p className="text-xs font-bold text-red-800 leading-relaxed">Maç yarıda kaldığı için skor kilitlenmiştir. <br/>Lütfen yarıda kalma sebebini ve (eğer varsa) o anki skoru aşağıdaki &apos;Sistem Notu&apos; kısmına detaylıca yazınız.</p>
                                 </div>
                               )}
                               
@@ -1508,7 +1509,7 @@ export default function Home() {
                             </div>
 
                             <div className="tff-no-print bg-slate-50 border border-slate-200 p-4 rounded-xl text-[10px] md:text-xs text-slate-600 mb-5 text-center font-medium shadow-inner">
-                                💡 <b className="text-slate-800">Bilgilendirme Notu:</b> Yüklediğiniz fotoğraflar güvenlik sebebiyle veritabanına kaydedilmez. Resmi "PNG OLARAK İNDİR" butonuna basarak fotoğraflı kanıt dosyanızı anında cihazınıza indirebilir ve saklayabilirsiniz.
+                                💡 <b className="text-slate-800">Bilgilendirme Notu:</b> Yüklediğiniz fotoğraflar güvenlik sebebiyle veritabanına kaydedilmez. Resmi &quot;PNG OLARAK İNDİR&quot; butonuna basarak fotoğraflı kanıt dosyanızı anında cihazınıza indirebilir ve saklayabilirsiniz.
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
@@ -1614,9 +1615,9 @@ export default function Home() {
                     <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-2">ŞİFRENİZİ Mİ UNUTTUNUZ?</h2>
                     <p className="text-sm font-bold text-slate-500 mb-6 leading-relaxed">Hesabınızın güvenliği nedeniyle şifre sıfırlama işlemleri sadece sistem yöneticisi tarafından yapılmaktadır. Lütfen Yönetim ile iletişime geçiniz.</p>
                     
-                    {/* 🔥 SELÇUK HOCANIN NUMARASINI BURAYA YAZ (905 ile başlasın boşluk olmasın) 🔥 */}
-                    <a href={`https://wa.me/905425452081?text=Selçuk%20hocam%20merhaba,%20saha%20komiseri%20sistemi%20şifremi%20unuttum.%20Sıfırlar%20mısınız?`} target="_blank" className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-black py-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 mb-3">
-                        💬 WHATSAPP'TAN YAZ
+                    {/* 🔥 GÜVENLİ WHATSAPP BUTONU (HTML ENTITIES VE NOOPENER İLE) 🔥 */}
+                    <a href={`https://wa.me/905xxxxxxxxx?text=Selçuk%20hocam%20merhaba,%20saha%20komiseri%20sistemi%20şifremi%20unuttum.%20Sıfırlar%20mısınız?`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-black py-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 mb-3">
+                        💬 WHATSAPP&apos;TAN YAZ
                     </a>
                     
                     <button onClick={() => setSifremiUnuttumAcik(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">Giriş Ekranına Dön</button>
