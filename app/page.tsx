@@ -4,6 +4,14 @@ import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 import RehberModal from '../components/RehberModal'
 
+// =========================================================================
+// ⚙️ YÖNETİCİ AYARLARI
+// =========================================================================
+// Herkesin sisteme alışması için mazeret kilidi şu an SÜREKLİ AKTİF. 
+// Sistemi Pazar 23:00 - Salı 08:30 aralığına oturtmak için burayı 'false' yapın.
+const TEST_MODU_MAZERET_SUREKLI_ACIK = true; 
+// =========================================================================
+
 const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
 const GELISIM_SOL_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
 const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original"; 
@@ -119,6 +127,21 @@ const getZaman = (mac: any) => {
 };
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
+const isMazeretWindowOpen = () => {
+    if (TEST_MODU_MAZERET_SUREKLI_ACIK) return true;
+    
+    const now = new Date();
+    const day = now.getDay(); 
+    const hour = now.getHours();
+    const min = now.getMinutes();
+    
+    if (day === 0 && hour >= 23) return true; 
+    if (day === 1) return true;               
+    if (day === 2 && (hour < 8 || (hour === 8 && min < 30))) return true; 
+    
+    return false;
+};
+
 const gelisimOrganizasyon = [
     { id: 'ambulans', text: '1. Müsabakada Ambulans Bulunduruldu mu?' },
     { id: 'doktor', text: '2. Müsabakada ev sahibi takım tarafından doktor görevlendirildi mi?' },
@@ -152,9 +175,6 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
-  // ==========================================
-  // 1. STATE TANIMLAMALARI
-  // ==========================================
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   const [kullaniciIdInput, setKullaniciIdInput] = useState('')
   const [sifreInput, setSifreInput] = useState('')
@@ -166,6 +186,9 @@ export default function Home() {
   const [yeniSifre, setYeniSifre] = useState('')
   const [sifremiUnuttumAcik, setSifremiUnuttumAcik] = useState(false)
   const [rehberAcik, setRehberAcik] = useState(false)
+  
+  // 🔥 ZORUNLU MAZERET KİLİDİ STATE'İ 🔥
+  const [zorunluMazeret, setZorunluMazeret] = useState(false)
   
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
@@ -192,8 +215,6 @@ export default function Home() {
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
-  const [acikSicilSaha, setAcikSicilSaha] = useState<string | null>(null)
-  const [acikSicilTffMacId, setAcikSicilTffMacId] = useState<number | null>(null)
   const [acikStatu, setAcikStatu] = useState<any | null>(null) 
   const [arsivTamEkranMac, setArsivTamEkranMac] = useState<any | null>(null) 
 
@@ -227,7 +248,7 @@ export default function Home() {
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
 
   // ==========================================
-  // 2. ORTAK HESAPLAMALAR
+  // HESAPLAMALAR
   // ==========================================
   let gecerliAktifMaclar: any[] = [];
   const gecmisHaftalar: Record<number, any[]> = {};
@@ -259,13 +280,10 @@ export default function Home() {
   const tebellugBekleyenSayisi = gecerliAktifMaclar.filter(m => m && !m.tebellug_edildi).length;
   const herSeyTamam = gecerliAktifMaclar.length > 0 && tebellugBekleyenSayisi === 0 && eksikSkorSayisi === 0 && eksikDetayliSayisi === 0;
 
-  // 🔥 Eksik olan tebellugEdilenMaclar listesi eklendi! 🔥
   const tebellugEdilenMaclar = Array.isArray(gecerliAktifMaclar) ? gecerliAktifMaclar.filter(m => m?.tebellug_edildi === true) : [];
-
   const skorSecenekleri = Array.from({ length: 31 }, (_, i) => String(i));
   const sifreUyariGoster = seciliKomiser?.sifre === '1923';
-  const mazeretKapisiAcikMi = () => true; 
-  const mazeretAcik = mazeretKapisiAcikMi();
+  const mazeretAcik = isMazeretWindowOpen();
 
   // İstatistikler için
   let amatorCount = 0; let profCount = 0; let gelisimCount = 0; let kadinCount = 0;
@@ -314,14 +332,44 @@ export default function Home() {
   const siraliTakimlar = Array.from(new Set([...guvenliTumMaclar.map(m => m?.ev_sahibi), ...guvenliTumMaclar.map(m => m?.misafir_takim)].filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string, 'tr-TR'));
 
   // ==========================================
-  // 3. USEEFFECT DÖNGÜLERİ
+  // ZORUNLU MAZERET KONTROLÜ (DB'DEN)
   // ==========================================
   useEffect(() => {
-    if (aktifEkran === 'dashboard') {
-      const okunduMu = localStorage.getItem('izmirSahaRehberOkundu');
-      if (okunduMu !== 'true') { setRehberAcik(true); }
+    let isMounted = true;
+    if (seciliKomiser && globalAktifHaftaNo > 0) {
+        const checkZorunluMazeret = async () => {
+            if (isMazeretWindowOpen()) {
+                const hedefHafta = globalAktifHaftaNo + 1;
+                const { data, error } = await supabase
+                    .from('mazeretler')
+                    .select('id')
+                    .eq('komiser_id', seciliKomiser.komiser_id)
+                    .eq('hafta_no', hedefHafta);
+                
+                if (isMounted) {
+                    if (!error && (!data || data.length === 0)) {
+                        setZorunluMazeret(true);
+                    } else {
+                        setZorunluMazeret(false);
+                    }
+                }
+            } else {
+                if (isMounted) setZorunluMazeret(false);
+            }
+        };
+        checkZorunluMazeret();
     }
-  }, [aktifEkran]);
+    return () => { isMounted = false; };
+  }, [seciliKomiser, globalAktifHaftaNo]);
+
+  useEffect(() => {
+    if (aktifEkran === 'dashboard' && !zorunluMazeret) {
+      const okunduMu = localStorage.getItem('izmirSahaRehberOkundu');
+      if (okunduMu !== 'true') {
+        setRehberAcik(true);
+      }
+    }
+  }, [aktifEkran, zorunluMazeret]);
 
   const rehberiKapatVeKaydet = () => {
     localStorage.setItem('izmirSahaRehberOkundu', 'true');
@@ -419,9 +467,6 @@ export default function Home() {
     return () => { aktif = false; }
   }, [aktifEkran])
 
-  // ==========================================
-  // 4. TETİKLENEN YARDIMCI FONKSİYONLAR
-  // ==========================================
   const updateGun = (key: string, field: string, val: any) => { setGunler(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
 
   const girisYap = async (e?: React.FormEvent) => {
@@ -479,6 +524,7 @@ export default function Home() {
     setAramaKomiser(''); setAramaSaha(''); setAramaTakim('');
     setAktifEkran('giris'); setArsivAcik(false); setAcikHaftalar([]);
     setAcikStatu(null); setArsivTamEkranMac(null);
+    setZorunluMazeret(false); // Çıkışta kilidi sıfırla
     setMazeretTipi(null); setKompleYokum(false); setGenelMerkez(true); setGenelDeplasman(false); setMazeretNotu('');
     setGunler({
       cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
@@ -499,7 +545,6 @@ export default function Home() {
     const anaKat = getAnaKategori(kategori);
     const kod = String(macKodu || "").toLocaleUpperCase('tr-TR');
     const katStr = String(kategori || "").toLocaleUpperCase('tr-TR');
-    
     if (kod.includes('DENETÇİ') || katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return "BAL Ligi Denetçisi";
     if (kod.includes('STAJ')) return "Stajyer / Saha Komiseri";
     if (anaKat === 'profesyonel') return "Saha Komiseri";
@@ -542,6 +587,7 @@ export default function Home() {
       const { error } = await supabase.from('mazeretler').insert([payload]);
       if (!error) {
         setMazeretKaydedildi(true); 
+        setZorunluMazeret(false); // Kayıt başarılıysa kilidi aç!
         setTimeout(() => { setAktifEkran('dashboard'); setMazeretKaydedildi(false); }, 3000); 
       } else { alert("Sisteme iletilemedi: " + error.message); }
     } catch (err) { alert("Bağlantı hatası oluştu."); } 
@@ -564,12 +610,10 @@ export default function Home() {
         
         const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
         const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
-        
         if (!birlesikDetay.gelisim_sorular || typeof birlesikDetay.gelisim_sorular !== 'object') birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
         if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
         if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
         if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
-        
         setRaporDetay(birlesikDetay); 
       } else { setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); setEkRaporFotolar({}); }
     }
@@ -603,27 +647,18 @@ export default function Home() {
   }
 
   const ekRaporEkle = () => {
-      setRaporDetay((prev:any) => ({
-          ...prev, 
-          ek_raporlar: [...(Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []), { id: Date.now(), text: '' }]
-      }));
+      setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: [...(Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []), { id: Date.now(), text: '' }] }));
   }
   
   const ekRaporSil = (id: number) => {
-      setRaporDetay((prev:any) => ({
-          ...prev, 
-          ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).filter((r:any) => r.id !== id)
-      }));
+      setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).filter((r:any) => r.id !== id) }));
       const yeniFotolar = {...ekRaporFotolar};
       delete yeniFotolar[id];
       setEkRaporFotolar(yeniFotolar);
   }
   
   const ekRaporGuncelle = (id: number, text: string) => {
-      setRaporDetay((prev:any) => ({
-          ...prev, 
-          ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r)
-      }));
+      setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r) }));
   }
   
   const handleFotoYukle = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -729,7 +764,6 @@ export default function Home() {
 
     setSkorKaydediliyor(true);
     let kaydedilecekDetay = { ...raporDetay };
-    
     kaydedilecekDetay.hakem = temizHakem(kaydedilecekDetay.hakem);
     kaydedilecekDetay.y_hakem_1 = temizHakem(kaydedilecekDetay.y_hakem_1);
     kaydedilecekDetay.y_hakem_2 = temizHakem(kaydedilecekDetay.y_hakem_2);
@@ -763,9 +797,13 @@ export default function Home() {
     finally { setSkorKaydediliyor(false); }
   }
 
+  const haftaToggle = (haftaNo: number) => { setAcikHaftalar(prev => prev.includes(haftaNo) ? prev.filter(h => h !== haftaNo) : [...prev, haftaNo]) }
+  
   // ==========================================
-  // 5. COMPONENT GÖRSEL FONKSİYONLARI
+  // ZORUNLU EKRAN KONTROLÜ
   // ==========================================
+  const gercekAktifEkran = zorunluMazeret ? 'mazeretBildir' : aktifEkran;
+
   const renderOrtakHeader = (geriButonuGoster = false) => (
     <header className="bg-slate-800 text-white shadow-md sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
@@ -781,7 +819,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {geriButonuGoster ? (
+        {geriButonuGoster && !zorunluMazeret ? (
           <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm transition-colors border border-slate-300 uppercase tracking-widest">Geri Dön</button>
         ) : (
           <button onClick={cikisYap} className="bg-red-700 hover:bg-red-800 text-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow transition-colors uppercase tracking-widest border border-red-800">Çıkış</button>
@@ -879,11 +917,9 @@ export default function Home() {
 
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = prefix === 'aktif' ? raporDetay : parseDetay(mac?.tff_rapor_detaylari);
-      
       const raporTuru = raporTurunuBelirle(mac?.kategori_adi);
       const hakemModu = getHakemGosterimModu(mac?.kategori_adi);
       const hakemBaslik = hakemModu === 'tek_hakem' ? 'HAKEM' : (hakemModu === 'uc_hakem' ? 'HAKEMLER' : 'HAKEMLER VE GÖZLEMCİ');
-
       const komiserTamIsim = seciliKomiser?.ad_soyad || 'KOMİSER';
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const komiserTelefon = seciliKomiser?.telefon || '';
@@ -892,14 +928,11 @@ export default function Home() {
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
-
       const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
 
       return (
           <div id={`${prefix}-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
-              <style dangerouslySetInnerHTML={{__html: `
-                  @media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }
-              `}} />
+              <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
               
               {raporTuru === 'amator' && (
               <div className="border-[3px] border-double border-slate-600 p-4">
@@ -1187,27 +1220,53 @@ export default function Home() {
       );
   }
 
-  return (
-    <Fragment>
-      {/* 1) GİRİŞ EKRANI */}
-      {aktifEkran === 'giris' && (
+  // ==========================================
+  // ANA RENDER AKIŞI
+  // ==========================================
+  
+  // ZORUNLU EKRAN YÖNLENDİRMESİ
+  if (gercekAktifEkran === 'mazeretBildir' && zorunluMazeret) {
+      return (
+        <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
+          {renderOrtakHeader(!zorunluMazeret)}
+          {mazeretKaydedildi ? (<div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold uppercase tracking-widest">Sisteme Yönlendiriliyorsunuz...</p></div></div>) : (
+              <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
+                 <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200">
+                    
+                    {/* ZORUNLU MAZERET UYARISI */}
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-xl shadow-sm">
+                        <h3 className="text-red-800 font-black text-sm md:text-base uppercase flex items-center gap-2">
+                            <span className="text-xl">⚠️</span> ZORUNLU İŞLEM
+                        </h3>
+                        <p className="text-red-700 text-xs md:text-sm mt-1 font-medium">
+                            Sisteme giriş yapabilmek ve görev alabilmek için önümüzdeki haftanın müsaitlik durumunu bildirmeniz zorunludur. Lütfen aşağıdaki seçeneklerden birini işaretleyerek kaydediniz.
+                        </p>
+                    </div>
+
+                    <div className="text-center md:text-left border-b border-slate-100 pb-4 mb-6"><h2 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">Müsaitlik / Mazeret Bildirimi</h2><p className="text-sm md:text-base font-bold text-slate-500 mt-2">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta için görev alma durumunuzu belirtiniz.</p></div>
+                    <div className="space-y-4 mb-8"><button onClick={() => { setMazeretTipi('yok'); setKompleYokum(true); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'yok' ? 'border-red-400 bg-red-50 text-red-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">⛔</span> Tüm Hafta Mazeretliyim (Görev İstemiyorum)</button><button onClick={() => { setMazeretTipi('full'); setKompleYokum(false); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'full' ? 'border-blue-400 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">✅</span> Tüm Hafta Müsaitim (Merkez/Deplasman Uyar)</button><button onClick={() => { setMazeretTipi('secmeli'); setKompleYokum(false); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'secmeli' ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">📅</span> Sadece Seçtiğim Günler ve Saatler Müsaitim</button></div>
+                    {mazeretTipi === 'full' && (<div className="bg-blue-50 p-6 rounded-xl mb-8 border border-blue-200 animate-fade-in-down shadow-sm"><h4 className="font-black text-blue-900 mb-4 text-sm uppercase tracking-widest">Hangi bölgelerde görev alabilirsiniz?</h4><div className="flex gap-6"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={(e) => setGenelMerkez(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">Merkez</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={(e) => setGenelDeplasman(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">Deplasman</span></label></div></div>)}
+                    {mazeretTipi === 'secmeli' && (<div className="mb-8 animate-fade-in-down space-y-3"><h4 className="font-black text-slate-700 mb-4 text-sm uppercase tracking-widest px-2">Müsait Olduğunuz Günleri Seçiniz</h4>{renderGunSatiri('cuma', 'Cuma')}{renderGunSatiri('cumartesi', 'Cumartesi')}{renderGunSatiri('pazar', 'Pazar')}{renderGunSatiri('pazartesi', 'Pazartesi')}{renderGunSatiri('sali', 'Salı')}{renderGunSatiri('carsamba', 'Çarşamba')}{renderGunSatiri('persembe', 'Perşembe')}</div>)}
+                    <div className="mb-8"><label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Notu (Opsiyonel)</label><textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none min-h-[120px] font-medium text-sm text-slate-700 bg-slate-50 transition-colors" placeholder="Varsa şube yönetimine iletmek istediğiniz özel bir not..."></textarea></div>
+                    <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor || (!mazeretTipi && !kompleYokum)} className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:hover:bg-slate-800 text-white font-black py-5 rounded-xl shadow-sm uppercase tracking-widest transition-transform hover:scale-[1.01] flex items-center justify-center gap-2">{mazeretKaydediliyor ? '⚙️ İŞLENİYOR...' : '🚀 BİLDİRİMİ GÖNDER'}</button>
+                 </div>
+              </div>
+          )}
+        </main>
+      );
+  }
+
+  // --- NORMAL EKRANLAR (KİLİTLİ DEĞİLSE ÇALIŞIR) ---
+  if (gercekAktifEkran === 'giris') {
+      return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
           {sifremiUnuttumAcik && (
-              <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 backdrop-blur-sm">
-                  <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6 text-center">
-                      <span className="text-5xl block mb-4">🔐</span>
-                      <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-2">ŞİFRENİZİ Mİ UNUTTUNUZ?</h2>
-                      <p className="text-sm font-bold text-slate-500 mb-6 leading-relaxed">Hesabınızın güvenliği nedeniyle şifre sıfırlama işlemleri sadece sistem yöneticisi tarafından yapılmaktadır. Lütfen Yönetim ile iletişime geçiniz.</p>
-                      <a href={`https://wa.me/905xxxxxxxxx?text=Selçuk%20hocam%20merhaba,%20saha%20komiseri%20sistemi%20şifremi%20unuttum.%20Sıfırlar%20mısınız?`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-black py-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 mb-3">💬 WHATSAPP&apos;TAN YAZ</a>
-                      <button onClick={() => setSifremiUnuttumAcik(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">Giriş Ekranına Dön</button>
-                  </div>
-              </div>
+              <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6 text-center"><span className="text-5xl block mb-4">🔐</span><h2 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-2">ŞİFRENİZİ Mİ UNUTTUNUZ?</h2><p className="text-sm font-bold text-slate-500 mb-6 leading-relaxed">Hesabınızın güvenliği nedeniyle şifre sıfırlama işlemleri sadece sistem yöneticisi tarafından yapılmaktadır. Lütfen Yönetim ile iletişime geçiniz.</p><a href={`https://wa.me/905xxxxxxxxx?text=Selçuk%20hocam%20merhaba,%20saha%20komiseri%20sistemi%20şifremi%20unuttum.%20Sıfırlar%20mısınız?`} target="_blank" rel="noopener noreferrer" className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-black py-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 mb-3">💬 WHATSAPP&apos;TAN YAZ</a><button onClick={() => setSifremiUnuttumAcik(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">Giriş Ekranına Dön</button></div></div>
           )}
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
             <div className="flex justify-center mb-6"><div className="w-24 h-24 bg-white rounded-full p-2 shadow-lg border border-slate-100 -mt-16 flex items-center justify-center"><img src={DERNEK_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="w-[85%] h-[85%] object-contain" /></div></div>
-            <h1 className="text-sm font-black tracking-widest text-slate-800 uppercase leading-snug mb-1">TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ</h1>
-            <h2 className="text-[11px] font-bold text-red-600 tracking-widest uppercase mb-8">İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ</h2>
+            <h1 className="text-sm font-black tracking-widest text-slate-800 uppercase leading-snug mb-1">TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ</h1><h2 className="text-[11px] font-bold text-red-600 tracking-widest uppercase mb-8">İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ</h2>
             <form onSubmit={girisYap} className="space-y-4">
               <div><input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
               <div><input type="password" placeholder="4 Haneli Şifreniz" value={sifreInput} onChange={(e) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={4} inputMode="numeric" pattern="\d{4}" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
@@ -1218,42 +1277,18 @@ export default function Home() {
           </div>
           <div className="absolute bottom-6 text-[10px] text-slate-400 font-medium tracking-widest uppercase text-center w-full z-10">SahaKom-OS Türkiye © 2026<br/>Tüm Hakları Saklıdır</div>
         </div>
-      )}
+      );
+  }
 
-      {/* 2) DASHBOARD EKRANI */}
-      {aktifEkran === 'dashboard' && (
+  if (gercekAktifEkran === 'dashboard') {
+      return (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           {renderOrtakHeader(false)}
           <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6">
-            {sifreUyariGoster && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse"><div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm uppercase tracking-wide">Güvenlik Uyarısı</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div><button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs uppercase tracking-widest w-full sm:w-auto">Şifremi Değiştir</button></div>
-            )}
+            {sifreUyariGoster && (<div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse"><div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm uppercase tracking-wide">Güvenlik Uyarısı</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div><button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs uppercase tracking-widest w-full sm:w-auto">Şifremi Değiştir</button></div>)}
             <div className="bg-slate-800 rounded-2xl shadow-xl p-6 mb-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 border-t-4 border-blue-500 relative overflow-hidden">
-              <div className="text-center md:text-left flex-1 relative z-10 w-full">
-                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">{seciliKomiser?.ad_soyad || 'Komiser'}</h2>
-                <div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2"><span className="bg-slate-700 text-blue-100 font-mono text-xs font-bold px-3 py-1.5 rounded-md border border-slate-600 shadow-sm">SİCİL NO: {seciliKomiser?.komiser_id || '-'}</span><span className="bg-blue-900/50 text-blue-200 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-800 shadow-sm">BU SEZON: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} GÖREV</span></div>
-                <div className="mt-5 space-y-3 animate-fade-in-down w-full">
-                  {tebellugBekleyenSayisi > 0 ? (
-                    <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm animate-pulse gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2">🔔 Yeni Atanan {tebellugBekleyenSayisi} Göreviniz Var!</span><button onClick={() => setAktifEkran('gorevKartlari')} className="w-full sm:w-auto text-[10px] md:text-xs bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow uppercase border border-blue-600">Önce Tebellüğ Et</button></div>
-                  ) : (
-                    <>
-                      {eksikSkorSayisi > 0 && (
-                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">⏳ Skoru Beklenen {eksikSkorSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded shadow border border-amber-500">GİRİŞ YAP</button></div>
-                      )}
-                      {eksikDetayliSayisi > 0 && (
-                        <div className="bg-red-50 border border-red-300 text-red-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">📝 Detaylı Raporu Beklenen {eksikDetayliSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow border border-red-500">RAPORLA</button></div>
-                      )}
-                      {herSeyTamam && (
-                         <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-lg flex items-start shadow-sm animate-fade-in-up"><span className="text-2xl md:text-3xl mr-3 mt-1">✅</span><div><h4 className="font-black text-sm md:text-base uppercase tracking-wider text-emerald-900">{globalAktifHaftaNo}. Hafta Görevleri Tamamlandı</h4><p className="text-[10px] md:text-xs font-medium mt-0.5 text-emerald-800">Tarafınıza tevdi edilen tüm müsabakaları tebellüğ ettiniz ve raporlamalarını eksiksiz tamamladınız. İzmir Şube Yönetimi adına teşekkür ederiz.</p></div></div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto z-20 shrink-0 mt-2 md:mt-0 justify-center">
-                  <button onClick={() => setRehberAcik(true)} className="flex-1 md:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">ℹ️ Kullanım Rehberi</button>
-                  <button onClick={() => setSifreDegistirAcik(true)} className="flex-1 md:flex-none justify-center bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">🔑 Şifremi Değiştir</button>
-              </div>
+              <div className="text-center md:text-left flex-1 relative z-10 w-full"><h2 className="text-2xl md:text-3xl font-black text-white tracking-tight uppercase">{seciliKomiser?.ad_soyad || 'Komiser'}</h2><div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2"><span className="bg-slate-700 text-blue-100 font-mono text-xs font-bold px-3 py-1.5 rounded-md border border-slate-600 shadow-sm">SİCİL NO: {seciliKomiser?.komiser_id || '-'}</span><span className="bg-blue-900/50 text-blue-200 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-800 shadow-sm">BU SEZON: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} GÖREV</span></div><div className="mt-5 space-y-3 animate-fade-in-down w-full">{tebellugBekleyenSayisi > 0 ? (<div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm animate-pulse gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2">🔔 Yeni Atanan {tebellugBekleyenSayisi} Göreviniz Var!</span><button onClick={() => setAktifEkran('gorevKartlari')} className="w-full sm:w-auto text-[10px] md:text-xs bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow uppercase border border-blue-600">Önce Tebellüğ Et</button></div>) : (<>{eksikSkorSayisi > 0 && (<div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">⏳ Skoru Beklenen {eksikSkorSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded shadow border border-amber-500">GİRİŞ YAP</button></div>)}{eksikDetayliSayisi > 0 && (<div className="bg-red-50 border border-red-300 text-red-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">📝 Detaylı Raporu Beklenen {eksikDetayliSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow border border-red-500">RAPORLA</button></div>)}{herSeyTamam && (<div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-lg flex items-start shadow-sm animate-fade-in-up"><span className="text-2xl md:text-3xl mr-3 mt-1">✅</span><div><h4 className="font-black text-sm md:text-base uppercase tracking-wider text-emerald-900">{globalAktifHaftaNo}. Hafta Görevleri Tamamlandı</h4><p className="text-[10px] md:text-xs font-medium mt-0.5 text-emerald-800">Tarafınıza tevdi edilen tüm müsabakaları tebellüğ ettiniz ve raporlamalarını eksiksiz tamamladınız. İzmir Şube Yönetimi adına teşekkür ederiz.</p></div></div>)}</>)}</div></div>
+              <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto z-20 shrink-0 mt-2 md:mt-0 justify-center"><button onClick={() => setRehberAcik(true)} className="flex-1 md:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">ℹ️ Kullanım Rehberi</button><button onClick={() => setSifreDegistirAcik(true)} className="flex-1 md:flex-none justify-center bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">🔑 Şifremi Değiştir</button></div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1265,11 +1300,13 @@ export default function Home() {
             {mazeretAcik ? (<button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white uppercase tracking-wide">📅 Müsaitlik / Mazeret Bildir</h4></div></button>) : (<button disabled className="w-full p-5 rounded-2xl bg-slate-200 opacity-60 cursor-not-allowed border-2 border-slate-300"><h4 className="font-black text-sm text-slate-500 text-left uppercase">Sistem Kapalı</h4></button>)}
           </div>
           {sifreDegistirAcik && (<div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6"><h2 className="text-lg font-black text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">ŞİFREYİ DEĞİŞTİR</h2><form onSubmit={sifreDegistirSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 mb-1">Mevcut Şifreniz</label><input type="password" value={eskiSifre} onChange={e => setEskiSifre(e.target.value)} maxLength={4} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">Yeni Şifreniz (4 Haneli Rakam)</label><input type="password" value={yeniSifre} onChange={e => setYeniSifre(e.target.value)} maxLength={4} pattern="\d{4}" className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required /></div><div className="flex gap-3 mt-6"><button type="button" onClick={() => setSifreDegistirAcik(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">İptal</button><button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors text-sm shadow-md">Kaydet</button></div></form></div></div>)}
+          <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
         </main>
-      )}
+      );
+  }
 
-      {/* 3) GÖREV KARTLARI EKRANI */}
-      {aktifEkran === 'gorevKartlari' && (
+  if (gercekAktifEkran === 'gorevKartlari') {
+      return (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans relative">
           {renderOrtakHeader(true)}
           <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
@@ -1289,10 +1326,11 @@ export default function Home() {
             </div>
           </div>
         </main>
-      )}
+      );
+  }
 
-      {/* 4) SKOR VE SAHA RAPORU EKRANI */}
-      {aktifEkran === 'skorRapor' && (
+  if (gercekAktifEkran === 'skorRapor') {
+      return (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           <datalist id="hakem-listesi">{hakemListesi?.map((hakem, i) => <option key={`hakem-${i}`} value={hakem || ''} />)}</datalist>
           <datalist id="gozlemci-listesi">{gozlemciListesi?.map((gozlemci, i) => <option key={`gozlemci-${i}`} value={gozlemci || ''} />)}</datalist>
@@ -1369,10 +1407,11 @@ export default function Home() {
             )}
           </div>
         </main>
-      )}
+      );
+  }
 
-      {/* 5) İSTATİSTİKLER EKRANI */}
-      {aktifEkran === 'istatistiklerim' && (
+  if (gercekAktifEkran === 'istatistiklerim') {
+      return (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           {renderOrtakHeader(true)}
           <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
@@ -1387,10 +1426,11 @@ export default function Home() {
               </div>
           </div>
         </main>
-      )}
+      );
+  }
 
-      {/* 6) BÜLTEN ARAMA EKRANI */}
-      {aktifEkran === 'bultenArama' && (
+  if (gercekAktifEkran === 'bultenArama') {
+      return (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           {renderOrtakHeader(true)}
           <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
@@ -1421,39 +1461,16 @@ export default function Home() {
             </div>
           </div>
         </main>
-      )}
+      );
+  }
 
-      {/* 7) MAZERET BİLDİRİM EKRANI */}
-      {aktifEkran === 'mazeretBildir' && (
-        <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
-          {renderOrtakHeader(true)}
-          {mazeretKaydedildi ? (<div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz Türkiye Futbol Saha Komiserleri İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold uppercase tracking-widest">Ana Ekrana Yönlendiriliyorsunuz...</p></div></div>) : (
-              <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
-                 <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200">
-                    <div className="text-center md:text-left border-b border-slate-100 pb-4 mb-6"><h2 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">Müsaitlik / Mazeret Bildirimi</h2><p className="text-sm md:text-base font-bold text-slate-500 mt-2">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta için görev alma durumunuzu belirtiniz.</p></div>
-                    <div className="space-y-4 mb-8"><button onClick={() => { setMazeretTipi('yok'); setKompleYokum(true); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'yok' ? 'border-red-400 bg-red-50 text-red-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">⛔</span> Tüm Hafta Mazeretliyim (Görev İstemiyorum)</button><button onClick={() => { setMazeretTipi('full'); setKompleYokum(false); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'full' ? 'border-blue-400 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">✅</span> Tüm Hafta Müsaitim (Merkez/Deplasman Uyar)</button><button onClick={() => { setMazeretTipi('secmeli'); setKompleYokum(false); }} className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left uppercase tracking-wide transition-all ${mazeretTipi === 'secmeli' ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">📅</span> Sadece Seçtiğim Günler ve Saatler Müsaitim</button></div>
-                    {mazeretTipi === 'full' && (<div className="bg-blue-50 p-6 rounded-xl mb-8 border border-blue-200 animate-fade-in-down shadow-sm"><h4 className="font-black text-blue-900 mb-4 text-sm uppercase tracking-widest">Hangi bölgelerde görev alabilirsiniz?</h4><div className="flex gap-6"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={(e) => setGenelMerkez(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">Merkez</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={(e) => setGenelDeplasman(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">Deplasman</span></label></div></div>)}
-                    {mazeretTipi === 'secmeli' && (<div className="mb-8 animate-fade-in-down space-y-3"><h4 className="font-black text-slate-700 mb-4 text-sm uppercase tracking-widest px-2">Müsait Olduğunuz Günleri Seçiniz</h4>{renderGunSatiri('cuma', 'Cuma')}{renderGunSatiri('cumartesi', 'Cumartesi')}{renderGunSatiri('pazar', 'Pazar')}{renderGunSatiri('pazartesi', 'Pazartesi')}{renderGunSatiri('sali', 'Salı')}{renderGunSatiri('carsamba', 'Çarşamba')}{renderGunSatiri('persembe', 'Perşembe')}</div>)}
-                    <div className="mb-8"><label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Notu (Opsiyonel)</label><textarea value={mazeretNotu} onChange={(e) => setMazeretNotu(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none min-h-[120px] font-medium text-sm text-slate-700 bg-slate-50 transition-colors" placeholder="Varsa şube yönetimine iletmek istediğiniz özel bir not..."></textarea></div>
-                    <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor || (!mazeretTipi && !kompleYokum)} className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:hover:bg-slate-800 text-white font-black py-5 rounded-xl shadow-sm uppercase tracking-widest transition-transform hover:scale-[1.01] flex items-center justify-center gap-2">{mazeretKaydediliyor ? '⚙️ İŞLENİYOR...' : '🚀 BİLDİRİMİ GÖNDER'}</button>
-                 </div>
-              </div>
-          )}
-        </main>
-      )}
-
-      {/* --- ORTAK MODALLAR (TÜM EKRANLARDA ÇALIŞABİLİR) --- */}
-      {acikStatu && (
-          <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300"><div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700"><h2 className="text-white font-black tracking-widest uppercase text-sm flex items-center gap-2"><span className="text-xl">ℹ️</span> {acikStatu.baslik}</h2><button onClick={() => setAcikStatu(null)} className="text-slate-300 hover:text-white font-bold text-xl leading-none transition-colors">✕</button></div><div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar"><div className="border-b border-slate-200 pb-3"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">🏃 Yaş Sınırı</h4><p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri}</p></div><div className="flex gap-4 border-b border-slate-200 pb-3"><div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">⏱️ Müsabaka Süresi</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure}</p></div><div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">⚽ Top Numarası</h4><p className="text-sm font-black text-amber-600">{acikStatu.top}</p></div></div><div className="flex gap-4 border-b border-slate-200 pb-3"><div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">⚖️ Hakem Sayısı</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div></div><div className="border-b border-slate-200 pb-3"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">🔄 Oyuncu Değişikliği</h4><p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik}</p></div><div className="pb-2"><h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">⚖️ Beraberlik Durumu</h4><p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik}</p></div></div><div className="bg-slate-50 p-3 text-center border-t border-slate-200"><button onClick={() => setAcikStatu(null)} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg text-xs uppercase tracking-widest transition-colors w-full shadow-sm">ANLADIM, KAPAT</button></div></div></div>
-      )}
-
-      {arsivTamEkranMac && (
-          <div className="fixed inset-0 bg-black/90 z-[120] flex flex-col backdrop-blur-sm"><div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg"><h2 className="text-xs md:text-lg font-black text-white tracking-widest uppercase truncate flex-1 pr-4">📄 TFF RAPORU: {arsivTamEkranMac.ev_sahibi} <span className="font-medium text-slate-400">vs</span> {arsivTamEkranMac.misafir_takim}</h2><div className="flex items-center gap-3 shrink-0"><button onClick={() => tffTutanakIndir(arsivTamEkranMac, 'arsiv-tam')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">📸 İNDİR</button><button onClick={() => setArsivTamEkranMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button></div></div><div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar"><div className="shadow-2xl bg-white w-full max-w-none md:max-w-max transform origin-top mx-auto">{renderTffRaporu(arsivTamEkranMac, 'arsiv-tam')}</div></div></div>
-      )}
-
-      {/* YENİ EKLENEN REHBER DOSYASI (GLOBAL) */}
-      <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-
-    </Fragment>
+  // --- EĞER HERHANGİ BİR SEBEPLE EKRAN BULUNAMAZSA ---
+  return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 font-sans">
+          <div className="text-center">
+              <h1 className="text-2xl font-black text-slate-800 mb-2">SİSTEM YÜKLENİYOR...</h1>
+              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+      </div>
   );
 }
