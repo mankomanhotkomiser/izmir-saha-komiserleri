@@ -133,7 +133,7 @@ const isMazeretWindowOpen = () => {
     const hour = now.getHours();
     const min = now.getMinutes();
     if (day === 0 && hour >= 23) return true; 
-    if (day === 1) return true;               
+    if (day === 1) return true;                
     if (day === 2 && (hour < 8 || (hour === 8 && min < 30))) return true; 
     return false;
 };
@@ -230,7 +230,10 @@ export default function Home() {
   const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
   const [evSkor, setEvSkor] = useState<string>('')
   const [misafirSkor, setMisafirSkor] = useState<string>('')
-  const [macDurumu, setMacDurumu] = useState<'oynandi' | 'yarida_kaldi' | 'takimlar_cikmadi'>('oynandi')
+  
+  // 🔥 DEĞİŞİKLİK BURADA: Artık varsayılan olarak "oynandi" değil, boş gelecek.
+  const [macDurumu, setMacDurumu] = useState<'' | 'oynandi' | 'yarida_kaldi' | 'takimlar_cikmadi'>('')
+  
   const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay' | 'hava_muhalefeti' | 'saha_sorunu'>('olaysiz')
   const [raporNotu, setRaporNotu] = useState('')
   const [ekRaporFotolar, setEkRaporFotolar] = useState<Record<string, string>>({});
@@ -599,8 +602,9 @@ export default function Home() {
     finally { setMazeretKaydediliyor(false); }
   }
 
+  // 🔥 DEĞİŞİKLİK BURADA: SIFIRLARKEN BOŞ BIRAK (Tıklamayı engeller)
   const skorFormunuSifirla = () => {
-    setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null); setRaporDetay(defaultRaporDetay);
+    setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null); setRaporDetay(defaultRaporDetay);
     setEkRaporFotolar({});
   }
 
@@ -611,7 +615,7 @@ export default function Home() {
       if (mac.skor_girildi) {
         setEvSkor(mac.ev_sahibi_skor != null ? String(mac.ev_sahibi_skor) : '');
         setMisafirSkor(mac.misafir_skor != null ? String(mac.misafir_skor) : '');
-        setMacDurumu(mac.mac_durumu || 'oynandi'); setOlayDurumu(mac.olay_durumu || 'olaysiz'); setRaporNotu(mac.rapor_notu || '');
+        setMacDurumu(mac.mac_durumu || ''); setOlayDurumu(mac.olay_durumu || 'olaysiz'); setRaporNotu(mac.rapor_notu || '');
         
         const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
         const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
@@ -620,7 +624,7 @@ export default function Home() {
         if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
         if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
         setRaporDetay(birlesikDetay); 
-      } else { setEvSkor(''); setMisafirSkor(''); setMacDurumu('oynandi'); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); setEkRaporFotolar({}); }
+      } else { setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); setEkRaporFotolar({}); }
     }
   }
 
@@ -758,7 +762,30 @@ export default function Home() {
       }
   }
 
+  // 🔥 AKILLI KELİME AVCISI VE ZORUNLU SEÇİM BLOKAJI 🔥
   const skorRaporunuGonder = async (macId: number, kayitTuru: 'hizli' | 'detayli') => {
+    
+    // 1. ZORUNLU SEÇİM BLOKAJI
+    if (macDurumu === '') {
+        alert("⚠️ DİKKAT: Lütfen önce Müsabaka Durumunu (Tamamlandı / Yarıda Kaldı vb.) seçiniz!");
+        return;
+    }
+
+    // 2. KELİME AVCISI BLOKAJI
+    const lowerNot = raporNotu.toLocaleLowerCase('tr-TR');
+    const olayYaridaMi = lowerNot.includes('tatil') ||
+                        lowerNot.includes('yarıda kaldı') ||
+                        lowerNot.includes('yarida kaldi') ||
+                        lowerNot.includes('yarıda kaldi') ||
+                        lowerNot.includes('yarida kaldı') ||
+                        lowerNot.includes('tamamlanamadı') ||
+                        lowerNot.includes('tamamlanamadi');
+
+    if (olayYaridaMi && macDurumu === 'oynandi') {
+        alert("🚨 DİKKAT: Raporunuzda maçın 'tatil' edildiğini veya 'yarıda kaldığını' belirttiniz!\n\nBu yüzden müsabaka durumunu 'Müsabaka Tamamlandı' olarak seçemezsiniz. Lütfen durumu 'Maç Yarıda Kaldı' olarak düzeltip tekrar gönderiniz.");
+        return;
+    }
+
     if (macDurumu === 'oynandi' && (evSkor === '' || misafirSkor === '')) { alert("⚠️ Lütfen maçın skorunu giriniz."); return; }
     if ((olayDurumu === 'teknik_olay' || olayDurumu === 'emniyetlik_olay') && raporNotu.trim() === '') { alert("⚠️ Olaylı bir maç bildirdiniz. Lütfen detaylıca durumu yazınız."); return; }
     if (kayitTuru === 'detayli') {
@@ -1129,7 +1156,7 @@ export default function Home() {
                   <div className="border border-black text-xs font-bold mb-6 w-2/3">
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">GÜVENLİK GÖREVLİSİ (VAR MI?)</div>
-                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 uppercase ml-2 cursor-pointer text-center rounded border border-slate-200"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' || safeRaporDetay?.guvenlik_amiri === 'VAR' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' || safeRaporDetay?.guvenlik_amiri === 'YOK' ? 'YOK' : '')}</span>)}</div>
+                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 uppercase ml-2 cursor-pointer text-center rounded border border-slate-200"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' ? 'YOK' : '')}</span>)}</div>
                       </div>
                       {safeRaporDetay?.guvenlik === 'var' && (
                           <>
@@ -1140,7 +1167,7 @@ export default function Home() {
 
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">SAĞLIK MEMURU (VAR MI?)</div>
-                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 uppercase ml-2 cursor-pointer text-center rounded border border-slate-300"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' || safeRaporDetay?.saglik_adi === 'VAR' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' || safeRaporDetay?.saglik_adi === 'YOK' ? 'YOK' : '')}</span>)}</div>
+                          <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 uppercase ml-2 cursor-pointer text-center rounded border border-slate-300"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black uppercase ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' ? 'YOK' : '')}</span>)}</div>
                       </div>
                       {safeRaporDetay?.saglik === 'var' && (
                           <>
@@ -1160,12 +1187,12 @@ export default function Home() {
 
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">II) TEKNİK HUSUSLAR :</div>
                   <div className="mb-4 text-xs font-medium space-y-1">
-                      <p className="mb-2">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60&apos;da kontrol edilecektir )</p>
+                      <p className="mb-2">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
                       {gelisimTeknik.map((soru: any) => renderGelisimCheckbox(soru.text, safeRaporDetay?.gelisim_sorular?.[soru.id], (val:any) => gelisimGuncelle(soru.id, val), soru.id, prefix === 'aktif'))}
                       <div className="mt-4 space-y-2">
                           {renderGelisimCheckbox("b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?", safeRaporDetay?.gelisim_sorular?.isim_listeleri, (val:any) => gelisimGuncelle('isim_listeleri', val), 'isim_listeleri', prefix === 'aktif')}
                           {renderGelisimCheckbox("c) Takımlar koyu ve açık renk forma setlerini getirdi mi?", safeRaporDetay?.gelisim_sorular?.forma_setleri, (val:any) => gelisimGuncelle('forma_setleri', val), 'forma_setleri', prefix === 'aktif')}
-                          {renderGelisimCheckbox("d) Stadyum WC&apos;leri hijyenik mi? Temizliği yapılmış mı?", safeRaporDetay?.gelisim_sorular?.wc_hijyen, (val:any) => gelisimGuncelle('wc_hijyen', val), 'wc_hijyen', prefix === 'aktif')}
+                          {renderGelisimCheckbox("d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?", safeRaporDetay?.gelisim_sorular?.wc_hijyen, (val:any) => gelisimGuncelle('wc_hijyen', val), 'wc_hijyen', prefix === 'aktif')}
                       </div>
                   </div>
 
@@ -1411,7 +1438,14 @@ export default function Home() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8">
                               <div>
                                 <label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 text-center">Maç Durumu</label>
-                                <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className="w-full p-3 md:p-4 border-2 border-slate-200 rounded-xl font-black text-sm md:text-base text-slate-700 bg-white text-center appearance-none cursor-pointer focus:border-slate-500 focus:outline-none transition-colors shadow-sm"><option value="oynandi">Müsabaka Tamamlandı</option><option value="yarida_kaldi">Maç Yarıda Kaldı</option><option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option></select>
+                                {/* 🔥 DEĞİŞİKLİK BURADA: Artık seçilmemiş opsiyonu var! 🔥 */}
+                                <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className={`w-full p-3 md:p-4 border-2 rounded-xl font-black text-sm md:text-base text-center appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${macDurumu === '' ? 'border-red-400 bg-red-50 text-red-700' : 'border-slate-200 text-slate-700 bg-white focus:border-slate-500'}`}>
+                                    <option value="" disabled>-- Müsabakanın Durumunu Seçiniz --</option>
+                                    <option value="oynandi">Müsabaka Tamamlandı (Oynandı)</option>
+                                    <option value="yarida_kaldi">Maç Yarıda Kaldı / Tatil Edildi</option>
+                                    <option value="takimlar_cikmadi">Takım(lar) Sahaya Çıkmadı</option>
+                                </select>
+                                
                                 {macDurumu === 'oynandi' && (<div className="mt-5 bg-slate-50 p-4 border border-slate-200 rounded-xl flex items-center justify-between gap-3 w-full shadow-inner"><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{mac?.ev_sahibi || '-'}</label><select value={evSkor} onChange={(e: any) => setEvSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`ev-${s}`} value={s}>{s}</option>)}</select></div><span className="text-2xl font-black text-slate-300">-</span><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{mac?.misafir_takim || '-'}</label><select value={misafirSkor} onChange={(e: any) => setMisafirSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`misafir-${s}`} value={s}>{s}</option>)}</select></div></div>)}
                                 {macDurumu === 'yarida_kaldi' && (<div className="mt-5 bg-red-50 p-5 border border-red-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🛑</span><p className="text-xs font-bold text-red-800 leading-relaxed">Maç yarıda kaldığı için skor kilitlenmiştir. <br/>Lütfen yarıda kalma sebebini ve (eğer varsa) o anki skoru aşağıdaki &apos;Sistem Notu&apos; kısmına detaylıca yazınız.</p></div>)}
                                 {macDurumu === 'takimlar_cikmadi' && (<div className="mt-5 bg-amber-50 p-5 border border-amber-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🏟️</span><p className="text-xs font-bold text-amber-800 leading-relaxed">Takımlar sahaya çıkmadığı için skor kilitlenmiştir. <br/>Lütfen Sistem Notu kısmına hangi takımın gelmediğini belirtiniz.</p></div>)}
@@ -1423,10 +1457,10 @@ export default function Home() {
                               </div>
                             </div>
                             <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5"><label className="block text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Sistem Notu / Hızlı Rapor</label><textarea value={raporNotu} onChange={(e: any) => handleHizliNotChange(e.target.value)} className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`} placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "İzmir Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya yarıda kalma sebebinin detayını (dakika ve skorla birlikte) yazınız..."}></textarea></div>
-                            <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-sm transition-transform hover:scale-[1.01] text-xs md:text-sm uppercase tracking-widest mt-5 disabled:opacity-70 flex items-center justify-center gap-2">{skorKaydediliyor ? '⚙️ GÖNDERİLİYOR...' : (raporGonderilmis ? (detayliGoster ? '💾 HIZLI SKORU GÜNCELLE' : '💾 SKORU GÜNCELLE') : (detayliGoster ? '🚀 HIZLI SKORU İLET' : '🚀 YÖNETİME İLET'))}</button>
+                            <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className={`w-full text-white font-black py-4 rounded-xl shadow-sm transition-transform hover:scale-[1.01] text-xs md:text-sm uppercase tracking-widest mt-5 flex items-center justify-center gap-2 ${macDurumu === '' ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-900 disabled:opacity-70'}`}>{skorKaydediliyor ? '⚙️ GÖNDERİLİYOR...' : (raporGonderilmis ? (detayliGoster ? '💾 HIZLI SKORU GÜNCELLE' : '💾 SKORU GÜNCELLE') : (detayliGoster ? '🚀 HIZLI SKORU İLET' : '🚀 YÖNETİME İLET'))}</button>
                           </div>
                           {detayliGoster && (
-                            <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden">
+                            <div className={`bg-white border shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden transition-all ${macDurumu === '' ? 'opacity-50 pointer-events-none border-slate-200' : 'border-slate-200'}`}>
                               <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-600"></div><h4 className="font-black text-slate-700 border-b border-slate-100 pb-3 mb-5 text-center text-sm md:text-base uppercase tracking-widest">DETAYLI MÜSABAKA RAPORU</h4>
                               <div className="mb-6 overflow-x-auto pb-4 custom-scrollbar">{renderTffRaporu(mac, 'aktif')}</div>
                               <div className="tff-no-print bg-slate-50 border border-slate-200 p-4 rounded-xl text-[10px] md:text-xs text-slate-600 mb-5 text-center font-medium shadow-inner">💡 <b className="text-slate-800">Bilgilendirme Notu:</b> Yüklediğiniz fotoğraflar güvenlik sebebiyle veritabanına kaydedilmez. Resmi &quot;PNG OLARAK İNDİR&quot; butonuna basarak fotoğraflı kanıt dosyanızı anında cihazınıza indirebilir ve saklayabilirsiniz.</div>
