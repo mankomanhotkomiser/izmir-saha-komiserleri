@@ -349,38 +349,35 @@ export default function AdminPage() {
       return kA.localeCompare(kB, 'tr-TR');
   });
 
-  const indirExcel = () => {
+ const indirExcel = () => {
       let tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
           <meta charset="utf-8" />
           <style>
-              table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }
-              th { background-color: #f3f4f6; color: #1e293b; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; text-align: center; vertical-align: middle; }
-              td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
-              .center { text-align: center; }
-              .left { text-align: left; }
+              table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
+              /* Başlık Siyah-Beyaz ve Ortalı */
+              th { background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; text-align: center; vertical-align: middle; }
+              /* Tüm Hücreler Ortalı */
+              td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle; }
               .bold { font-weight: bold; }
-              .gun-pazar { color: #dc2626; font-weight: bold; } 
-              .gun-cumartesi { color: #000000; font-weight: bold; } 
-              .gun-haftaici { color: #2563eb; font-weight: bold; } 
           </style>
       </head>
       <body>
           <table>
               <thead>
-                  <tr>
-                      <th style="width: 40px;">SIRA</th>
+                  <tr x:autofilter="all">
+                      <th style="width: 50px;">SIRA</th>
                       <th style="width: 100px;">TARİH</th>
                       <th style="width: 100px;">GÜN</th>
                       <th style="width: 80px;">SAAT</th>
-                      <th style="width: 250px;">LİG / KLASMAN</th>
+                      <th style="width: 200px;">LİG / KLASMAN</th>
                       <th style="width: 250px;">EV SAHİBİ TAKIM</th>
                       ${bultenTab === 'sonuc' ? '<th style="width: 80px;">EV SKOR</th>' : ''}
                       <th style="width: 250px;">MİSAFİR TAKIM</th>
                       ${bultenTab === 'sonuc' ? '<th style="width: 80px;">MİS. SKOR</th>' : ''}
                       <th style="width: 200px;">SAHA KOMİSERİ ADI</th>
-                      <th style="width: 300px;">SAHA</th>
+                      <th style="width: 250px;">SAHA</th>
                       ${bultenTab === 'sonuc' ? '<th style="width: 120px;">DURUM</th>' : ''}
                   </tr>
               </thead>
@@ -404,35 +401,45 @@ export default function AdminPage() {
           else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
           else if (isIptal) durum = 'İPTAL';
 
+          // 🔥 RENKLENDİRME MANTIĞI 🔥
+          let rowStyle = "background-color: #ffffff; color: #000000;"; 
+          if (bultenTab === 'sonuc' && m.skor_girildi) {
+              if (durum === 'OLAYSIZ') {
+                  rowStyle = "background-color: #dcfce7; color: #166534;"; // Açık Yeşil, Koyu Yeşil Yazı
+              } else if (durum === 'EMNİYETLİK' || durum === 'YARIDA KALDI' || durum === 'ÇIKMADI') {
+                  rowStyle = "background-color: #fee2e2; color: #991b1b;"; // Açık Kırmızı, Koyu Kırmızı Yazı
+              } else if (durum === 'İHRAÇ VAR') {
+                  rowStyle = "background-color: #ffedd5; color: #9a3412;"; // Açık Turuncu, Koyu Turuncu Yazı
+              } else if (durum === 'İPTAL') {
+                  rowStyle = "background-color: #f1f5f9; color: #475569;"; // Gri
+              }
+          }
+
           const tarih = guvenliTarih(m.tarih);
           const gunIsmi = getGunIsmi(m.tarih);
           const saat = guvenliSaat(m.saat);
 
-          let gunRenk = "gun-haftaici";
-          if (gunIsmi === 'PAZAR') gunRenk = "gun-pazar";
-          else if (gunIsmi === 'CUMARTESİ') gunRenk = "gun-cumartesi";
-
           tableHtml += `
-              <tr>
-                  <td class="center">${idx + 1}</td>
-                  <td class="center ${gunRenk}">${tarih}</td>
-                  <td class="center ${gunRenk}">${gunIsmi}</td>
-                  <td class="center bold">${saat}</td>
-                  <td class="left">${m.kategori_adi || '-'}</td>
-                  <td class="left bold">${m.ev_sahibi || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="center bold">${evSkor}</td>` : ''}
-                  <td class="left bold">${m.misafir_takim || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="center bold">${misSkor}</td>` : ''}
-                  <td class="left">${komiser}</td>
-                  <td class="left">${m.saha || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="center bold">${durum}</td>` : ''}
+              <tr style="${rowStyle}">
+                  <td class="bold">${idx + 1}</td>
+                  <td class="bold">${tarih}</td>
+                  <td class="bold">${gunIsmi}</td>
+                  <td class="bold">${saat}</td>
+                  <td>${m.kategori_adi || '-'}</td>
+                  <td class="bold">${m.ev_sahibi || '-'}</td>
+                  ${bultenTab === 'sonuc' ? `<td class="bold" style="font-size: 16px;">${evSkor}</td>` : ''}
+                  <td class="bold">${m.misafir_takim || '-'}</td>
+                  ${bultenTab === 'sonuc' ? `<td class="bold" style="font-size: 16px;">${misSkor}</td>` : ''}
+                  <td class="bold">${komiser}</td>
+                  <td>${m.saha || '-'}</td>
+                  ${bultenTab === 'sonuc' ? `<td class="bold">${durum}</td>` : ''}
               </tr>
           `;
       });
 
       tableHtml += `</tbody></table></body></html>`;
 
-      const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
