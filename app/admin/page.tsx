@@ -234,7 +234,6 @@ export default function AdminPage() {
   const [manuelMacMis, setManuelMacMis] = useState('')
   const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
 
-  // 🔥 YENİ EKLENEN: AKILLI ARAMA ÇUBUĞU (STATE) 🔥
   const [genelArama, setGenelArama] = useState('')
 
   const girisKontrol = (e: React.FormEvent) => {
@@ -288,8 +287,9 @@ export default function AdminPage() {
       localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
   }
 
-  const veriGetir = async () => {
-    setYukleniyor(true)
+  // 🔥 DEĞİŞEN KISIM: SESSİZ RADAR UYUMLU VERİ GETİR 🔥
+  const veriGetir = async (sessiz = false) => {
+    if (!sessiz) setYukleniyor(true);
     try {
       let maclarVerisi: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
       while (veriKaldimi) {
@@ -336,8 +336,21 @@ export default function AdminPage() {
         }
       }
     } catch (err) { console.error(err) }
-    setYukleniyor(false)
+    if (!sessiz) setYukleniyor(false);
   }
+
+  // 🔥 YENİ EKLENEN: SESSİZ RADAR (30 SANİYEDE BİR OTO YENİLEME) 🔥
+  useEffect(() => {
+      let radar: any;
+      if (girisYapildi) {
+          radar = setInterval(() => {
+              veriGetir(true); // Sessizce, ekranı dondurmadan yenile
+          }, 30000); // 30 saniye
+      }
+      return () => { 
+          if (radar) clearInterval(radar); 
+      }
+  }, [girisYapildi]);
 
   const komiserIsmiBul = (id: any) => {
     if (!id || id === 'null' || id === '') return 'Atanmamış';
@@ -351,7 +364,6 @@ export default function AdminPage() {
       return kA.localeCompare(kB, 'tr-TR');
   });
 
-  // 🔥 EXCEL İNDİRME MOTORU (FİLTRELİ VE RENKLİ) 🔥
   const indirExcel = () => {
       let tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -404,7 +416,6 @@ export default function AdminPage() {
           else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
           else if (isIptal) durum = 'İPTAL';
 
-          // 🔥 RENKLENDİRME MANTIĞI 🔥
           let rowStyle = "background-color: #ffffff; color: #000000;"; 
           if (bultenTab === 'sonuc' && m.skor_girildi) {
               if (durum === 'OLAYSIZ') {
@@ -604,7 +615,7 @@ export default function AdminPage() {
               }
           }
           setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' });
-          veriGetir();
+          veriGetir(true);
       } catch (err: any) { alert("Hata: " + err.message); }
       setStatuKaydediliyor(false);
   }
@@ -612,7 +623,7 @@ export default function AdminPage() {
   const statuSil = async (id: number) => {
       if (window.confirm("Bu statüyü veritabanından TAMAMEN silmek istediğinize emin misiniz?")) {
           await supabase.from('lig_statuleri').delete().eq('id', id);
-          veriGetir();
+          veriGetir(true);
       }
   }
 
@@ -625,7 +636,7 @@ export default function AdminPage() {
       try {
           const { error } = await supabase.from('komiserler').insert([{ komiser_id: islenecekSicil, ad_soyad: yeniPersonelAd.toLocaleUpperCase('tr-TR') }]);
           if (error) { if (error.code === '23505') alert("Hata: Bu sicil numarası zaten kayıtlı!"); else throw error; } 
-          else { alert("✅ Komiser eklendi."); setYeniPersonelAd(''); setYeniPersonelSicil(''); veriGetir(); }
+          else { alert("✅ Komiser eklendi."); setYeniPersonelAd(''); setYeniPersonelSicil(''); veriGetir(true); }
       } catch (err: any) { alert("Hata: " + err.message); }
       setPersonelEkleniyor(false);
   }
@@ -637,7 +648,7 @@ export default function AdminPage() {
       try {
           const { error } = await supabase.from('hakemler').insert([{ ad_soyad: yeniHakemAd.toLocaleUpperCase('tr-TR') }]);
           if(error) throw error;
-          alert("✅ Hakem eklendi!"); setYeniHakemAd(''); veriGetir(); 
+          alert("✅ Hakem eklendi!"); setYeniHakemAd(''); veriGetir(true); 
       } catch (err: any) { alert("Hata: " + err.message); }
       setHakemEkleniyor(false);
   }
@@ -664,7 +675,7 @@ export default function AdminPage() {
               olay_durumu: 'olaysiz', skor_girildi: false, tebellug_edildi: false
           }]);
           if (error) throw error;
-          alert("✅ Ekstra maç işlendi."); setManuelMacEv(''); setManuelMacMis(''); setManuelMacSaha(''); setManuelMacSaat(''); setManuelMacKodu(String(parseInt(manuelMacKodu) + 1)); veriGetir(); 
+          alert("✅ Ekstra maç işlendi."); setManuelMacEv(''); setManuelMacMis(''); setManuelMacSaha(''); setManuelMacSaat(''); setManuelMacKodu(String(parseInt(manuelMacKodu) + 1)); veriGetir(true); 
       } catch (err: any) { alert("Hata: " + err.message); }
       setManuelMacEkleniyor(false);
   }
@@ -692,7 +703,7 @@ export default function AdminPage() {
                   const chunk = silinecekIdler.slice(i, i + chunkSize);
                   await supabase.from('musabakalar').delete().in('id', chunk);
               }
-              alert(`✅ Başarılı! Toplam ${silinecekIdler.length} adet mükerrer temizlendi.`); veriGetir();
+              alert(`✅ Başarılı! Toplam ${silinecekIdler.length} adet mükerrer temizlendi.`); veriGetir(false);
           }
       } catch(e:any) { alert("Hata: " + e.message); }
       setYukleniyor(false);
@@ -794,7 +805,7 @@ export default function AdminPage() {
           const { error } = await supabase.from('musabakalar').insert(eklenecekler);
           if (error) throw error;
           alert(`✅ Başarılı! ${eklenecekler.length} adet müsabaka eklendi.`);
-          setExcelModalAcik(false); setYuklenenExcelVerisi([]); veriGetir(); 
+          setExcelModalAcik(false); setYuklenenExcelVerisi([]); veriGetir(false); 
       } catch (err: any) { alert("Hata: " + err.message); } finally { setExcelKaydediliyor(false); }
   }
 
@@ -843,7 +854,7 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 YENİ PDF YAZDIRMA VE OTOMATİK A4 SİHİRBAZI 🔥
+  // 🔥 PDF YAZDIRMA VE OTOMATİK A4 SİHİRBAZI 🔥
   const tffTutanakIndir = (mac: any, prefix: string = 'tff') => {
       const element = document.getElementById(`${prefix}-form-${mac.id}`);
       if (!element) {
@@ -1475,7 +1486,7 @@ export default function AdminPage() {
              <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">📥 EXCEL BÜLTEN YÜKLE</button>
              <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM YÖNETİMİ</button>
              <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
-             <button onClick={veriGetir} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 YENİLE</button>
+             <button onClick={() => veriGetir(false)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 YENİLE</button>
              <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">ÇIKIŞ YAP</button>
           </div>
         </div>
@@ -1601,7 +1612,7 @@ export default function AdminPage() {
                                         <h3 className="text-emerald-400 font-bold mb-1">Müsabaka Statü ve Kural Zekası</h3>
                                         <p className="text-slate-300 text-xs">Saha komiserlerinin mobil cihazlarında göreceği statüleri buradan yönetebilirsiniz.</p>
                                     </div>
-                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-50 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
+                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
                                 </div>
                                 
                                 <form onSubmit={statuKaydetSubmit} className="bg-slate-900 border border-indigo-500/50 p-5 rounded-xl space-y-4 shadow-lg relative overflow-hidden">
