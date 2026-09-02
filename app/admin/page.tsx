@@ -447,6 +447,123 @@ export default function AdminPage() {
       document.body.removeChild(link);
   }
 
+  const mazeretleriExceleIndir = async (hedefHaftaNo: number) => {
+      try {
+          const { data: mazeretler, error: errMazeret } = await supabase
+              .from('mazeretler')
+              .select('*')
+              .eq('hafta_no', hedefHaftaNo);
+
+          const { data: komiserler, error: errKomiser } = await supabase
+              .from('komiserler')
+              .select('komiser_id, ad_soyad');
+
+          if (errMazeret || errKomiser) {
+              alert("Veriler çekilirken hata oluştu!");
+              return;
+          }
+
+          if (!mazeretler || mazeretler.length === 0) {
+              alert(`${hedefHaftaNo}. Hafta için henüz mazeret bildiren komiser bulunmuyor.`);
+              return;
+          }
+
+          let tableHtml = `
+              <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+              <head><meta charset="UTF-8"></head>
+              <body>
+                  <table border="1" style="border-collapse: collapse; font-family: Arial, sans-serif; text-align: center;">
+                      <thead>
+                          <tr style="background-color: #0f766e; color: white; font-weight: bold; font-size: 14px;">
+                              <th style="padding: 10px;">Sıra</th>
+                              <th style="padding: 10px;">Sicil No</th>
+                              <th style="padding: 10px;">Ad Soyad</th>
+                              <th style="padding: 10px;">Genel Durum</th>
+                              <th style="padding: 10px;">Müsaitlik Detayları ve Günler</th>
+                              <th style="padding: 10px;">Sistem Notu / Açıklama</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+          `;
+
+          mazeretler.forEach((m: any, index: number) => {
+              const komiser = (komiserler || []).find((k: any) => k.komiser_id === m.komiser_id);
+              const adSoyad = komiser ? komiser.ad_soyad : 'Bilinmeyen Komiser';
+
+              let rowStyle = "";
+              let durumText = "";
+              let detayText = "";
+
+              if (m.detaylar?.mod === 'yok' || m.komple_yok) {
+                  rowStyle = "color: #b91c1c; font-weight: bold; background-color: #fef2f2;"; 
+                  durumText = "⛔ TÜM HAFTA MAZERETLİ";
+                  detayText = "Görev İstemiyor";
+              } 
+              else if (m.detaylar?.mod === 'full') {
+                  rowStyle = "color: #15803d; font-weight: bold; background-color: #f0fdf4;"; 
+                  durumText = "✅ TÜM HAFTA MÜSAİT";
+                  const merkez = m.detaylar.genelMerkez ? "Merkez" : "";
+                  const dep = m.detaylar.genelDeplasman ? "Deplasman" : "";
+                  detayText = [merkez, dep].filter(Boolean).join(" & ");
+              } 
+              else if (m.detaylar?.mod === 'secmeli') {
+                  rowStyle = "color: #1d4ed8; font-weight: bold; background-color: #eff6ff;"; 
+                  durumText = "📅 KISMİ MÜSAİT";
+
+                  const gunler = m.detaylar.gunler || {};
+                  const aktifGunler: string[] = [];
+                  const gunIsimleri: Record<string, string> = {
+                      cuma: 'Cuma', cumartesi: 'Ctesi', pazar: 'Pazar', 
+                      pazartesi: 'P.tesi', sali: 'Salı', carsamba: 'Çarş.', persembe: 'Perş.'
+                  };
+
+                  Object.keys(gunIsimleri).forEach((gKey: string) => {
+                      const g = gunler[gKey];
+                      if (g && g.active) {
+                          let text = gunIsimleri[gKey];
+                          const locs: string[] = [];
+                          if (g.merkez) locs.push('Mrk');
+                          if (g.deplasman) locs.push('Dep');
+                          text += ` (${locs.join(',')}) `;
+
+                          if (g.tumGun) text += "[Tüm Gün]";
+                          else text += `[${g.baslangic}-${g.bitis}]`;
+                          aktifGunler.push(text);
+                      }
+                  });
+                  detayText = aktifGunler.join(" | ");
+              }
+
+              tableHtml += `
+                  <tr style="${rowStyle}">
+                      <td style="padding: 8px;">${index + 1}</td>
+                      <td style="padding: 8px; mso-number-format:'\\@';">${m.komiser_id}</td>
+                      <td style="padding: 8px; text-align: left;">${adSoyad}</td>
+                      <td style="padding: 8px;">${durumText}</td>
+                      <td style="padding: 8px; text-align: left;">${detayText}</td>
+                      <td style="padding: 8px; text-align: left;">${m.aciklama || '-'}</td>
+                  </tr>
+              `;
+          });
+
+          tableHtml += `</tbody></table></body></html>`;
+
+          const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${hedefHaftaNo}_Hafta_Mazeret_Raporu.xls`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+      } catch (error) {
+          console.error(error);
+          alert("Excel oluşturulurken beklenmeyen bir hata meydana geldi.");
+      }
+  };
+
   const statuKaydetSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setStatuKaydediliyor(true);
@@ -716,7 +833,7 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 SAHA KOMİSERİ SAYFASINDAN BİREBİR ALINAN ORİJİNAL ÇALIŞAN İNDİRME MOTORU 🔥
+  // 🔥 KAYBOLAN EFSANE: TFF TUTANAK İNDİRME MOTORU GERİ GELDİ 🔥
   const tffTutanakIndir = async (mac: any, prefix: string = 'tff') => {
     const element = document.getElementById(`${prefix}-form-${mac.id}`);
     if (element) {
@@ -738,6 +855,7 @@ export default function AdminPage() {
     }
   }
 
+  // 🔥 KAYBOLAN EFSANE 2: TFF RAPOR RENDER MOTORU GERİ GELDİ 🔥
   const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
@@ -748,7 +866,6 @@ export default function AdminPage() {
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
       
-      // 🔥 EKLENEN: EK RAPORLAR LİSTESİ 🔥
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
 
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
@@ -766,7 +883,6 @@ export default function AdminPage() {
               {raporTuru === 'amator' && (
               <div className="border-[3px] border-double border-slate-600 p-4">
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
-                      {/* 🔥 ORİJİNAL LOGO YAPISI 🔥 */}
                       <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                       <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                       <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1 text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
@@ -1452,86 +1568,6 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* 🔥 TFF RAPORU İNDİRME MODALI (SAHA KOMİSERİNDEN ALINAN 800 KB'LIK İNDİRME MOTORUYLA DEĞİŞTİ) 🔥 */}
-        {tamEkranRaporMac && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
-                <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
-                    <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
-                        <h2 className="text-base md:text-lg font-black text-white tracking-widest uppercase flex items-center gap-2">📄 TFF RAPORU: {tamEkranRaporMac.ev_sahibi} vs {tamEkranRaporMac.misafir_takim}</h2>
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => tffTutanakIndir(tamEkranRaporMac, 'tam-ekran')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-xs font-bold tracking-widest shadow-lg flex items-center gap-1 transition-colors">📸 PNG İNDİR</button>
-                            <button onClick={() => setTamEkranRaporMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-3xl leading-none transition-colors ml-2">✕</button>
-                        </div>
-                    </div>
-                    <div className="p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar flex justify-center bg-slate-300">
-                        <div className="shadow-2xl">{renderTffRaporu(tamEkranRaporMac, 'tam-ekran')}</div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* 🔥 EXCEL YÜKLEME MODALI 🔥 */}
-        {excelModalAcik && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
-                <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-                    <div className="bg-emerald-900/50 p-4 border-b border-emerald-500/50 flex justify-between items-center">
-                        <h2 className="text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2"><span className="text-2xl">📥</span> YENİ BÜLTEN YÜKLEME MERKEZİ (EXCEL)</h2>
-                        <button onClick={() => { setExcelModalAcik(false); setYuklenenExcelVerisi([]); setExcelHata(null); }} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
-                    </div>
-                    
-                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                        <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl mb-6">
-                            <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🤖</span> İsim Eşleştirme &amp; Çift Komiser Zekası Aktif!</h3>
-                            <p className="text-xs text-slate-400 mb-3">TFF Excel&apos;ini direkt yükleyebilirsiniz. Aynı maça farklı TC kimlikli iki ayrı komiser eklerseniz (Süper Amatör vb.), sistem bunu <b>mükerrer saymaz</b>, iki komiseri de maça ayrı ayrı kaydeder.</p>
-                        </div>
-
-                        <div className="flex items-center justify-center w-full mb-6">
-                            <label onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-900/30 scale-105' : 'border-slate-600 bg-slate-800 hover:bg-slate-700'}`}>
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
-                                    <span className="text-4xl mb-3">{isDragging ? '📥' : '📊'}</span><p className="mb-2 text-sm text-slate-300">{isDragging ? <span className="font-bold text-emerald-400">Bırak!</span> : <><span className="font-bold text-emerald-400">Tıkla</span> veya Sürükle</>}</p>
-                                </div>
-                                <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={(e) => { if(e.target.files && e.target.files.length > 0) processExcelFile(e.target.files[0]) }} />
-                            </label>
-                        </div>
-
-                        {excelHata && <div className="bg-red-900/50 border border-red-500 text-red-400 p-4 rounded-lg mb-6 font-bold text-center">{excelHata}</div>}
-
-                        {yuklenenExcelVerisi.length > 0 && (
-                            <div className="animate-fade-in-up">
-                                <h3 className="text-white font-bold mb-3">🔍 Önizleme ({yuklenenExcelVerisi.length} Maç)</h3>
-                                <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-x-auto">
-                                    <table className="w-full text-left text-xs text-slate-300 whitespace-nowrap">
-                                        <thead className="bg-slate-900 text-slate-400 uppercase"><tr><th className="px-4 py-3">Kod</th><th className="px-4 py-3">Zaman</th><th className="px-4 py-3">Takımlar</th><th className="px-4 py-3">Eşleşme</th></tr></thead>
-                                        <tbody>
-                                            {yuklenenExcelVerisi.slice(0, 50).map((mac, i) => {
-                                                const islesmeBasarili = /^\d+$/.test(mac.komiser_id);
-                                                return (
-                                                    <tr key={i} className="border-b border-slate-700 hover:bg-slate-700/50">
-                                                        <td className="px-4 py-2 text-emerald-400">{mac.mac_kodu}</td>
-                                                        <td className="px-4 py-2">{mac.tarih} - {mac.saat}</td>
-                                                        <td className="px-4 py-2 font-bold text-white">{mac.ev_sahibi} vs {mac.misafir_takim}</td>
-                                                        <td className="px-4 py-2">
-                                                            <span className={`px-2 py-1 rounded font-bold ${islesmeBasarili ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700' : 'bg-amber-900/50 text-amber-400 border border-amber-700'}`}>
-                                                                {islesmeBasarili ? `✓ ID: ${mac.komiser_id}` : `⚠️ BULUNAMADI`}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                    {yuklenenExcelVerisi.length > 50 && <div className="text-center p-3 text-slate-500 italic">... ve {yuklenenExcelVerisi.length - 50} maç daha.</div>}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    {yuklenenExcelVerisi.length > 0 && (
-                        <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-4"><button onClick={() => setYuklenenExcelVerisi([])} className="px-6 py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors">İptal Et</button><button onClick={bulteniVeritabaninaKaydet} disabled={excelKaydediliyor} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-3 rounded-lg shadow-lg uppercase tracking-widest disabled:opacity-50 flex items-center gap-2">{excelKaydediliyor ? '⚙️ İŞLENİYOR...' : '🚀 BÜLTENİ SİSTEME KAYDET'}</button></div>
-                    )}
-                </div>
-            </div>
-        )}
-
         {/* 🔥 ANA İÇERİK EKRANI (ZAMAN MAKİNESİ VE LİSTELER) 🔥 */}
         {yukleniyor ? (
           <div className="flex flex-col items-center justify-center py-20"><div className="w-12 h-12 border-4 border-slate-700 border-t-red-600 rounded-full animate-spin mb-4"></div><p className="text-slate-400 font-bold animate-pulse tracking-widest">VERİLER ÇEKİLİYOR...</p></div>
@@ -1605,6 +1641,19 @@ export default function AdminPage() {
                             </button>
                             {kategoriMazeretAcik && (
                                 <div className="space-y-3 animate-fade-in-down pl-2">
+                                    
+                                    {/* 🔥 EXCEL İNDİRME BUTONU 🔥 */}
+                                    {gelecekHaftaMazeretleri.length > 0 && (
+                                        <div className="flex justify-end mb-4 pr-2">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); mazeretleriExceleIndir(gelecekHaftaNo); }}
+                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-emerald-500"
+                                            >
+                                                <span className="text-lg">📊</span> RENKLİ EXCEL RAPORU İNDİR
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {gelecekHaftaMazeretleri.length === 0 ? (
                                         <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-center text-slate-500 text-sm font-medium">Önümüzdeki {gelecekHaftaNo}. Hafta için henüz hiç mazeret veya müsaitlik bildirimi yapılmamış.</div>
                                     ) : (
@@ -1741,7 +1790,6 @@ export default function AdminPage() {
                                                     <tr className="bg-slate-950 border-b border-slate-700/50">
                                                         <td colSpan={2} className="p-3">
                                                             <div className="space-y-2 animate-fade-in-down">
-                                                                {/* 🔥 GÖREVİ ONAYLAMAYANLAR BÖLÜMÜNE KATEGORİ EKLENDİ 🔥 */}
                                                                 {k.maclar.map((m: any, mIdx: number) => (
                                                                     <div key={mIdx} className="bg-slate-900 border border-purple-900/50 p-2.5 rounded-lg text-xs shadow-inner">
                                                                         <span className="text-purple-400 font-bold bg-purple-950 px-1.5 py-0.5 rounded mr-1">KOD: {m.mac_kodu}</span> 
