@@ -234,6 +234,9 @@ export default function AdminPage() {
   const [manuelMacMis, setManuelMacMis] = useState('')
   const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
 
+  // 🔥 YENİ EKLENEN: AKILLI ARAMA ÇUBUĞU (STATE) 🔥
+  const [genelArama, setGenelArama] = useState('')
+
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
@@ -278,12 +281,6 @@ export default function AdminPage() {
           } catch(e) {}
       } 
   }, [girisYapildi])
-
-  const alarmSustur = (id: number) => {
-      const yeni = [...susturulanAlarmlar, id];
-      setSusturulanAlarmlar(yeni);
-      localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
-  }
 
   const veriGetir = async () => {
     setYukleniyor(true)
@@ -405,13 +402,13 @@ export default function AdminPage() {
           let rowStyle = "background-color: #ffffff; color: #000000;"; 
           if (bultenTab === 'sonuc' && m.skor_girildi) {
               if (durum === 'OLAYSIZ') {
-                  rowStyle = "background-color: #dcfce7; color: #166534;"; // Açık Yeşil
+                  rowStyle = "background-color: #dcfce7; color: #166534;"; 
               } else if (durum === 'EMNİYETLİK' || durum === 'YARIDA KALDI' || durum === 'ÇIKMADI') {
-                  rowStyle = "background-color: #fee2e2; color: #991b1b;"; // Açık Kırmızı
+                  rowStyle = "background-color: #fee2e2; color: #991b1b;"; 
               } else if (durum === 'İHRAÇ VAR') {
-                  rowStyle = "background-color: #ffedd5; color: #9a3412;"; // Açık Turuncu
+                  rowStyle = "background-color: #ffedd5; color: #9a3412;"; 
               } else if (durum === 'İPTAL') {
-                  rowStyle = "background-color: #f1f5f9; color: #475569;"; // Gri
+                  rowStyle = "background-color: #f1f5f9; color: #475569;"; 
               }
           }
 
@@ -859,14 +856,13 @@ export default function AdminPage() {
           const doc = printWindow.document;
           const raporTuru = raporTurunuBelirle(mac.kategori_adi);
           
-          // 🔥 OTOMATİK A4 ÖLÇEKLENDİRME ZEKASI 🔥
           let printScale = "1";
           let marginVal = "10mm";
           if (raporTuru === 'amator') {
-              printScale = "0.90"; // Senin o sevdiğin %90 ölçek!
+              printScale = "0.90"; 
               marginVal = "8mm";
           } else if (raporTuru === 'gelisim') {
-              printScale = "0.85"; // Gelişimi 2 sayfaya kusursuz yaymak için %85 ölçek!
+              printScale = "0.85"; 
               marginVal = "8mm";
           }
 
@@ -889,21 +885,13 @@ export default function AdminPage() {
                           }
                           .tff-no-print { display: none !important; }
                           .page-break-before-always { page-break-before: always !important; }
-                          
-                          /* OTOMATİK A4 ÖLÇEKLENDİRME */
                           .mobile-zoom { 
                               zoom: ${printScale} !important; 
                               transform: none !important; 
                           } 
-
-                          /* BÖLÜNMEYİ ENGELLEYEN ZIRH (Sayfa sonu kesilmelerine karşı) */
                           .bolunmez { page-break-inside: avoid !important; }
                       }
-                      body { 
-                          font-family: Arial, sans-serif; 
-                          background: #ffffff; 
-                          color: #000000; 
-                      }
+                      body { font-family: Arial, sans-serif; background: #ffffff; color: #000000; }
                       .border-black { border-color: #000000 !important; }
                       .border-double { border-style: double !important; }
                       .border-dashed { border-style: dashed !important; }
@@ -1322,7 +1310,6 @@ export default function AdminPage() {
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <div className="tff-no-print">
-                            {/* 🔥 İNDİRME BUTONU EKLENDİ 🔥 */}
                             <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                                 📄 TFF RESMİ TUTANAĞINI EKRANDA GÖR VE İNDİR
                             </button>
@@ -1392,6 +1379,54 @@ export default function AdminPage() {
 
   const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
   const sirenAktif = aktifEmniyetlikler.length > 0;
+
+  // 🔥 YENİ EKLENEN: SİREN SES MOTORU 🔥
+  useEffect(() => {
+      let interval: any;
+      let audioCtx: any;
+      if (girisYapildi && sirenAktif) {
+          try {
+              const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+              audioCtx = new AudioContext();
+              interval = setInterval(() => {
+                  if (audioCtx.state === 'suspended') audioCtx.resume();
+                  const osc = audioCtx.createOscillator();
+                  const gainNode = audioCtx.createGain();
+                  osc.type = 'square';
+                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 800Hz Bip sesi
+                  
+                  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); // Yavaşça sesi aç
+                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); // Sesi kapat
+                  
+                  osc.connect(gainNode);
+                  gainNode.connect(audioCtx.destination);
+                  osc.start(audioCtx.currentTime);
+                  osc.stop(audioCtx.currentTime + 0.6);
+              }, 1000); // Her 1 saniyede bir öt
+          } catch(e) {
+              console.log("Tarayıcınız ses API'sini engelliyor olabilir.");
+          }
+      }
+      return () => { 
+          if (interval) clearInterval(interval); 
+          if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
+      }
+  }, [sirenAktif, girisYapildi]);
+
+  // 🔥 YENİ EKLENEN: ARAMA MOTORU ZEKASI 🔥
+  const aramaSonuclari = genelArama.trim().length >= 2 ? sezonlukMaclar.filter(m => {
+      const arama = genelArama.toLocaleUpperCase('tr-TR');
+      const kName = komiserIsmiBul(m.komiser_id).toLocaleUpperCase('tr-TR');
+      return (
+          String(m.mac_kodu || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+          String(m.ev_sahibi || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+          String(m.misafir_takim || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+          String(m.saha || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+          String(m.kategori_adi || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+          kName.includes(arama)
+      );
+  }).sort(siralamaFiltresi).reverse() : [];
 
   if (!girisYapildi) {
     return (
@@ -1739,6 +1774,58 @@ export default function AdminPage() {
           <div className="flex flex-col items-center justify-center py-20"><div className="w-12 h-12 border-4 border-slate-700 border-t-red-600 rounded-full animate-spin mb-4"></div><p className="text-slate-400 font-bold animate-pulse tracking-widest">VERİLER ÇEKİLİYOR...</p></div>
         ) : (
           <div className="space-y-8 animate-fade-in-up">
+            
+            {/* 🔥 YENİ EKLENEN: AKILLI İSTİHBARAT ÇUBUĞU 🔥 */}
+            <div className="mb-6 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl relative z-10">
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl hidden md:block">🔍</span>
+                    <input 
+                        type="text" 
+                        value={genelArama} 
+                        onChange={(e) => setGenelArama(e.target.value)} 
+                        placeholder="Maç Kodu, Takım, Saha, Komiser veya Lig Adı ile Tüm Sezonda Ara..." 
+                        className="w-full bg-slate-900 border-2 border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                    {genelArama && (
+                        <button onClick={() => setGenelArama('')} className="bg-red-900/50 hover:bg-red-800 text-red-400 px-4 py-3 rounded-lg font-bold transition-colors">TEMİZLE</button>
+                    )}
+                </div>
+                
+                {genelArama.length >= 2 && (
+                    <div className="mt-4 bg-slate-900 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto custom-scrollbar p-2">
+                        {aramaSonuclari.length === 0 ? (
+                            <div className="p-4 text-center text-slate-500 font-bold">Bu aramaya uygun maç bulunamadı.</div>
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="p-2 text-xs font-bold text-slate-400 uppercase border-b border-slate-700 mb-2">
+                                    Toplam {aramaSonuclari.length} sonuç bulundu
+                                </div>
+                                {aramaSonuclari.map((mac, i) => (
+                                    <div key={`arama-${i}`} className="bg-slate-800 border border-slate-600 rounded-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-slate-700 transition-colors gap-3">
+                                        <div>
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                <span className="bg-blue-900 text-blue-300 text-[10px] font-black px-2 py-0.5 rounded shadow">KOD: {mac.mac_kodu}</span>
+                                                <span className="text-slate-400 text-[10px] font-bold uppercase">{mac.kategori_adi}</span>
+                                                <span className="text-slate-500 text-[10px] ml-1">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span>
+                                            </div>
+                                            <div className="text-white text-sm font-bold uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</div>
+                                            <div className="text-[10px] text-emerald-400 font-mono mt-1">Saha: {mac.saha} | Komiser: <span className="text-emerald-300 font-bold">{komiserIsmiBul(mac.komiser_id)}</span></div>
+                                        </div>
+                                        <div className="text-right flex flex-row md:flex-col items-center md:items-end gap-2 w-full md:w-auto">
+                                            <span className={`px-2 py-1 rounded text-[10px] font-black ${mac.skor_girildi ? 'bg-green-900 text-green-300' : 'bg-slate-700 text-slate-400'}`}>
+                                                {mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'Skor Yok'}
+                                            </span>
+                                            {mac.olay_durumu === 'emniyetlik_olay' && <span className="bg-red-600 text-white text-[9px] px-2 py-0.5 rounded font-black">EMNİYET</span>}
+                                            {mac.olay_durumu === 'teknik_olay' && <span className="bg-amber-600 text-white text-[9px] px-2 py-0.5 rounded font-black">İHRAÇ</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {Object.keys(haftalikGruplar).length > 0 && (
                 <div className="bg-slate-900 p-2 rounded-lg flex overflow-x-auto gap-2 mb-6 shadow-inner custom-scrollbar items-center border border-slate-700">
                     <span className="text-slate-500 font-bold text-xs uppercase tracking-widest px-3">ZAMAN MAKİNESİ:</span>
