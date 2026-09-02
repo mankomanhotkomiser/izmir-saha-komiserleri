@@ -841,25 +841,72 @@ export default function AdminPage() {
   }
 
   // 🔥 KAYBOLAN EFSANE: TFF TUTANAK İNDİRME MOTORU GERİ GELDİ 🔥
-  const tffTutanakIndir = async (mac: any, prefix: string = 'tff') => {
-    const element = document.getElementById(`${prefix}-form-${mac.id}`);
-    if (element) {
+ const tffTutanakIndir = (mac: any, prefix: string = 'tff') => {
+      const element = document.getElementById(`${prefix}-form-${mac.id}`);
+      if (!element) {
+          alert("Rapor ekranda bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+          return;
+      }
+
       try {
-        const style = document.createElement('style');
-        style.innerHTML = '.tff-no-print { display: none !important; }';
-        document.head.appendChild(style);
-        
-        const fullWidth = element.scrollWidth;
-        const fullHeight = element.scrollHeight;
-        
-        const dataURL = await toPng(element, { 
-            backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
-            style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' } 
-        });
-        const link = document.createElement('a'); link.href = dataURL; link.download = `TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
-        document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
-      } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
-    }
+          // Arka planda gizli bir yazdırma/PDF penceresi aç
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) {
+              alert("Lütfen tarayıcınızın 'Açılır Pencere' (Pop-up) engelleyicisini kapatın.");
+              return;
+          }
+
+          const reportHtml = element.outerHTML;
+          const doc = printWindow.document;
+
+          // Disiplin Kuruluna gidecek resmi evrak için özel CSS zırhı
+          doc.write(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}</title>
+                  <meta charset="utf-8">
+                  <script src="https://cdn.tailwindcss.com"></script>
+                  <style>
+                      @media print {
+                          @page { margin: 10mm; size: A4 portrait; }
+                          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; }
+                          .tff-no-print { display: none !important; }
+                          .page-break-before-always { page-break-before: always !important; }
+                          /* Modal zoomunu sıfırla ki A4'e jilet gibi otursun */
+                          .mobile-zoom { zoom: 1 !important; transform: none !important; } 
+                      }
+                      body { 
+                          font-family: Arial, sans-serif; 
+                          background: #ffffff; 
+                          color: #000000; 
+                          padding: 20px; 
+                      }
+                      .border-black { border-color: #000000 !important; }
+                      .border-double { border-style: double !important; }
+                      .border-dashed { border-style: dashed !important; }
+                      .bg-slate-100 { background-color: #f1f5f9 !important; }
+                      .bg-slate-50 { background-color: #f8fafc !important; }
+                  </style>
+              </head>
+              <body>
+                  <div style="width: 100%; max-width: 800px; margin: 0 auto; background: white;">
+                      ${reportHtml}
+                  </div>
+                  <script>
+                      // Tailwind'in ve logoların tam yüklenmesi için 1 saniye bekle, sonra PDF ekranını aç
+                      setTimeout(function() {
+                          window.print();
+                          window.close();
+                      }, 1000);
+                  </script>
+              </body>
+              </html>
+          `);
+          doc.close();
+      } catch (err) {
+          alert("PDF/Yazdır ekranı hazırlanırken bir sorun oluştu.");
+      }
   }
 
   // 🔥 KAYBOLAN EFSANE 2: TFF RAPOR RENDER MOTORU GERİ GELDİ 🔥
