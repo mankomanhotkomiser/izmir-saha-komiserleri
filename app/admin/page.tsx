@@ -282,6 +282,12 @@ export default function AdminPage() {
       } 
   }, [girisYapildi])
 
+  const alarmSustur = (id: number) => {
+      const yeni = [...susturulanAlarmlar, id];
+      setSusturulanAlarmlar(yeni);
+      localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
+  }
+
   const veriGetir = async () => {
     setYukleniyor(true)
     try {
@@ -1310,6 +1316,7 @@ export default function AdminPage() {
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <div className="tff-no-print">
+                            {/* 🔥 İNDİRME BUTONU 🔥 */}
                             <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                                 📄 TFF RESMİ TUTANAĞINI EKRANDA GÖR VE İNDİR
                             </button>
@@ -1594,7 +1601,7 @@ export default function AdminPage() {
                                         <h3 className="text-emerald-400 font-bold mb-1">Müsabaka Statü ve Kural Zekası</h3>
                                         <p className="text-slate-300 text-xs">Saha komiserlerinin mobil cihazlarında göreceği statüleri buradan yönetebilirsiniz.</p>
                                     </div>
-                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
+                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-50 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
                                 </div>
                                 
                                 <form onSubmit={statuKaydetSubmit} className="bg-slate-900 border border-indigo-500/50 p-5 rounded-xl space-y-4 shadow-lg relative overflow-hidden">
