@@ -53,6 +53,7 @@ const guvenliSaat = (saatMetni: any) => {
     catch (e) { return "-"; }
 }
 
+// 🔥 GELİŞTİRİLMİŞ TARİH MOTORU (YILSIZ TARİHLERİ BİLE ANLAR) 🔥
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
@@ -61,11 +62,18 @@ const getZaman = (mac: any) => {
         if (str.includes('.')) {
             const p = str.split('.');
             if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
+        } else if (str.includes('/')) {
+            const p = str.split('/');
+            if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
         } else if (str.includes('-')) {
             const p = str.split('-');
             if (p.length === 3) {
                 if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
                 else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            } else if (p.length === 2) {
+                dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
             }
         }
         let saat = 0, dakika = 0;
@@ -89,11 +97,14 @@ const getGunRengi = (tarihStr: string | null | undefined) => {
         if (dStr.includes('.')) {
             const p = dStr.split('.');
             if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
         } else if (dStr.includes('-')) {
             const p = dStr.split('-');
             if (p.length === 3) {
                 if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
                 else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            } else if (p.length === 2) {
+                dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
             }
         }
         if (!y) return 'text-slate-700';
@@ -122,11 +133,14 @@ const getGunIsmi = (tarihStr: string | null | undefined) => {
         if (dStr.includes('.')) {
             const p = dStr.split('.');
             if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
         } else if (dStr.includes('-')) {
             const p = dStr.split('-');
             if (p.length === 3) {
                 if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
                 else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            } else if (p.length === 2) {
+                dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
             }
         }
         if (!y) return '';
@@ -242,6 +256,7 @@ export default function AdminPage() {
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
+  // 🔥 GELİŞTİRİLMİŞ TARİH MOTORU 2 (HAFTA BULUCU) 🔥
   const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
@@ -250,14 +265,18 @@ export default function AdminPage() {
       if (str.includes('.')) {
           const p = str.split('.');
           if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+          else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
       } else if (str.includes('/')) {
           const p = str.split('/');
           if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+          else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
       } else if (str.includes('-')) {
           const p = str.split('-');
           if (p.length === 3) {
               if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
               else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+          } else if (p.length === 2) {
+              dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
           }
       }
       if (!y || isNaN(y)) return 0;
@@ -287,7 +306,6 @@ export default function AdminPage() {
       localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
   }
 
-  // 🔥 DEĞİŞEN KISIM: SESSİZ RADAR UYUMLU VERİ GETİR 🔥
   const veriGetir = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true);
     try {
@@ -339,13 +357,12 @@ export default function AdminPage() {
     if (!sessiz) setYukleniyor(false);
   }
 
-  // 🔥 YENİ EKLENEN: SESSİZ RADAR (30 SANİYEDE BİR OTO YENİLEME) 🔥
   useEffect(() => {
       let radar: any;
       if (girisYapildi) {
           radar = setInterval(() => {
-              veriGetir(true); // Sessizce, ekranı dondurmadan yenile
-          }, 30000); // 30 saniye
+              veriGetir(true); 
+          }, 30000); 
       }
       return () => { 
           if (radar) clearInterval(radar); 
@@ -709,6 +726,7 @@ export default function AdminPage() {
       setYukleniyor(false);
   }
 
+  // 🔥 GELİŞTİRİLMİŞ (YAPAY ZEKALI) EXCEL OKUYUCU 🔥
   const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -722,25 +740,62 @@ export default function AdminPage() {
 
               const islenmisVeri = jsonData.map((row: any) => {
                   const normRow: any = {};
+                  // Tüm sütun başlıklarını büyük harf yapıp boşlukları temizleyelim
                   Object.keys(row).forEach(k => { normRow[k.trim().toLocaleUpperCase('tr-TR')] = row[k]; });
-                  let islenmisTarih = normRow['TARİH'] || normRow['TARIH'] || normRow['TARİH (YYYY-MM-DD)'] || '';
+                  
+                  // TARİH OKUMA ZEKASI (TARİH, DATE, GÜN kelimelerini arar)
+                  const dateKey = Object.keys(normRow).find(k => k.includes('TARİH') || k.includes('TARIH') || k.includes('DATE') || k.includes('GÜN'));
+                  let islenmisTarih = dateKey ? normRow[dateKey] : '';
+                  
                   if (typeof islenmisTarih === 'number') {
                       const excelDate = new Date(Math.round((islenmisTarih - 25569) * 86400 * 1000));
                       islenmisTarih = excelDate.toISOString().split('T')[0];
-                  } else if (islenmisTarih.includes('.')) {
-                       const parts = islenmisTarih.split('.'); if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                  } else if (islenmisTarih.includes('/')) {
-                       const parts = islenmisTarih.split('/'); if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                  } else if (typeof islenmisTarih === 'string') {
+                      islenmisTarih = islenmisTarih.trim();
+                      if (islenmisTarih.includes('.')) {
+                           const parts = islenmisTarih.split('.'); 
+                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1]}-${parts[0]}`;
+                      } else if (islenmisTarih.includes('/')) {
+                           const parts = islenmisTarih.split('/'); 
+                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1]}-${parts[0]}`;
+                      }
                   }
 
-                  let islenmisSaat = normRow['SAAT'] || '';
+                  // SAAT OKUMA ZEKASI
+                  const timeKey = Object.keys(normRow).find(k => k.includes('SAAT') || k.includes('TIME'));
+                  let islenmisSaat = timeKey ? normRow[timeKey] : '';
                   if (typeof islenmisSaat === 'number') {
                       const totalSeconds = Math.round(islenmisSaat * 86400);
                       const h = Math.floor(totalSeconds / 3600); const m = Math.floor((totalSeconds % 3600) / 60);
                       islenmisSaat = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                   }
 
-                  const rawName = String(normRow['SAHA KOMİSERİ'] || normRow['KOMİSER'] || normRow['TC'] || '').trim();
+                  // KOMİSER OKUMA ZEKASI
+                  const komiserKey = Object.keys(normRow).find(k => k.includes('KOMİSER') || k.includes('KOMISER') || k.includes('TC') || k.includes('KİMLİK') || k.includes('GÖREVLİ'));
+                  const rawName = String(komiserKey ? normRow[komiserKey] : '').trim();
+                  
+                  // KOD OKUMA ZEKASI
+                  const kodKey = Object.keys(normRow).find(k => k.includes('KOD') || k.includes('M.NO'));
+                  const macKodu = String(kodKey ? normRow[kodKey] : '');
+
+                  // SAHA OKUMA ZEKASI
+                  const sahaKey = Object.keys(normRow).find(k => k.includes('SAHA') || k.includes('STAD') || k.includes('YER'));
+                  const saha = String(sahaKey ? normRow[sahaKey] : '');
+
+                  // LİG/KATEGORİ OKUMA ZEKASI
+                  const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR'));
+                  const kategori_adi = String(ligKey ? normRow[ligKey] : '');
+
+                  // EV SAHİBİ OKUMA ZEKASI
+                  const evKey = Object.keys(normRow).find(k => k.includes('EV') || k.includes('SAHİBİ') || k.includes('1.TAKIM') || k.includes('TAKIM 1'));
+                  const ev_sahibi = String(evKey ? normRow[evKey] : '');
+
+                  // MİSAFİR OKUMA ZEKASI
+                  const misKey = Object.keys(normRow).find(k => k.includes('MİSAFİR') || k.includes('MISAFIR') || k.includes('DEPLASMAN') || k.includes('2.TAKIM') || k.includes('TAKIM 2'));
+                  const misafir_takim = String(misKey ? normRow[misKey] : '');
+
                   let finalKomiserId = rawName; 
                   if (/^\d{4,10}$/.test(rawName) && !rawName.startsWith('35')) finalKomiserId = '35' + rawName;
                   
@@ -751,12 +806,15 @@ export default function AdminPage() {
                   }
 
                   return {
-                      mac_kodu: String(normRow['M.KODU'] || normRow['MAÇ KODU'] || normRow['KOD'] || ''), tarih: islenmisTarih,
-                      saat: islenmisSaat, saha: String(normRow['STAD'] || normRow['SAHA'] || ''),
-                      kategori_adi: String(normRow['KATEGORİSİ'] || normRow['LİG'] || ''),
-                      ev_sahibi: String(normRow['EV SAHİBİ TAKIM'] || normRow['EV SAHİBİ'] || ''),
-                      misafir_takim: String(normRow['MİSAFİR TAKIM'] || normRow['MİSAFİR'] || ''),
-                      komiser_id: finalKomiserId, raw_komiser_name: rawName 
+                      mac_kodu: macKodu, 
+                      tarih: islenmisTarih,
+                      saat: islenmisSaat, 
+                      saha: saha,
+                      kategori_adi: kategori_adi,
+                      ev_sahibi: ev_sahibi,
+                      misafir_takim: misafir_takim,
+                      komiser_id: finalKomiserId, 
+                      raw_komiser_name: rawName 
                   }
               }).filter(m => {
                   const ev = m.ev_sahibi.trim().toLocaleUpperCase('tr-TR'); const misafir = m.misafir_takim.trim().toLocaleUpperCase('tr-TR');
@@ -854,7 +912,6 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 PDF YAZDIRMA VE OTOMATİK A4 SİHİRBAZI 🔥
   const tffTutanakIndir = (mac: any, prefix: string = 'tff') => {
       const element = document.getElementById(`${prefix}-form-${mac.id}`);
       if (!element) {
@@ -1327,7 +1384,6 @@ export default function AdminPage() {
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <div className="tff-no-print">
-                            {/* 🔥 İNDİRME BUTONU 🔥 */}
                             <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                                 📄 TFF RESMİ TUTANAĞINI EKRANDA GÖR VE İNDİR
                             </button>
@@ -1398,7 +1454,6 @@ export default function AdminPage() {
   const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
   const sirenAktif = aktifEmniyetlikler.length > 0;
 
-  // 🔥 YENİ EKLENEN: SİREN SES MOTORU 🔥
   useEffect(() => {
       let interval: any;
       let audioCtx: any;
@@ -1411,17 +1466,17 @@ export default function AdminPage() {
                   const osc = audioCtx.createOscillator();
                   const gainNode = audioCtx.createGain();
                   osc.type = 'square';
-                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 800Hz Bip sesi
+                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
                   
                   gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); // Yavaşça sesi aç
-                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); // Sesi kapat
+                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); 
+                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); 
                   
                   osc.connect(gainNode);
                   gainNode.connect(audioCtx.destination);
                   osc.start(audioCtx.currentTime);
                   osc.stop(audioCtx.currentTime + 0.6);
-              }, 1000); // Her 1 saniyede bir öt
+              }, 1000); 
           } catch(e) {
               console.log("Tarayıcınız ses API'sini engelliyor olabilir.");
           }
@@ -1432,7 +1487,6 @@ export default function AdminPage() {
       }
   }, [sirenAktif, girisYapildi]);
 
-  // 🔥 YENİ EKLENEN: ARAMA MOTORU ZEKASI 🔥
   const aramaSonuclari = genelArama.trim().length >= 2 ? sezonlukMaclar.filter(m => {
       const arama = genelArama.toLocaleUpperCase('tr-TR');
       const kName = komiserIsmiBul(m.komiser_id).toLocaleUpperCase('tr-TR');
@@ -1494,7 +1548,6 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* 🔥 HAFTALIK BÜLTEN MODALI (ÖNCESİ / SONRASI SEÇENEKLİ) 🔥 */}
         {bultenModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
@@ -1968,13 +2021,15 @@ export default function AdminPage() {
                                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                             {Object.keys(d.gunler).filter(g => d.gunler[g].active).map(g => {
                                                                 const gunData = d.gunler[g];
-                                                                const gunIsimleri: any = { cuma: 'CUMA', cumartesi: 'CUMARTESİ', pazar: 'PAZAR', pazartesi: 'PAZARTESİ', sali: 'SALI', carsamba: 'ÇARŞAMBA', persembe: 'PERŞEMBE' };
+                                                                const gunIsimleri: any = { cuma: 'Cuma', cumartesi: 'Ctesi', pazar: 'Pazar', 
+                                                                    pazartesi: 'P.tesi', sali: 'Salı', carsamba: 'Çarş.', persembe: 'Perş.'
+                                                                };
                                                                 return (
                                                                     <div key={g} className="bg-slate-800/80 border border-slate-700 rounded p-2 text-xs">
                                                                         <div className="font-bold text-blue-400 mb-1">{gunIsimleri[g]}</div>
                                                                         <div className="text-[10px] text-slate-400 flex flex-wrap gap-1">
-                                                                            {gunData.merkez && <span className="bg-slate-950 px-1 rounded border border-slate-700">Merkez</span>}
-                                                                            {gunData.deplasman && <span className="bg-slate-950 px-1 rounded border border-slate-700">Depl.</span>}
+                                                                            {gunData.merkez && <span className="bg-slate-950 px-1 rounded border border-slate-700">Mrk</span>}
+                                                                            {gunData.deplasman && <span className="bg-slate-950 px-1 rounded border border-slate-700">Dep</span>}
                                                                             <span className="bg-blue-900/30 text-blue-300 px-1 rounded ml-auto border border-blue-800/50">
                                                                                 {gunData.tumGun ? 'Tüm Gün' : `${gunData.baslangic} - ${gunData.bitis}`}
                                                                             </span>

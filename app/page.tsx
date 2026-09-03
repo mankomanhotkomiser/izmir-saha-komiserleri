@@ -17,7 +17,7 @@ const DERNEK_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png
 
 type EkranTuru = 'giris' | 'dashboard' | 'gorevKartlari' | 'skorRapor' | 'mazeretBildir' | 'bultenArama' | 'istatistiklerim';
 
-// 🔥 YENİ: ACIKMAZSIZ TÜRKÇE ÇEVİRMEN MOTORU 🔥
+// 🔥 ACIKMAZSIZ TÜRKÇE ÇEVİRMEN MOTORU 🔥
 const turkceBuyukHarf = (metin: any) => {
     if (!metin) return '';
     return String(metin)
@@ -93,10 +93,14 @@ const formatMacKodu = (kod: any) => {
 const guvenliTarih = (tarihMetni: any) => {
     if (!tarihMetni) return "-";
     try {
-        const str = String(tarihMetni);
+        const str = String(tarihMetni).trim();
+        if (str.includes('.')) return str;
         if (str.includes('-')) {
             const parts = str.split('-');
-            if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`; 
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                return `${parts[0]}.${parts[1]}.${parts[2]}`;
+            }
         }
         return str;
     } catch (e) { return "-"; }
@@ -107,33 +111,62 @@ const guvenliSaat = (saatMetni: any) => {
     try { return String(saatMetni).substring(0, 5); } catch (e) { return "-"; }
 }
 
+// 🔥 ADMİN PANELİNDEN ALINAN ZEKİ TARİH OKUMA (CUMA BUL) MOTORU 🔥
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
-      const parcalar = String(tarihMetni).split('-')
-      if (parcalar.length !== 3) return 0
-      const d = new Date(Number(parcalar[0]), Number(parcalar[1]) - 1, Number(parcalar[2]))
-      const gun = d.getDay()
-      const fark = gun >= 5 ? gun - 5 : gun + 2
-      d.setDate(d.getDate() - fark)
-      d.setHours(0, 0, 0, 0)
-      return d.getTime()
+      const str = String(tarihMetni).trim();
+      let y = 0, m = 0, dNum = 0;
+      if (str.includes('.')) {
+          const p = str.split('.');
+          if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+      } else if (str.includes('/')) {
+          const p = str.split('/');
+          if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+      } else if (str.includes('-')) {
+          const p = str.split('-');
+          if (p.length === 3) {
+              if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+              else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+          }
+      }
+      if (!y || isNaN(y)) return 0;
+      const d = new Date(y, m, dNum);
+      if (isNaN(d.getTime())) return 0;
+      const gun = d.getDay();
+      const fark = gun >= 5 ? gun - 5 : gun + 2;
+      d.setDate(d.getDate() - fark);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
     } catch (e) { return 0; }
 }
 
+// 🔥 ADMİN PANELİNDEN ALINAN ZEKİ SIRALAMA MOTORU 🔥
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
-        const str = String(mac.tarih);
-        const parcaTarih = str.split('-');
+        const str = String(mac.tarih).trim();
+        let y = 0, m = 0, dNum = 0;
+        if (str.includes('.')) {
+            const p = str.split('.');
+            if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        } else if (str.includes('/')) {
+            const p = str.split('/');
+            if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        } else if (str.includes('-')) {
+            const p = str.split('-');
+            if (p.length === 3) {
+                if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+                else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+            }
+        }
         let saat = 0, dakika = 0;
         if (mac.saat) {
-            const strSaat = String(mac.saat);
-            const parcaSaat = strSaat.split(':');
-            saat = parseInt(parcaSaat[0] || '0', 10);
-            dakika = parseInt(parcaSaat[1] || '0', 10);
+            const pSaat = String(mac.saat).split(':');
+            saat = parseInt(pSaat[0] || '0', 10);
+            dakika = parseInt(pSaat[1] || '0', 10);
         }
-        const d = new Date(parseInt(parcaTarih[0]), parseInt(parcaTarih[1])-1, parseInt(parcaTarih[2]), saat, dakika);
+        const d = new Date(y, m, dNum, saat, dakika);
         return isNaN(d.getTime()) ? 0 : d.getTime();
     } catch (e) { return 0; }
 };
@@ -267,7 +300,7 @@ export default function Home() {
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
 
   // ==========================================
-  // HESAPLAMALAR
+  // HESAPLAMALAR VE TARİH BEYNİ
   // ==========================================
   let gecerliAktifMaclar: any[] = [];
   const gecmisHaftalar: Record<number, any[]> = {};
@@ -330,7 +363,7 @@ export default function Home() {
   const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a: any, b: any) => b[1] - a[1]);
   const siraliKadinlar = Object.entries(kadinKategoriler).sort((a: any, b: any) => b[1] - a[1]);
 
-  // Bülten Arama için (TÜRKÇE ZIRHI EKLENDİ)
+  // Bülten Arama için
   const guvenliTumMaclar = Array.isArray(tumAktifMaclar) ? tumAktifMaclar : [];
   let filtrelenmisMaclar = guvenliTumMaclar;
   if (aramaKomiser.trim() !== '') {
