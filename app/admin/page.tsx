@@ -8,6 +8,19 @@ const AMATOR_MERKEZ_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_l
 const GELISIM_SOL_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original";
 const GELISIM_SAG_LOGO = "https://upload.wikimedia.org/wikipedia/tr/0/0a/TFF_logo.png?utm_source=tr.wikipedia.org&utm_campaign=index&utm_content=original"; 
 
+const turkceBuyukHarf = (metin: any) => {
+    if (!metin) return '';
+    return String(metin)
+        .replace(/i/g, 'İ')
+        .replace(/ı/g, 'I')
+        .replace(/ğ/g, 'Ğ')
+        .replace(/ü/g, 'Ü')
+        .replace(/ş/g, 'Ş')
+        .replace(/ö/g, 'Ö')
+        .replace(/ç/g, 'Ç')
+        .toUpperCase();
+}
+
 const parseDetay = (raw: any) => {
     if (!raw) return {};
     let obj = raw;
@@ -18,12 +31,20 @@ const parseDetay = (raw: any) => {
     return obj;
 };
 
-const raporTurunuBelirle = (kategori: any) => {
+const getAnaKategori = (kategori: any) => {
     if (!kategori) return 'amator';
-    const kat = String(kategori).toLocaleUpperCase('tr-TR');
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KIZ') || kat.includes('KADIN')) return 'gelisim';
-    if (kat.includes('PROF') || kat.includes('NESİNE') || kat.includes('SÜPER') || kat.includes('1. LİG') || kat.includes('2. LİG') || kat.includes('3. LİG') || kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'yok';
+    const kat = turkceBuyukHarf(kategori);
+    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
+    if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
     return 'amator';
+}
+
+const raporTurunuBelirle = (kategori: any) => {
+    const anaKat = getAnaKategori(kategori);
+    if (anaKat === 'profesyonel') return 'yok';
+    if (anaKat === 'gelisim') return 'gelisim';
+    return 'amator'; 
 }
 
 const detayliRaporGosterilirMi = (kategori: any) => {
@@ -51,6 +72,43 @@ const guvenliSaat = (saatMetni: any) => {
     if (!saatMetni) return "-";
     try { return String(saatMetni).substring(0, 5); } 
     catch (e) { return "-"; }
+}
+
+// 🔥 BORDRO İÇİN AY/YIL BULUCU ZEKASI 🔥
+const getAyYil = (tarihMetni: any) => {
+    if (!tarihMetni) return null;
+    try {
+        const str = String(tarihMetni).trim();
+        let y = 0, m = 0;
+        if (str.includes('.')) {
+            const p = str.split('.');
+            if (p.length === 3) { m = Number(p[1]); y = Number(p[2]); }
+            else if (p.length === 2) { m = Number(p[1]); y = new Date().getFullYear(); }
+        } else if (str.includes('/')) {
+            const p = str.split('/');
+            if (p.length === 3) { m = Number(p[1]); y = Number(p[2]); }
+            else if (p.length === 2) { m = Number(p[1]); y = new Date().getFullYear(); }
+        } else if (str.includes('-')) {
+            const p = str.split('-');
+            if (p.length === 3) {
+                if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]); }
+                else { m = Number(p[1]); y = Number(p[2]); }
+            } else if (p.length === 2) {
+                m = Number(p[1]); y = new Date().getFullYear();
+            }
+        }
+        if (y > 2000 && m >= 1 && m <= 12) return `${y}-${String(m).padStart(2, '0')}`;
+        return null;
+    } catch (e) { return null; }
+}
+
+const isBordroKategori = (kategori: any) => {
+    if (!kategori) return true; 
+    const kat = turkceBuyukHarf(kategori);
+    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KADIN') || kat.includes('KIZ')) {
+        return false; 
+    }
+    return true;
 }
 
 // 🔥 GELİŞTİRİLMİŞ TARİH MOTORU (YILSIZ TARİHLERİ BİLE ANLAR) 🔥
@@ -179,6 +237,20 @@ const gelisimTeknik = [
     { id: 'oyuncu_degistirme', text: '9. Oyuncu Değiştirme Tabelası' }
 ];
 
+// 🔥 KUTUCUK FIRÇASI (HATA GİDERİLDİ: "any" YAPILARAK BOŞLUKLARA İZİN VERİLDİ VE TEKE DÜŞÜRÜLDÜ) 🔥
+const EvetHayirBox = ({ val }: { val: any }) => (
+    <div className="flex items-center gap-4 pointer-events-none">
+        <div className="flex items-center gap-1">
+            <span className="w-8 text-right text-slate-700">Evet</span>
+            <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div>
+        </div>
+        <div className="flex items-center gap-1">
+            <span className="w-8 text-right text-slate-700">Hayır</span>
+            <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div>
+        </div>
+    </div>
+);
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -213,6 +285,11 @@ export default function AdminPage() {
 
   const [bultenModalAcik, setBultenModalAcik] = useState(false)
   const [bultenTab, setBultenTab] = useState<'gorev' | 'sonuc'>('gorev')
+
+  const [finansVerileri, setFinansVerileri] = useState<any[]>([])
+  const [finansModalAcik, setFinansModalAcik] = useState(false)
+  const [seciliBordroAy, setSeciliBordroAy] = useState<string | null>(null)
+  const [acikAdminBordroKomiser, setAcikAdminBordroKomiser] = useState<any | null>(null)
 
   const [atamaSelects, setAtamaSelects] = useState<Record<number, string>>({})
   const [degisimAcikMacId, setDegisimAcikMacId] = useState<number | null>(null)
@@ -297,6 +374,7 @@ export default function AdminPage() {
               if (kayitliAlarmlar) setSusturulanAlarmlar(JSON.parse(kayitliAlarmlar));
           } catch(e) {}
       } 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [girisYapildi])
 
   const alarmSustur = (id: number) => {
@@ -328,6 +406,10 @@ export default function AdminPage() {
       const { data: statuData } = await supabase.from('lig_statuleri').select('*');
       if (statuData) setTumStatuler(statuData || []);
 
+      // 🔥 HATA VEREN KISMI DÜZELTTİK: .catch() yerine standart error yapısı kullanıldı 🔥
+      const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*');
+      if (!fError && fData) setFinansVerileri(fData || []);
+
       if (maclarVerisi.length > 0) {
         const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
         const gruplar: Record<number, any[]> = {};
@@ -345,7 +427,6 @@ export default function AdminPage() {
         Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
         setHaftalikGruplar(gruplar);
         
-        // 🔥 GERÇEK ZAMAN KANCASI: Sistemi geleceğe kilitlemeyi bırak! Bugüne en yakın olanı bul. 🔥
         const suAn = Date.now();
         let enYakinHaftaNo = 1;
         let minFark = Infinity;
@@ -376,6 +457,7 @@ export default function AdminPage() {
       return () => { 
           if (radar) clearInterval(radar); 
       }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [girisYapildi]);
 
   const komiserIsmiBul = (id: any) => {
@@ -383,6 +465,152 @@ export default function AdminPage() {
     const komiser = (tumKomiserler || []).find(k => String(k?.komiser_id) === String(id))
     return komiser?.ad_soyad || 'Atanmamış'
   }
+
+  // 🔥 FİNANS VE BORDRO LİSTESİ HAZIRLIĞI 🔥
+  const tumAylarSet = new Set<string>();
+  sezonlukMaclar.forEach(m => {
+      if (m.mac_durumu === 'iptal_edildi' || !isBordroKategori(m.kategori_adi) || !m.komiser_id) return;
+      const ay = getAyYil(m.tarih);
+      if (ay) tumAylarSet.add(ay);
+  });
+  const aylarListesi = Array.from(tumAylarSet).sort((a,b)=>b.localeCompare(a));
+  const aylarIsim = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
+
+  let seciliAyBordroData: any[] = [];
+  if (seciliBordroAy) {
+      const ozet: Record<string, any> = {};
+      sezonlukMaclar.forEach(mac => {
+          if (mac.mac_durumu === 'iptal_edildi' || !isBordroKategori(mac.kategori_adi) || !mac.komiser_id || mac.komiser_id === 'null' || mac.komiser_id === '') return;
+          const ayYil = getAyYil(mac.tarih);
+          if (ayYil === seciliBordroAy) {
+              if (!ozet[mac.komiser_id]) {
+                   const komiser = tumKomiserler.find(k=>String(k.komiser_id)===String(mac.komiser_id));
+                   const finans = finansVerileri.find(f=>String(f.komiser_id)===String(mac.komiser_id)) || {};
+                   ozet[mac.komiser_id] = {
+                       komiser_id: mac.komiser_id,
+                       ad_soyad: komiser?.ad_soyad || 'Bilinmeyen Komiser',
+                       tc: finans.tc_kimlik || '',
+                       banka: finans.banka_adi || '',
+                       sube: finans.sube_kodu || '',
+                       hesap: finans.hesap_no || '',
+                       iban: finans.iban || '',
+                       profCount: 0,
+                       amatorCount: 0,
+                       maclar: []
+                   }
+              }
+              if (getAnaKategori(mac.kategori_adi) === 'profesyonel') {
+                  ozet[mac.komiser_id].profCount++;
+              } else {
+                  ozet[mac.komiser_id].amatorCount++;
+              }
+              ozet[mac.komiser_id].maclar.push(mac);
+          }
+      });
+      seciliAyBordroData = Object.values(ozet).sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad));
+  }
+
+  const topluBordroExcelIndir = () => {
+      if (seciliAyBordroData.length === 0) return;
+      let tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+          <meta charset="utf-8" />
+          <style>
+              table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
+              th { background-color: #064e3b; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; text-align: center; }
+              td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle; }
+              .bold { font-weight: bold; }
+          </style>
+      </head>
+      <body>
+          <table>
+              <thead>
+                  <tr><th colspan="10" style="font-size: 16px; background-color: #0f172a;">${seciliBordroAy} DÖNEMİ KOMİSER FİNANS VE HAKEDİŞ LİSTESİ</th></tr>
+                  <tr>
+                      <th>SIRA</th>
+                      <th>ADI SOYADI</th>
+                      <th>T.C. KİMLİK</th>
+                      <th>BANKA ADI</th>
+                      <th>ŞUBE KODU</th>
+                      <th>HESAP NO</th>
+                      <th>IBAN NO</th>
+                      <th>PROF. MAÇ</th>
+                      <th>AMATÖR MAÇ</th>
+                      <th>TOPLAM GÖREV</th>
+                  </tr>
+              </thead>
+              <tbody>
+      `;
+
+      seciliAyBordroData.forEach((k, idx) => {
+          tableHtml += `
+              <tr>
+                  <td class="bold">${idx + 1}</td>
+                  <td class="bold" style="text-align: left;">${turkceBuyukHarf(k.ad_soyad)}</td>
+                  <td style="mso-number-format:'\\@';">${k.tc || '-'}</td>
+                  <td>${k.banka || '-'}</td>
+                  <td style="mso-number-format:'\\@';">${k.sube || '-'}</td>
+                  <td style="mso-number-format:'\\@';">${k.hesap || '-'}</td>
+                  <td style="mso-number-format:'\\@'; font-weight: bold; color: #047857;">${k.iban || '-'}</td>
+                  <td class="bold">${k.profCount}</td>
+                  <td class="bold">${k.amatorCount}</td>
+                  <td class="bold" style="background-color: #f1f5f9;">${k.profCount + k.amatorCount}</td>
+              </tr>
+          `;
+      });
+
+      tableHtml += `</tbody></table></body></html>`;
+      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `TFF_Izmir_Komiser_Odemeleri_${seciliBordroAy}.xls`;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  }
+
+  const adminBordroIndirYazdir = () => {
+      const element = document.getElementById(`admin-bordro-print-area`);
+      if (!element) { alert("Bordro ekranda bulunamadı."); return; }
+      try {
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) { alert("Lütfen tarayıcınızın 'Açılır Pencere' engelleyicisini kapatın."); return; }
+          const reportHtml = element.outerHTML;
+          const doc = printWindow.document;
+
+          doc.write(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>Bordro_${acikAdminBordroKomiser?.ad_soyad}_${seciliBordroAy}</title>
+                  <meta charset="utf-8">
+                  <script src="https://cdn.tailwindcss.com"></script>
+                  <style>
+                      @media print {
+                          @page { margin: 8mm; size: A4 portrait; }
+                          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; margin: 0 !important; padding: 0 !important; }
+                          .tff-no-print { display: none !important; }
+                          .mobile-zoom { zoom: 0.90 !important; transform: none !important; } 
+                      }
+                      body { font-family: Arial, sans-serif; background: #ffffff; color: #000000; }
+                      table { width: 100%; border-collapse: collapse; }
+                      th, td { border: 1px solid black; padding: 4px; }
+                  </style>
+              </head>
+              <body>
+                  <div style="width: 100%; max-width: 800px; margin: 0 auto; background: white;">
+                      ${reportHtml}
+                  </div>
+                  <script>
+                      setTimeout(function() { window.print(); window.close(); }, 1000);
+                  </script>
+              </body>
+              </html>
+          `);
+          doc.close();
+      } catch (err) { alert("PDF ekranı hazırlanırken sorun oluştu."); }
+  }
+
 
   const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
       const kA = String(komiserIsmiBul(a?.komiser_id) || '');
@@ -911,18 +1139,6 @@ export default function AdminPage() {
       }
   }
 
-  // 🔥 TAMAMEN SİLME BUTONU FONKSİYONU 🔥
-  const maciVeritabanindanSil = async (macId: number) => {
-      if (window.confirm("⚠️ DİKKAT: Bu maç veritabanından KALICI OLARAK silinecektir. Emin misiniz?")) {
-          try {
-              const { error } = await supabase.from('musabakalar').delete().eq('id', macId);
-              if (error) throw error;
-              alert("✅ Maç başarıyla silindi!");
-              veriGetir(true); 
-          } catch (err: any) { alert("Hata: " + err.message); }
-      }
-  }
-
   const tffTutanakIndir = (mac: any, prefix: string = 'tff') => {
       const element = document.getElementById(`${prefix}-form-${mac.id}`);
       if (!element) {
@@ -1017,8 +1233,18 @@ export default function AdminPage() {
 
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
 
+      // 🔥 İŞTE O UNUTULAN KUTUCUK FIRÇASI BURADA! YERİNE TAKILDI! 🔥
       const EvetHayirBox = ({ val }: { val: string }) => (
-          <div className="flex items-center gap-4 pointer-events-none"><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Evet</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div></div><div className="flex items-center gap-1"><span className="w-8 text-right text-slate-700">Hayır</span><div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div></div></div>
+          <div className="flex items-center gap-4 pointer-events-none">
+              <div className="flex items-center gap-1">
+                  <span className="w-8 text-right text-slate-700">Evet</span>
+                  <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'evet' ? 'X' : ''}</div>
+              </div>
+              <div className="flex items-center gap-1">
+                  <span className="w-8 text-right text-slate-700">Hayır</span>
+                  <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{val === 'hayir' ? 'X' : ''}</div>
+              </div>
+          </div>
       );
 
       const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
@@ -1395,7 +1621,6 @@ export default function AdminPage() {
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <div className="tff-no-print">
-                            {/* 🔥 İNDİRME BUTONU 🔥 */}
                             <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                                 📄 TFF RESMİ TUTANAĞINI EKRANDA GÖR VE İNDİR
                             </button>
@@ -1405,21 +1630,9 @@ export default function AdminPage() {
                     )}
                  </div>
              )}
-             
-             {/* 🔥 EKLENEN SİLME BUTONU VE DİĞER BUTONLAR 🔥 */}
-             {!isArsiv && !macBittiMi && (
-                 <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
-                     <button onClick={() => maciVeritabanindanSil(mac.id)} className="bg-red-950 hover:bg-red-800 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg">🗑️ TAMAMEN SİL</button>
-                     
-                     {mac.mac_durumu !== 'iptal_edildi' && (
-                         <>
-                            <button onClick={() => macIptalEt(mac.id)} className="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ İPTAL ET</button>
-                            <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
-                         </>
-                     )}
-                 </div>
+             {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
+                 <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4"><button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button><button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button></div>
              )}
-             
              {!isArsiv && degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down"><select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer"><option value="">-- Devredilecek Yeni Komiseri Seçin --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select><button onClick={() => islemYapDevir(mac.id)} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded">DEVRİ ONAYLA</button></div>
              )}
@@ -1478,7 +1691,6 @@ export default function AdminPage() {
   const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
   const sirenAktif = aktifEmniyetlikler.length > 0;
 
-  // 🔥 YENİ EKLENEN: SİREN SES MOTORU 🔥
   useEffect(() => {
       let interval: any;
       let audioCtx: any;
@@ -1491,17 +1703,17 @@ export default function AdminPage() {
                   const osc = audioCtx.createOscillator();
                   const gainNode = audioCtx.createGain();
                   osc.type = 'square';
-                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 800Hz Bip sesi
+                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
                   
                   gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); // Yavaşça sesi aç
-                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); // Sesi kapat
+                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); 
+                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); 
                   
                   osc.connect(gainNode);
                   gainNode.connect(audioCtx.destination);
                   osc.start(audioCtx.currentTime);
                   osc.stop(audioCtx.currentTime + 0.6);
-              }, 1000); // Her 1 saniyede bir öt
+              }, 1000); 
           } catch(e) {
               console.log("Tarayıcınız ses API'sini engelliyor olabilir.");
           }
@@ -1512,7 +1724,6 @@ export default function AdminPage() {
       }
   }, [sirenAktif, girisYapildi]);
 
-  // 🔥 YENİ EKLENEN: ARAMA MOTORU ZEKASI 🔥
   const aramaSonuclari = genelArama.trim().length >= 2 ? sezonlukMaclar.filter(m => {
       const arama = genelArama.toLocaleUpperCase('tr-TR');
       const kName = komiserIsmiBul(m.komiser_id).toLocaleUpperCase('tr-TR');
@@ -1562,7 +1773,8 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-             <button onClick={() => setBultenModalAcik(true)} className="bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">📋 HAFTALIK BÜLTEN</button>
+             <button onClick={() => setFinansModalAcik(true)} className="bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">💰 FİNANS MERKEZİ</button>
+             <button onClick={() => setBultenModalAcik(true)} className="bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">📋 HAFTALIK BÜLTEN</button>
              <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">📥 EXCEL BÜLTEN YÜKLE</button>
              <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM YÖNETİMİ</button>
              <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
@@ -1574,7 +1786,230 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
-        {/* 🔥 HAFTALIK BÜLTEN MODALI (ÖNCESİ / SONRASI SEÇENEKLİ) 🔥 */}
+        {finansModalAcik && (
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
+                <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
+                    <div className="bg-emerald-900/40 p-4 border-b border-emerald-500/50 flex justify-between items-center shrink-0">
+                        <h2 className="text-base md:text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2">
+                            <span className="text-2xl">💰</span> FİNANS VE BORDRO MERKEZİ
+                        </h2>
+                        <button onClick={() => setFinansModalAcik(false)} className="text-slate-400 hover:text-white font-bold text-3xl leading-none transition-colors ml-2">✕</button>
+                    </div>
+                    
+                    <div className="flex bg-slate-800 border-b border-slate-700 p-3 gap-2 overflow-x-auto custom-scrollbar shrink-0">
+                        {aylarListesi.length === 0 ? (
+                            <span className="text-slate-500 text-sm font-bold p-2">Kayıtlı bordro dönemi bulunmuyor.</span>
+                        ) : (
+                            aylarListesi.map(ay => (
+                                <button 
+                                    key={ay} 
+                                    onClick={() => setSeciliBordroAy(ay)} 
+                                    className={`px-4 py-2 font-black uppercase tracking-widest text-xs rounded-lg transition-colors whitespace-nowrap ${seciliBordroAy === ay ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-900 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}`}
+                                >
+                                    {aylarIsim[Number(ay.split('-')[1]) - 1]} {ay.split('-')[0]}
+                                </button>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#0f172a]">
+                        {!seciliBordroAy ? (
+                            <div className="text-center text-slate-500 py-10 font-bold tracking-widest">
+                                <span className="text-5xl block mb-4">📅</span>
+                                LÜTFEN YUKARIDAN BİR BORDRO DÖNEMİ SEÇİNİZ
+                            </div>
+                        ) : (
+                            <div className="animate-fade-in-up">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
+                                    <div>
+                                        <h3 className="text-white font-black text-lg uppercase tracking-widest">{seciliBordroAy} DÖNEMİ HAKEDİŞLERİ</h3>
+                                        <p className="text-emerald-400 text-xs font-bold mt-1">Bu dönemde {seciliAyBordroData.length} komiser görev almıştır.</p>
+                                    </div>
+                                    <button onClick={topluBordroExcelIndir} className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-105 border border-emerald-400 text-xs tracking-widest">
+                                        <span>📊</span> TÜM LİSTEYİ EXCEL'E AKTAR (BANKA İÇİN)
+                                    </button>
+                                </div>
+
+                                <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-x-auto shadow-inner">
+                                    <table className="w-full text-left text-xs text-slate-300 min-w-[800px]">
+                                        <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-4 py-4 border-b border-slate-700">Komiser Adı Soyadı</th>
+                                                <th className="px-4 py-4 border-b border-slate-700">T.C. Kimlik</th>
+                                                <th className="px-4 py-4 border-b border-slate-700">Banka / IBAN Bilgisi</th>
+                                                <th className="px-4 py-4 border-b border-slate-700 text-center">Toplam Maç</th>
+                                                <th className="px-4 py-4 border-b border-slate-700 text-center">İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {seciliAyBordroData.map((k, i) => (
+                                                <tr key={i} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-4 py-4">
+                                                        <div className="font-bold text-white uppercase">{turkceBuyukHarf(k.ad_soyad)}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono mt-1">SİCİL: {k.komiser_id}</div>
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        {k.tc ? <span className="font-mono text-emerald-400 font-bold">{k.tc}</span> : <span className="text-red-500 text-[10px] font-bold bg-red-950/30 px-2 py-1 rounded">GİRİLMEDİ</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        {k.iban ? (
+                                                            <div>
+                                                                <div className="font-bold text-blue-300">{k.banka}</div>
+                                                                <div className="font-mono text-[10px] text-emerald-400 mt-1">{k.iban}</div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-red-500 text-[10px] font-bold bg-red-950/30 px-2 py-1 rounded">BİLGİLER EKSİK</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center">
+                                                        <span className="bg-slate-700 text-white font-black px-3 py-1.5 rounded-lg border border-slate-600 inline-block w-12 text-center">{k.profCount + k.amatorCount}</span>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center">
+                                                        <button 
+                                                            onClick={() => setAcikAdminBordroKomiser(k)} 
+                                                            className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-3 py-2 rounded shadow transition-colors border border-slate-500 flex items-center gap-2 justify-center w-full"
+                                                        >
+                                                            <span>📄</span> BORDRO (PDF) GÖR
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {acikAdminBordroKomiser && (
+            <div className="fixed inset-0 bg-black/90 z-[150] flex flex-col backdrop-blur-sm tff-no-print">
+                <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
+                    <h2 className="text-xs md:text-lg font-black text-white tracking-widest uppercase flex-1 pr-4 flex items-center gap-2"><span className="text-2xl">🖨️</span> {turkceBuyukHarf(acikAdminBordroKomiser.ad_soyad)} BORDROSU ({seciliBordroAy})</h2>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <button onClick={adminBordroIndirYazdir} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">🖨️ PDF İNDİR / YAZDIR</button>
+                        <button onClick={() => setAcikAdminBordroKomiser(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button>
+                    </div>
+                </div>
+                <div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar">
+                    <div className="shadow-2xl bg-white w-full max-w-[800px] transform origin-top mx-auto">
+                        <div id="admin-bordro-print-area" className="w-full bg-white p-6 relative font-sans text-black mobile-zoom">
+                              <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
+                              
+                              <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
+                              
+                              <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
+                                  <tbody>
+                                      <tr><td className="border border-black p-1.5 w-1/4 bg-slate-100/50">ADI SOYADI</td><td className="border border-black p-1.5 w-3/4 uppercase">{turkceBuyukHarf(acikAdminBordroKomiser.ad_soyad)}</td></tr>
+                                      <tr><td className="border border-black p-1.5 bg-slate-100/50">T.C. KİMLİK NO</td><td className="border border-black p-1.5 px-3 font-mono">{acikAdminBordroKomiser.tc || '-'}</td></tr>
+                                      <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA</td><td className="border border-black p-1.5 px-3">{acikAdminBordroKomiser.banka || '-'}</td></tr>
+                                      <tr><td className="border border-black p-1.5 bg-slate-100/50">ŞUBE KODU</td><td className="border border-black p-1.5 px-3">{acikAdminBordroKomiser.sube || '-'}</td></tr>
+                                      <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA HESAP NO</td><td className="border border-black p-1.5 px-3 font-mono">{acikAdminBordroKomiser.hesap || '-'}</td></tr>
+                                      <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA IBAN NO</td><td className="border border-black p-1.5 px-3 font-mono text-blue-800">{acikAdminBordroKomiser.iban || '-'}</td></tr>
+                                  </tbody>
+                              </table>
+
+                              <div className="text-[10px] mb-8 relative">
+                                  <p className="uppercase mb-8">{String(seciliBordroAy).replace('-', '/')} AYIN DA GÖREV ALDIĞIM MAÇ<br/>VE YOL ÜCRETLERİ AŞAĞIDAKİ GİBİDİR. TAHSİL EDİLDİĞİNDE YUKARIDAKİ<br/>BANKA HESABIMA YATIRILMASINI ARZ EDERİM.</p>
+                                  <div className="absolute right-0 top-6 text-center">
+                                      <div className="font-bold mb-6">İMZA</div>
+                                      <div className="uppercase">{turkceBuyukHarf(acikAdminBordroKomiser.ad_soyad)}</div>
+                                  </div>
+                              </div>
+
+                              <div className="text-[9px] mb-4 font-bold tracking-tight">
+                                  <p>(lütfen tüm açıklamaları okuduktan sonra eksiksiz doldurunuz)</p>
+                                  <p>lütfen ay sonlarında veya engeç takip eden ayın 5'ine kadar gönderiniz.</p>
+                                  <p>Göndermiyenlerin ücretleri bankada bekletilecek ve bir sonraki ayın ücretleri ile birlikte ödenecektir</p>
+                                  <p>Her ayın 1-31 arasındaki müsabakalar yazılacaktır.Diğer aya denk gelen müsabakalar yazılmayacaktır</p>
+                                  <br/>
+                                  <p>1.<span className="text-red-600">PROFESYONEL MÜSABAKALARI EN ÜST BÖLÜME YAZINIZ.ÜCRET ALINDI YSA ALINDI OLARAK BELİRTİNİZ</span></p>
+                                  <p>2.)MÜSABAKA NEVİ MUHAKKAK YAZILACAKTIR. (S.L-U-19.1AK.U11 GİBİ)</p>
+                                  <p>3.)U14-U13-U11 MÜSABAKALARINDA HARCIRAH ÖDENMEMEKTEDİR.İÇ MAÇ SAYILACAK.<br/>DEPLASMANDA BU MAÇLARIN YOL ÜCRETİ DERNEK TARAFINDAN KARŞILANACAKTIR.</p>
+                                  <p>4.)HER NEVİDEKİ MÜSABAKALARDA MERKEZ İLÇELERE YOL PARASI YAZMAYINIZ.<br/>GÜZELBAHÇE -YELKİYE-MENDERESE -HARMANDALI YA KADAR OLAN MÜSABAKALARA YOL PARASI YAZILMAYACAKTIR</p>
+                                  <p>5). ARKA ARKAYA ÇIKILAN 2 ADET U-11 VEYA 2 ADET U-12 MÜSABAKASI TEK MÜSABAKA SAYILIR.</p>
+                              </div>
+
+                              <h3 className="text-center font-bold text-red-600 text-[11px] mb-1">ÇIKILAN PROFESYONEL MÜSABAKA</h3>
+                              <table className="w-full text-[10px] font-bold border-collapse border border-black text-center mb-8">
+                                  <thead className="bg-white">
+                                      <tr>
+                                          <th className="border border-black p-1 w-8"></th>
+                                          <th className="border border-black p-1 w-20">TARİH</th>
+                                          <th className="border border-black p-1 text-left">EV SAHİBİ TAKIM</th>
+                                          <th className="border border-black p-1 w-24">LİGİ</th>
+                                          <th className="border border-black p-1 w-16">YOL</th>
+                                          <th className="border border-black p-1 w-28 text-[8px]">ÜCRET ALINDI / ALINMADI</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {(() => {
+                                          const profMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) === 'profesyonel');
+                                          
+                                          if (profMaclar.length === 0) {
+                                              return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-slate-300">-</td></tr>;
+                                          }
+                                          
+                                          return profMaclar.map((m:any, i:number) => (
+                                              <tr key={i}>
+                                                  <td className="border border-black p-1"></td>
+                                                  <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
+                                                  <td className="border border-black p-1 text-left uppercase">{turkceBuyukHarf(m.ev_sahibi)}</td>
+                                                  <td className="border border-black p-1 uppercase">{turkceBuyukHarf(m.kategori_adi)}</td>
+                                                  <td className="border border-black p-1"></td>
+                                                  <td className="border border-black p-1 font-bold text-slate-400">-</td>
+                                              </tr>
+                                          ));
+                                      })()}
+                                  </tbody>
+                              </table>
+
+                              <table className="w-full text-[10px] font-bold border-collapse border border-black text-center">
+                                  <thead className="bg-slate-100">
+                                      <tr>
+                                          <th className="border border-black p-1 w-8">S.NO</th>
+                                          <th className="border border-black p-1 w-20">TARİH</th>
+                                          <th className="border border-black p-1 text-left">STAD</th>
+                                          <th className="border border-black p-1 w-12">SAAT</th>
+                                          <th className="border border-black p-1 w-24">NEVİ</th>
+                                          <th className="border border-black p-1 w-24">YOL ÜCRETİ</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {(() => {
+                                          const amatorMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) !== 'profesyonel');
+                                          
+                                          if (amatorMaclar.length === 0) {
+                                              return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>;
+                                          }
+
+                                          return amatorMaclar.map((m:any, i:number) => (
+                                              <tr key={i}>
+                                                  <td className="border border-black p-1">{i + 1}</td>
+                                                  <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
+                                                  <td className="border border-black p-1 text-left uppercase truncate max-w-[200px]">{turkceBuyukHarf(m.saha)}</td>
+                                                  <td className="border border-black p-1">{guvenliSaat(m.saat)}</td>
+                                                  <td className="border border-black p-1 uppercase text-[9px] truncate max-w-[100px]">{turkceBuyukHarf(m.kategori_adi)}</td>
+                                                  <td className="border border-black p-1"></td>
+                                              </tr>
+                                          ));
+                                      })()}
+                                      <tr>
+                                          <td colSpan={2} className="border border-black p-1 text-left bg-slate-100/50">TOPLAM İÇ MAÇ</td>
+                                          <td className="border border-black p-1 font-black text-sm">{acikAdminBordroKomiser.amatorCount}</td>
+                                          <td colSpan={2} className="border border-black p-1 bg-slate-100/50">TOPLAM DIŞ MAÇ</td>
+                                          <td className="border border-black p-1 text-left bg-slate-100/50"><span className="float-left">TOPLAM YOL ÜCRETİ</span></td>
+                                      </tr>
+                                  </tbody>
+                              </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {bultenModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
