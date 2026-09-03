@@ -256,7 +256,6 @@ export default function AdminPage() {
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
-  // 🔥 GELİŞTİRİLMİŞ TARİH MOTORU 2 (HAFTA BULUCU) 🔥
   const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
@@ -346,11 +345,21 @@ export default function AdminPage() {
         Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
         setHaftalikGruplar(gruplar);
         
-        const aktifHafta = cumalar.length > 0 ? cumalar.length : 1;
-        setGlobalAktifHaftaNo(aktifHafta);
+        // 🔥 GERÇEK ZAMAN KANCASI: Sistemi geleceğe kilitlemeyi bırak! Bugüne en yakın olanı bul. 🔥
+        const suAn = Date.now();
+        let enYakinHaftaNo = 1;
+        let minFark = Infinity;
+        cumalar.forEach((cuma: any, idx: number) => {
+            const fark = Math.abs(cuma - suAn);
+            if (fark < minFark) {
+                minFark = fark;
+                enYakinHaftaNo = idx + 1;
+            }
+        });
         
+        setGlobalAktifHaftaNo(enYakinHaftaNo);
         if (goruntulenenHafta === null) {
-            setGoruntulenenHafta(aktifHafta);
+            setGoruntulenenHafta(enYakinHaftaNo);
         }
       }
     } catch (err) { console.error(err) }
@@ -726,7 +735,6 @@ export default function AdminPage() {
       setYukleniyor(false);
   }
 
-  // 🔥 GELİŞTİRİLMİŞ (YAPAY ZEKALI) EXCEL OKUYUCU 🔥
   const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -740,10 +748,8 @@ export default function AdminPage() {
 
               const islenmisVeri = jsonData.map((row: any) => {
                   const normRow: any = {};
-                  // Tüm sütun başlıklarını büyük harf yapıp boşlukları temizleyelim
                   Object.keys(row).forEach(k => { normRow[k.trim().toLocaleUpperCase('tr-TR')] = row[k]; });
                   
-                  // TARİH OKUMA ZEKASI (TARİH, DATE, GÜN kelimelerini arar)
                   const dateKey = Object.keys(normRow).find(k => k.includes('TARİH') || k.includes('TARIH') || k.includes('DATE') || k.includes('GÜN'));
                   let islenmisTarih = dateKey ? normRow[dateKey] : '';
                   
@@ -763,7 +769,6 @@ export default function AdminPage() {
                       }
                   }
 
-                  // SAAT OKUMA ZEKASI
                   const timeKey = Object.keys(normRow).find(k => k.includes('SAAT') || k.includes('TIME'));
                   let islenmisSaat = timeKey ? normRow[timeKey] : '';
                   if (typeof islenmisSaat === 'number') {
@@ -772,27 +777,21 @@ export default function AdminPage() {
                       islenmisSaat = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                   }
 
-                  // KOMİSER OKUMA ZEKASI
                   const komiserKey = Object.keys(normRow).find(k => k.includes('KOMİSER') || k.includes('KOMISER') || k.includes('TC') || k.includes('KİMLİK') || k.includes('GÖREVLİ'));
                   const rawName = String(komiserKey ? normRow[komiserKey] : '').trim();
                   
-                  // KOD OKUMA ZEKASI
                   const kodKey = Object.keys(normRow).find(k => k.includes('KOD') || k.includes('M.NO'));
                   const macKodu = String(kodKey ? normRow[kodKey] : '');
 
-                  // SAHA OKUMA ZEKASI
                   const sahaKey = Object.keys(normRow).find(k => k.includes('SAHA') || k.includes('STAD') || k.includes('YER'));
                   const saha = String(sahaKey ? normRow[sahaKey] : '');
 
-                  // LİG/KATEGORİ OKUMA ZEKASI
                   const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR'));
                   const kategori_adi = String(ligKey ? normRow[ligKey] : '');
 
-                  // EV SAHİBİ OKUMA ZEKASI
                   const evKey = Object.keys(normRow).find(k => k.includes('EV') || k.includes('SAHİBİ') || k.includes('1.TAKIM') || k.includes('TAKIM 1'));
                   const ev_sahibi = String(evKey ? normRow[evKey] : '');
 
-                  // MİSAFİR OKUMA ZEKASI
                   const misKey = Object.keys(normRow).find(k => k.includes('MİSAFİR') || k.includes('MISAFIR') || k.includes('DEPLASMAN') || k.includes('2.TAKIM') || k.includes('TAKIM 2'));
                   const misafir_takim = String(misKey ? normRow[misKey] : '');
 
@@ -908,6 +907,18 @@ export default function AdminPage() {
               const { error } = await supabase.from('musabakalar').update(guncelVeri).eq('id', macId);
               if (error) throw error;
               alert("✅ İptal edildi."); sessizMacGuncelle(macId, guncelVeri); 
+          } catch (err: any) { alert("Hata: " + err.message); }
+      }
+  }
+
+  // 🔥 TAMAMEN SİLME BUTONU FONKSİYONU 🔥
+  const maciVeritabanindanSil = async (macId: number) => {
+      if (window.confirm("⚠️ DİKKAT: Bu maç veritabanından KALICI OLARAK silinecektir. Emin misiniz?")) {
+          try {
+              const { error } = await supabase.from('musabakalar').delete().eq('id', macId);
+              if (error) throw error;
+              alert("✅ Maç başarıyla silindi!");
+              veriGetir(true); 
           } catch (err: any) { alert("Hata: " + err.message); }
       }
   }
@@ -1384,6 +1395,7 @@ export default function AdminPage() {
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
                         <div className="tff-no-print">
+                            {/* 🔥 İNDİRME BUTONU 🔥 */}
                             <button onClick={() => setTamEkranRaporMac(mac)} className="w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg">
                                 📄 TFF RESMİ TUTANAĞINI EKRANDA GÖR VE İNDİR
                             </button>
@@ -1393,9 +1405,21 @@ export default function AdminPage() {
                     )}
                  </div>
              )}
-             {!isArsiv && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
-                 <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4"><button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ MAÇI İPTAL ET</button><button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button></div>
+             
+             {/* 🔥 EKLENEN SİLME BUTONU VE DİĞER BUTONLAR 🔥 */}
+             {!isArsiv && !macBittiMi && (
+                 <div className="flex justify-end gap-3 mt-4 border-t border-slate-800 pt-4">
+                     <button onClick={() => maciVeritabanindanSil(mac.id)} className="bg-red-950 hover:bg-red-800 text-red-500 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg">🗑️ TAMAMEN SİL</button>
+                     
+                     {mac.mac_durumu !== 'iptal_edildi' && (
+                         <>
+                            <button onClick={() => macIptalEt(mac.id)} className="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 px-3 py-1.5 rounded text-xs font-bold transition-colors">⛔ İPTAL ET</button>
+                            <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                         </>
+                     )}
+                 </div>
              )}
+             
              {!isArsiv && degisimAcikMacId === mac.id && mac.mac_durumu !== 'iptal_edildi' && !macBittiMi && (
                  <div className="mt-3 p-3 bg-slate-950 rounded-lg border border-blue-900/50 flex flex-col sm:flex-row gap-2 animate-fade-in-down"><select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="flex-1 bg-slate-900 text-white border border-slate-700 rounded px-3 py-2 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer"><option value="">-- Devredilecek Yeni Komiseri Seçin --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select><button onClick={() => islemYapDevir(mac.id)} className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded">DEVRİ ONAYLA</button></div>
              )}
@@ -1454,6 +1478,7 @@ export default function AdminPage() {
   const aktifEmniyetlikler = emniyetlikMaclar.filter(m => !susturulanAlarmlar.includes(m.id));
   const sirenAktif = aktifEmniyetlikler.length > 0;
 
+  // 🔥 YENİ EKLENEN: SİREN SES MOTORU 🔥
   useEffect(() => {
       let interval: any;
       let audioCtx: any;
@@ -1466,17 +1491,17 @@ export default function AdminPage() {
                   const osc = audioCtx.createOscillator();
                   const gainNode = audioCtx.createGain();
                   osc.type = 'square';
-                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+                  osc.frequency.setValueAtTime(800, audioCtx.currentTime); // 800Hz Bip sesi
                   
                   gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); 
-                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); 
+                  gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05); // Yavaşça sesi aç
+                  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5); // Sesi kapat
                   
                   osc.connect(gainNode);
                   gainNode.connect(audioCtx.destination);
                   osc.start(audioCtx.currentTime);
                   osc.stop(audioCtx.currentTime + 0.6);
-              }, 1000); 
+              }, 1000); // Her 1 saniyede bir öt
           } catch(e) {
               console.log("Tarayıcınız ses API'sini engelliyor olabilir.");
           }
@@ -1487,6 +1512,7 @@ export default function AdminPage() {
       }
   }, [sirenAktif, girisYapildi]);
 
+  // 🔥 YENİ EKLENEN: ARAMA MOTORU ZEKASI 🔥
   const aramaSonuclari = genelArama.trim().length >= 2 ? sezonlukMaclar.filter(m => {
       const arama = genelArama.toLocaleUpperCase('tr-TR');
       const kName = komiserIsmiBul(m.komiser_id).toLocaleUpperCase('tr-TR');
@@ -1548,6 +1574,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 relative">
         
+        {/* 🔥 HAFTALIK BÜLTEN MODALI (ÖNCESİ / SONRASI SEÇENEKLİ) 🔥 */}
         {bultenModalAcik && (
             <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
