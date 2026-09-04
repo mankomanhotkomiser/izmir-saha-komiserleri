@@ -302,7 +302,6 @@ export default function Home() {
   const [acikBordroAy, setAcikBordroAy] = useState<string | null>(null) 
   const [tamEkranBordroAy, setTamEkranBordroAy] = useState<string | null>(null) 
 
-  // 🔥 SUPABASE FİNANS BAĞLANTILARI 🔥
   const [tcKimlik, setTcKimlik] = useState('')
   const [bankaAdi, setBankaAdi] = useState('')
   const [subeKodu, setSubeKodu] = useState('')
@@ -325,7 +324,10 @@ export default function Home() {
   const [macDurumu, setMacDurumu] = useState<'' | 'oynandi' | 'yarida_kaldi' | 'takimlar_cikmadi'>('')
   const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay' | 'hava_muhalefeti' | 'saha_sorunu'>('olaysiz')
   const [raporNotu, setRaporNotu] = useState('')
-  const [ekRaporFotolar, setEkRaporFotolar] = useState<Record<string, string>>({});
+  
+  // 🔥 FOTOĞRAF MOTORU İÇİN STATE GÜNCELLEMELERİ 🔥
+  const [ekRaporFotolar, setEkRaporFotolar] = useState<Record<string, string>>({}); // Ekranda gösterecek önizlemeler (veya URL'ler)
+  const [ekRaporDosyalar, setEkRaporDosyalar] = useState<Record<string, File>>({}); // Gerçek fotoğraf dosyaları (Supabase'e fırlatılacak)
 
   const defaultRaporDetay = {
     hakem: '', y_hakem_1: '', y_hakem_2: '', hakem_4: '', gozlemci: '', 
@@ -472,7 +474,6 @@ export default function Home() {
     setRehberAcik(false);
   };
 
-  // 🔥 YENİ: FİNANS BİLGİLERİNİ SUPABASE'DEN ÇEKME (VEYA KAYDETME) 🔥
   const finansBilgileriniGetir = async (kId: string) => {
     try {
       const { data, error } = await supabase.from('komiser_finans').select('*').eq('komiser_id', kId).single();
@@ -544,7 +545,7 @@ export default function Home() {
         if (dbSifre === sifre) {
             setSeciliKomiser(data)
             await komiserDetayGetir(data)
-            await finansBilgileriniGetir(data.komiser_id); // FİNANSLARI GETİR
+            await finansBilgileriniGetir(data.komiser_id); 
             setAktifEkran('dashboard')
         } else {
             localStorage.removeItem('izmirKomiserId');
@@ -652,7 +653,7 @@ export default function Home() {
       localStorage.setItem('izmirKomiserId', data.komiser_id)
       localStorage.setItem('izmirKomiserSifre', sifreInput)
       await komiserDetayGetir(data)
-      await finansBilgileriniGetir(data.komiser_id); // FİNANSLARI GETİR
+      await finansBilgileriniGetir(data.komiser_id); 
       setAktifEkran('dashboard') 
     } catch (err) { setGirisHatasi("Bağlantı sorunu oluştu, tekrar deneyin.") } 
     finally { setGirisYukleniyor(false) }
@@ -760,6 +761,7 @@ export default function Home() {
   const skorFormunuSifirla = () => {
     setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setAcikSkorMacId(null); setRaporDetay(defaultRaporDetay);
     setEkRaporFotolar({});
+    setEkRaporDosyalar({}); // 🔥 FORM SIFIRLANIRKEN DOSYALAR DA UÇSUN 🔥
   }
 
   const raporFormunuAc = (mac: any) => {
@@ -777,8 +779,21 @@ export default function Home() {
         if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
         if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
         if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
+        
+        // 🔥 DAHA ÖNCE YÜKLENMİŞ FOTOĞRAFLARI (LİNKLERİ) EKRANA ÇEKME ZEKASI 🔥
+        const yeniFotolar: Record<string, string> = {};
+        birlesikDetay.ek_raporlar.forEach((ek: any) => {
+            if (ek.foto_url) yeniFotolar[ek.id] = ek.foto_url;
+        });
+        setEkRaporFotolar(yeniFotolar);
+        setEkRaporDosyalar({}); // Bunlar zaten Supabase'de, fırlatmaya gerek yok.
+
         setRaporDetay(birlesikDetay); 
-      } else { setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); setEkRaporFotolar({}); }
+      } else { 
+          setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); 
+          setEkRaporFotolar({}); 
+          setEkRaporDosyalar({});
+      }
     }
   }
 
@@ -815,20 +830,33 @@ export default function Home() {
   
   const ekRaporSil = (id: number) => {
       setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).filter((r:any) => r.id !== id) }));
+      
       const yeniFotolar = {...ekRaporFotolar};
       delete yeniFotolar[id];
       setEkRaporFotolar(yeniFotolar);
+
+      const yeniDosyalar = {...ekRaporDosyalar};
+      delete yeniDosyalar[id];
+      setEkRaporDosyalar(yeniDosyalar);
   }
   
   const ekRaporGuncelle = (id: number, text: string) => {
       setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r) }));
   }
   
+  // 🔥 FOTOĞRAF SEÇİLİNCE HEM EKRANA (BASE64) HEM DE KASAYA (FİLE) HAZIRLAMA ZEKASI 🔥
   const handleFotoYukle = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
           const reader = new FileReader();
-          reader.onload = (event) => { if(event.target?.result) { setEkRaporFotolar((prev: Record<string, string>) => ({ ...prev, [id]: event.target!.result as string })); } };
+          reader.onload = (event) => { 
+              if(event.target?.result) { 
+                  // 1. Ekrandaki kutuya fotoğrafı yansıt
+                  setEkRaporFotolar((prev: any) => ({ ...prev, [id]: event.target!.result as string })); 
+                  // 2. Fırlatmak üzere kargoya (Supabase) asıl dosyayı hazırla
+                  setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: file }));
+              } 
+          };
           reader.readAsDataURL(file);
       }
   }
@@ -1032,6 +1060,39 @@ export default function Home() {
 
     if (kayitTuru === 'detayli') { 
         kaydedilecekDetay.detayli_kaydedildi = true; 
+        
+        // 🔥 SUPABASE FOTOĞRAF FIRLATMA OPERASYONU (YENİ) 🔥
+        const guncelEkRaporlar = [...(kaydedilecekDetay.ek_raporlar || [])];
+        
+        for (let i = 0; i < guncelEkRaporlar.length; i++) {
+            const rId = guncelEkRaporlar[i].id;
+            const dosya = ekRaporDosyalar[rId]; // Kullanıcı yeni bir fotoğraf seçtiyse...
+            
+            if (dosya) {
+                // Dosyaya efsane bir isim ver: mac_{id}_ek_{id}_{zaman}.jpg
+                const dosyaUzantisi = dosya.name.split('.').pop() || 'jpg';
+                const fileName = `mac_${macId}_ek_${rId}_${Date.now()}.${dosyaUzantisi}`;
+                
+                // 1. Depoya fırlat
+                const { data, error } = await supabase.storage.from('rapor_resimleri').upload(fileName, dosya, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+                if (!error && data) {
+                    // 2. Depodan açık adresi (linki) iste
+                    const { data: publicUrlData } = supabase.storage.from('rapor_resimleri').getPublicUrl(fileName);
+                    // 3. Linki veritabanına kaydedilecek rapora yapıştır!
+                    guncelEkRaporlar[i].foto_url = publicUrlData.publicUrl;
+                } else {
+                    console.error("Fotoğraf depoya gönderilemedi:", error);
+                }
+            }
+        }
+        
+        // Yüklenen linkleri asıl rapora dahil et
+        kaydedilecekDetay.ek_raporlar = guncelEkRaporlar;
+
         await yeniHakemleriKaydet(kaydedilecekDetay); 
         await yeniGozlemciyiKaydet(kaydedilecekDetay); 
     } else { 
@@ -1453,6 +1514,7 @@ export default function Home() {
               </div>
               )}
 
+              {/* 🔥 EK RAPORLAR (FOTOĞRAF ZEKASI EKLENDİ) 🔥 */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always">
                       {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
@@ -1487,11 +1549,14 @@ export default function Home() {
 
                       <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
                           <h3 className="font-bold text-sm mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
+                          
+                          {/* 🔥 FOTOĞRAF GÖSTERME (EĞER LİNK VEYA ÖNİZLEME VARSA) 🔥 */}
                           {ekRaporFotolar[ekRapor.id] ? (
-                              <img src={ekRaporFotolar[ekRapor.id]} alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
+                              <img src={ekRaporFotolar[ekRapor.id]} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
                           ) : (
                               <div className="text-slate-400 text-center tff-no-print"><span className="text-4xl block mb-2">📸</span><p className="text-sm font-bold">Kanıt Fotoğrafı Yükle</p></div>
                           )}
+                          
                           {prefix === 'aktif' && (
                           <label className="tff-no-print absolute bottom-4 right-4 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded text-xs font-bold shadow-md transition-colors">
                               {ekRaporFotolar[ekRapor.id] ? 'Fotoğrafı Değiştir' : 'Görsel Seç'}
@@ -1773,7 +1838,6 @@ export default function Home() {
                             <div className={`bg-white border shadow-sm rounded-xl p-4 md:p-6 relative overflow-hidden transition-all ${macDurumu === '' ? 'opacity-50 pointer-events-none border-slate-200' : 'border-slate-200'}`}>
                               <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-600"></div><h4 className="font-black text-slate-700 border-b border-slate-100 pb-3 mb-5 text-center text-sm md:text-base tracking-widest">DETAYLI MÜSABAKA RAPORU</h4>
                               <div className="mb-6 overflow-x-auto pb-4 custom-scrollbar">{renderTffRaporu(mac, 'aktif')}</div>
-                              <div className="tff-no-print bg-slate-50 border border-slate-200 p-4 rounded-xl text-[10px] md:text-xs text-slate-600 mb-5 text-center font-medium shadow-inner">💡 <b className="text-slate-800">Bilgilendirme Notu:</b> Yüklediğiniz fotoğraflar güvenlik sebebiyle veritabanına kaydedilmez. Resmi &quot;PNG OLARAK İNDİR&quot; butonuna basarak fotoğraflı kanıt dosyanızı anında cihazınıza indirebilir ve saklayabilirsiniz.</div>
                               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
                                 <button onClick={() => tffTutanakIndir(mac, 'aktif')} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-sm transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest">📸 FOTOĞRAF (PNG) İNDİR</button>
                                 <button onClick={() => skorRaporunuGonder(mac.id, 'detayli')} disabled={skorKaydediliyor} className={`flex-1 text-white font-black py-4 rounded-xl shadow-sm transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest disabled:opacity-70 ${detayliGonderilmis ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700 hover:bg-slate-800 animate-pulse'}`}>{skorKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (detayliGonderilmis ? '💾 DETAYLI RAPORU GÜNCELLE' : '🚨 DETAYLI RAPORU İLET (ZORUNLU)')}</button>
@@ -1933,7 +1997,6 @@ export default function Home() {
               </div>
           )}
 
-          {/* 🔥 YENİ: RESMİ BORDRO PDF MODALI 🔥 */}
           {tamEkranBordroAy && (
               <div className="fixed inset-0 bg-black/90 z-[150] flex flex-col backdrop-blur-sm tff-no-print">
                   <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
@@ -1950,7 +2013,7 @@ export default function Home() {
                                 
                                 <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
                                 
-                                <table className="w-full text-xs font-bold border-collapse border border-black text-left">
+                                <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
                                     <tbody>
                                         <tr><td className="border border-black p-1.5 w-1/4 bg-slate-100/50">ADI SOYADI</td><td className="border border-black p-1.5 w-3/4 uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</td></tr>
                                         <tr><td className="border border-black p-1.5 bg-slate-100/50">T.C. KİMLİK NO</td><td className="border border-black p-1.5"><input type="text" value={tcKimlik} onChange={e => bankaBilgisiGuncelle('tc', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Buraya yazınız..." /></td></tr>
@@ -1961,7 +2024,6 @@ export default function Home() {
                                     </tbody>
                                 </table>
 
-                                {/* 🔥 KAYDET BUTONU EKLENDİ 🔥 */}
                                 <div className="text-right mb-6 mt-2 tff-no-print">
                                     <button onClick={finansBilgileriniKaydet} disabled={finansKaydediliyor} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-md transition-colors">
                                         {finansKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : '💾 BİLGİLERİMİ SİSTEME KAYDET'}
@@ -1979,7 +2041,7 @@ export default function Home() {
                                 <div className="text-[9px] mb-4 font-bold tracking-tight">
                                     <p>(lütfen tüm açıklamaları okuduktan sonra eksiksiz doldurunuz)</p>
                                     <p>lütfen ay sonlarında veya engeç takip eden ayın 5'ine kadar gönderiniz.</p>
-                                    <p>Göndermiyenlerin ücretleri bankada bekletilecek ve bir sonraki ayın ücretleri ile birlikte ödenecektir</p>
+<p>Göndermiyenlerin ücretleri bankada bekletilecek ve bir sonraki ayın ücretleri ile birlikte ödenecektir</p>
                                     <p>Her ayın 1-31 arasındaki müsabakalar yazılacaktır.Diğer aya denk gelen müsabakalar yazılmayacaktır</p>
                                     <br/>
                                     <p>1.<span className="text-red-600">PROFESYONEL MÜSABAKALARI EN ÜST BÖLÜME YAZINIZ.ÜCRET ALINDI YSA ALINDI OLARAK BELİRTİNİZ</span></p>
@@ -2007,7 +2069,7 @@ export default function Home() {
                                             const profMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) === 'profesyonel');
                                             
                                             if (profMaclar.length === 0) {
-                                                return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>;
+                                                return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-slate-400">-</td></tr>;
                                             }
                                             
                                             return profMaclar.map((m, i) => (

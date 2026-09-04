@@ -74,7 +74,6 @@ const guvenliSaat = (saatMetni: any) => {
     catch (e) { return "-"; }
 }
 
-// 🔥 BORDRO İÇİN AY/YIL BULUCU ZEKASI 🔥
 const getAyYil = (tarihMetni: any) => {
     if (!tarihMetni) return null;
     try {
@@ -111,7 +110,6 @@ const isBordroKategori = (kategori: any) => {
     return true;
 }
 
-// 🔥 GELİŞTİRİLMİŞ TARİH MOTORU (YILSIZ TARİHLERİ BİLE ANLAR) 🔥
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
@@ -237,7 +235,6 @@ const gelisimTeknik = [
     { id: 'oyuncu_degistirme', text: '9. Oyuncu Değiştirme Tabelası' }
 ];
 
-// 🔥 KUTUCUK FIRÇASI (HATA GİDERİLDİ: "any" YAPILARAK BOŞLUKLARA İZİN VERİLDİ VE TEKE DÜŞÜRÜLDÜ) 🔥
 const EvetHayirBox = ({ val }: { val: any }) => (
     <div className="flex items-center gap-4 pointer-events-none">
         <div className="flex items-center gap-1">
@@ -406,7 +403,6 @@ export default function AdminPage() {
       const { data: statuData } = await supabase.from('lig_statuleri').select('*');
       if (statuData) setTumStatuler(statuData || []);
 
-      // 🔥 HATA VEREN KISMI DÜZELTTİK: .catch() yerine standart error yapısı kullanıldı 🔥
       const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*');
       if (!fError && fData) setFinansVerileri(fData || []);
 
@@ -466,7 +462,6 @@ export default function AdminPage() {
     return komiser?.ad_soyad || 'Atanmamış'
   }
 
-  // 🔥 FİNANS VE BORDRO LİSTESİ HAZIRLIĞI 🔥
   const tumAylarSet = new Set<string>();
   sezonlukMaclar.forEach(m => {
       if (m.mac_durumu === 'iptal_edildi' || !isBordroKategori(m.kategori_adi) || !m.komiser_id) return;
@@ -1228,12 +1223,9 @@ export default function AdminPage() {
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
-      
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
-
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
 
-      // 🔥 İŞTE O UNUTULAN KUTUCUK FIRÇASI BURADA! YERİNE TAKILDI! 🔥
       const EvetHayirBox = ({ val }: { val: string }) => (
           <div className="flex items-center gap-4 pointer-events-none">
               <div className="flex items-center gap-1">
@@ -1506,7 +1498,7 @@ export default function AdminPage() {
               </div>
               )}
 
-              {/* 🔥 EK RAPORLAR (KANIT DOSYALARI) 🔥 */}
+              {/* 🔥 EK RAPORLAR VE FOTOĞRAF GÖSTERME (YENİ EKLENDİ) 🔥 */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
                       {raporTuru === 'amator' ? (
@@ -1539,11 +1531,17 @@ export default function AdminPage() {
 
                       <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
                           <h3 className="font-bold text-sm uppercase mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
-                          <div className="text-slate-400 text-center tff-no-print">
-                              <span className="text-4xl block mb-2">📸</span>
-                              <p className="text-sm font-bold">Resim İndirme Yöneticisi</p>
-                              <p className="text-[10px] mt-1 text-slate-500">Fotoğraflar gizlilik gereği sunucuda tutulmaz, komiserlerin cihazlarında bulunur.</p>
-                          </div>
+                          
+                          {/* 🔥 RADAR BURADA DEVREYE GİRİYOR! 🔥 */}
+                          {ekRapor.foto_url ? (
+                              <img src={ekRapor.foto_url} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
+                          ) : (
+                              <div className="text-slate-400 text-center tff-no-print">
+                                  <span className="text-4xl block mb-2">📸</span>
+                                  <p className="text-sm font-bold">Kanıt Fotoğrafı Yok</p>
+                                  <p className="text-[10px] mt-1 text-slate-500">Bu rapora görsel eklenmemiştir.</p>
+                              </div>
+                          )}
                       </div>
 
                       <div className="flex justify-between items-end mt-12">
