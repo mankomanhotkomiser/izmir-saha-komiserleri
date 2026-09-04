@@ -1338,6 +1338,11 @@ export default function Home() {
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
       const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
 
+      // 🔥 CANLI ÖNİZLEME VE İNDİRME İÇİN FOTOĞRAF ZEKASI 🔥
+      const gelisimPrintFotolar = prefix === 'aktif' 
+          ? Object.keys(ekRaporFotolar).filter((k: string) => k.startsWith('gelisim_')).reduce((obj: any, key: string) => { obj[key] = ekRaporFotolar[key]; return obj; }, {})
+          : (safeRaporDetay.gelisim_fotolar || {});
+
       return (
           <div id={`${prefix}-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
               <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
@@ -1457,7 +1462,7 @@ export default function Home() {
                       <div className="flex border-b border-black text-center bg-slate-100">
                           <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
                       </div>
-                      <div className="flex text-center">
+                      <div className="flex text-center uppercase">
                           <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{turkceBuyukHarf(mac.saha)}</div><div className="w-1/5 p-2 truncate">{turkceBuyukHarf(mac.kategori_adi)}</div>
                       </div>
                   </div>
@@ -1558,6 +1563,42 @@ export default function Home() {
               </div>
               )}
 
+              {/* 🔥 YENİ GELİŞİM LİGİ FOTOĞRAFLARI (İNDİRME VE ÖNİZLEME İÇİN ÇİZİM ZEKASI) 🔥 */}
+              {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
+                  <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez">
+                      <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
+                          <span className="text-3xl">📸</span>
+                          <div>
+                              <h3 className="font-black text-lg tracking-widest text-slate-800 uppercase">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
+                              <p className="text-xs text-slate-500 font-bold uppercase">{mac?.ev_sahibi} vs {mac?.misafir_takim}</p>
+                          </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {Object.entries(gelisimPrintFotolar).map(([key, url]) => {
+                              if (!url) return null;
+                              
+                              let title = "Akreditasyon Kartı / Esame";
+                              if(key === 'gelisim_ev_esame') title = `Ev Sahibi Esame Listesi`;
+                              if(key === 'gelisim_ev_teknik') title = `Ev Sahibi Teknik Kadro Toplu Lise`;
+                              if(key === 'gelisim_mis_esame') title = `Misafir Takım Esame Listesi`;
+                              if(key === 'gelisim_mis_teknik') title = `Misafir Takım Teknik Kadro Toplu Liste`;
+                              if(key === 'gelisim_saglik') title = `Doktor / ATT Kartı`;
+                              if(key === 'gelisim_sedyeci1') title = `1. Sedyeci Kartı`;
+                              if(key === 'gelisim_sedyeci2') title = `2. Sedyeci Kartı`;
+                              if(key === 'gelisim_saha_gor') title = `Saha Tanzim Görevlisi`;
+
+                              return (
+                                  <div key={key} className="border border-slate-300 p-2 rounded-lg bg-slate-50 flex flex-col items-center">
+                                      <h4 className="text-[10px] font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 w-full text-center pb-1 uppercase">{title}</h4>
+                                      <img src={url as string} crossOrigin="anonymous" alt={title} className="w-full h-auto max-h-[350px] object-contain border border-slate-300 shadow-sm" />
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+              )}
+
               {/* 🔥 YENİ GELİŞİM LİGİ FOTOĞRAF YÜKLEME ALANI (SADECE KOMİSER EKRANI İÇİN) 🔥 */}
               {prefix === 'aktif' && raporTuru === 'gelisim' && (
                   <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 tff-no-print">
@@ -1565,7 +1606,7 @@ export default function Home() {
                           <span className="text-3xl">📸</span>
                           <div>
                               <h3 className="font-black text-lg tracking-widest text-slate-800">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
-                              <p className="text-xs text-slate-500 font-bold">Lütfen takım esamelerini ve akreditasyon kartlarını okunaklı şekilde yükleyiniz.</p>
+                              <p className="text-xs text-slate-500 font-bold">Lütfen takım esamelerini ve teknik kadro listelerini (A4) okunaklı şekilde yükleyiniz.</p>
                           </div>
                       </div>
 
@@ -1575,9 +1616,7 @@ export default function Home() {
                               <h4 className="font-black text-sm bg-blue-100 text-blue-800 p-2 rounded border border-blue-200 mb-3 tracking-widest uppercase">🏠 EV SAHİBİ: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                                   <RenderGelisimUpload title="1. Esame Listesi (Kadro)" imgKey="gelisim_ev_esame" desc="Ev sahibi takımın tam esame listesi" />
-                                  <RenderGelisimUpload title="2. Teknik Sorumlu Kartı" imgKey="gelisim_ev_ant1" desc="Sahaya çıkan 1. Antrenör / Teknik Sorumlu" />
-                                  <RenderGelisimUpload title="3. Antrenör Kartı" imgKey="gelisim_ev_ant2" desc="Varsa 2. Antrenör" />
-                                  <RenderGelisimUpload title="4. Yönetici / Masör Kartı" imgKey="gelisim_ev_yon" desc="Yönetici veya Masör akreditasyonu" />
+                                  <RenderGelisimUpload title="2. Teknik Kadro Toplu Liste" imgKey="gelisim_ev_teknik" desc="Sahaya çıkan teknik kadro A4 belgesi" />
                               </div>
                           </div>
 
@@ -1586,9 +1625,7 @@ export default function Home() {
                               <h4 className="font-black text-sm bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-3 tracking-widest uppercase">🚌 MİSAFİR: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                                   <RenderGelisimUpload title="1. Esame Listesi (Kadro)" imgKey="gelisim_mis_esame" desc="Misafir takımın tam esame listesi" />
-                                  <RenderGelisimUpload title="2. Teknik Sorumlu Kartı" imgKey="gelisim_mis_ant1" desc="Sahaya çıkan 1. Antrenör / Teknik Sorumlu" />
-                                  <RenderGelisimUpload title="3. Antrenör Kartı" imgKey="gelisim_mis_ant2" desc="Varsa 2. Antrenör" />
-                                  <RenderGelisimUpload title="4. Yönetici / Masör Kartı" imgKey="gelisim_mis_yon" desc="Yönetici veya Masör akreditasyonu" />
+                                  <RenderGelisimUpload title="2. Teknik Kadro Toplu Liste" imgKey="gelisim_mis_teknik" desc="Sahaya çıkan teknik kadro A4 belgesi" />
                               </div>
                           </div>
 
@@ -2053,7 +2090,7 @@ export default function Home() {
                               <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top}</p></div>
                           </div>
                           <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div>
+<div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div>
                           </div>
                           <div className="border-b border-slate-200 pb-3">
                               <h4 className="text-[10px] font-bold text-slate-400 mb-1">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
@@ -2109,7 +2146,7 @@ export default function Home() {
                                         <tr><td className="border border-black p-1.5 w-1/4 bg-slate-100/50">ADI SOYADI</td><td className="border border-black p-1.5 w-3/4 uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</td></tr>
                                         <tr><td className="border border-black p-1.5 bg-slate-100/50">T.C. KİMLİK NO</td><td className="border border-black p-1.5"><input type="text" value={tcKimlik} onChange={e => bankaBilgisiGuncelle('tc', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Buraya yazınız..." /></td></tr>
                                         <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA</td><td className="border border-black p-1.5"><input type="text" value={bankaAdi} onChange={e => bankaBilgisiGuncelle('banka', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: İŞ BANKASI" /></td></tr>
-<tr><td className="border border-black p-1.5 bg-slate-100/50">ŞUBE KODU</td><td className="border border-black p-1.5"><input type="text" value={subeKodu} onChange={e => bankaBilgisiGuncelle('sube', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: 3447-YEŞİLYURT" /></td></tr>
+                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">ŞUBE KODU</td><td className="border border-black p-1.5"><input type="text" value={subeKodu} onChange={e => bankaBilgisiGuncelle('sube', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: 3447-YEŞİLYURT" /></td></tr>
                                         <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA HESAP NO</td><td className="border border-black p-1.5"><input type="text" value={hesapNo} onChange={e => bankaBilgisiGuncelle('hesap', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Hesap no..." /></td></tr>
                                         <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA IBAN NO</td><td className="border border-black p-1.5"><input type="text" value={ibanNo} onChange={e => bankaBilgisiGuncelle('iban', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="TR..." /></td></tr>
                                     </tbody>
