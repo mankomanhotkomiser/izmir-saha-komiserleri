@@ -45,12 +45,23 @@ const getAnaKategori = (kategori: any) => {
       
       if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
       
-      // 🔥 YENİ: KADIN ve PGL ligleri artık Gelişim (Elit) formunu tetikleyecek!
-      if (kat.includes('KADIN') || kat.includes('KIZ') || kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ')) return 'gelisim';
+      // 🔥 İSTATİSTİKLERİN BOZULMAMASI İÇİN KADIN LİGİ AYRI DÖNÜYOR
+      if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
       
-      if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
+      // DİĞER ELİT VE PGL LİGLERİ
+      if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
       
       return 'amator';
+  }
+
+  const raporTurunuBelirle = (kategori: any) => {
+      const anaKat = getAnaKategori(kategori);
+      if (anaKat === 'profesyonel') return 'yok';
+      
+      // 🔥 ZEKA BURADA: Kategori 'kadin' bile gelse, Elit/Gelişim 7 sayfalık raporu açacak!
+      if (anaKat === 'gelisim' || anaKat === 'kadin') return 'gelisim';
+      
+      return 'amator'; 
   }
 
   const raporTurunuBelirle = (kategori: any) => {
