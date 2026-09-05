@@ -52,6 +52,23 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return tur !== 'yok'; 
 }
 
+const getHakemGosterimModu = (kategori: any) => {
+    if (!kategori) return 'dort_kutu';
+    const kat = turkceBuyukHarf(kategori);
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
+        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ')) { return 'tek_hakem'; }
+    if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
+        kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
+        kat.includes('14 YAŞ') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) { return 'uc_hakem'; }
+    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
+        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
+        kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) { return 'dort_ve_gozlemci'; }
+    return 'dort_kutu'; 
+};
+
 const guvenliTarih = (tarihMetni: any) => {
     if (!tarihMetni) return "-";
     try {
@@ -248,24 +265,6 @@ const EvetHayirBox = ({ val }: { val: any }) => (
     </div>
 );
 
-const getHakemGosterimModu = (kategori: any) => {
-    if (!kategori) return 'dort_kutu';
-    const kat = turkceBuyukHarf(kategori);
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
-        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ')) { return 'tek_hakem'; }
-    if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
-        kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
-        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
-        kat.includes('14 YAŞ') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) { return 'uc_hakem'; }
-    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
-        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
-        kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) { return 'dort_ve_gozlemci'; }
-    return 'dort_kutu'; 
-};
-
-
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -313,10 +312,13 @@ export default function AdminPage() {
   const [acikTebellugKomiser, setAcikTebellugKomiser] = useState<string | null>(null)
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
+  // 🔥 YENİ: GENEL TALİMATLAR İÇİN STATE VE TAB EKLENDİ 🔥
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
-  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle'>('komiser_ekle')
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
   
   const [tumStatuler, setTumStatuler] = useState<any[]>([])
+  const [genelTalimat, setGenelTalimat] = useState('')
+  const [talimatKaydediliyor, setTalimatKaydediliyor] = useState(false)
   
   const [statuForm, setStatuForm] = useState<any>({ 
       id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', 
@@ -344,7 +346,7 @@ export default function AdminPage() {
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
-    if (sifre === '1923') { setGirisYapildi(true); setHatasi(''); } 
+    if (sifre === '3535') { setGirisYapildi(true); setHatasi(''); } 
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
@@ -420,6 +422,10 @@ export default function AdminPage() {
 
       const { data: statuData } = await supabase.from('lig_statuleri').select('*');
       if (statuData) setTumStatuler(statuData || []);
+
+      // 🔥 YENİ: GENEL TALİMAT VERİSİNİ ÇEKME 🔥
+      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single();
+      if (talimatData) setGenelTalimat(talimatData.metin || '');
 
       const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*');
       if (!fError && fData) setFinansVerileri(fData || []);
@@ -623,7 +629,6 @@ export default function AdminPage() {
           doc.close();
       } catch (err) { alert("PDF ekranı hazırlanırken sorun oluştu."); }
   }
-
 
   const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
       const kA = String(komiserIsmiBul(a?.komiser_id) || '');
@@ -887,13 +892,30 @@ export default function AdminPage() {
       setStatuKaydediliyor(false);
   }
 
+  // 🔥 YENİ: GENEL TALİMAT KAYDETME MOTURU 🔥
+  const talimatKaydetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setTalimatKaydediliyor(true);
+      try {
+          const { data } = await supabase.from('genel_talimatlar').select('id');
+          if (data && data.length > 0) {
+              const { error } = await supabase.from('genel_talimatlar').update({ metin: genelTalimat }).eq('id', data[0].id);
+              if (error) throw error;
+          } else {
+              const { error } = await supabase.from('genel_talimatlar').insert([{ metin: genelTalimat }]);
+              if (error) throw error;
+          }
+          alert("✅ Genel Usul ve Esaslar (Anayasa) başarıyla GÜNCELLENDİ ve tüm sahaya yayınlandı.");
+      } catch (err: any) { alert("Hata: " + err.message); }
+      setTalimatKaydediliyor(false);
+  }
+
   const statuSil = async (id: number) => {
       if (window.confirm("Bu statüyü veritabanından TAMAMEN silmek istediğinize emin misiniz?")) {
           await supabase.from('lig_statuleri').delete().eq('id', id);
           veriGetir(true);
       }
   }
-
   const komiserEkle = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!yeniPersonelAd || !yeniPersonelSicil) return;
@@ -1242,70 +1264,14 @@ const processExcelFile = (file: File) => {
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
       
       const raporTuru = raporTurunuBelirle(mac.kategori_adi);
-      const hakemModu = getHakemGosterimModu(mac.kategori_adi);
       const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
       const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
-      const gelisimPrintFotolar = safeRaporDetay.gelisim_fotolar || {};
+
       const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
-
-      // 🔥 GELİŞİM LİGİ 7 SAYFA YAZDIRMA MATBAA YARDIMCILARI 🔥
-      const RenderA4Header = () => (
-          <div className="flex items-center justify-between mb-4 border-b-2 border-slate-800 pb-3 bolunmez">
-              <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-              <div className="text-center flex-col items-center justify-center w-2/4">
-                  <h2 className="font-extrabold text-lg md:text-xl tracking-widest text-black uppercase">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                  <h3 className="font-bold text-base md:text-lg mt-1 text-black uppercase">GELİŞİM LİGLERİ</h3>
-                  <h3 className="font-bold text-sm md:text-base mt-1 text-black uppercase">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
-              </div>
-              <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-          </div>
-      );
-
-      const RenderA4MatchInfo = () => (
-          <div className="bolunmez">
-            <div className="border border-black text-xs font-bold mb-4">
-                <div className="flex border-b border-black text-center bg-slate-100">
-                    <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
-                </div>
-                <div className="flex text-center uppercase">
-                    <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{turkceBuyukHarf(mac.saha)}</div><div className="w-1/5 p-2 truncate">{turkceBuyukHarf(mac.kategori_adi)}</div>
-                </div>
-            </div>
-            <div className="border-2 border-black text-xs font-bold mb-6">
-                <div className="grid grid-cols-6 border-b border-black">
-                    <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.ev_sahibi)}</span></div>
-                    <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div></div>
-                </div>
-                <div className="grid grid-cols-6">
-                    <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.misafir_takim)}</span></div>
-                    <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div></div>
-                </div>
-            </div>
-          </div>
-      );
-
-      const RenderA4Footer = () => (
-          <div className="mt-8 border-t border-black pt-2 flex justify-between items-end bolunmez">
-              <div className="text-[10px] text-slate-500 font-bold">* Bu belge Saha Operasyon Merkezi üzerinden dijital olarak oluşturulmuştur.</div>
-              <div className="text-right">
-                  <div className="text-[10px] font-bold">SAHA KOMİSERİ</div>
-                  <div className="text-sm font-black uppercase">{komiserTamIsim}</div>
-              </div>
-          </div>
-      );
-
-      const RenderTamSayfaResim = ({ url, baslik }: { url: string, baslik: string }) => (
-          <div className="flex flex-col h-full mb-4">
-              <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded bolunmez">{baslik}</h3>
-              <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 min-h-[400px]">
-                  <img src={url} crossOrigin="anonymous" alt={baslik} className="max-w-full max-h-[700px] object-contain shadow-sm" />
-              </div>
-          </div>
-      );
 
       return (
           <div id={`${prefix}-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
@@ -1442,21 +1408,10 @@ const processExcelFile = (file: File) => {
                   <div className="border border-black text-xs font-bold mb-6 bolunmez">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      
-                      {hakemModu !== 'tek_hakem' && (
-                          <>
-                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                          </>
-                      )}
-
-                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                          <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      )}
-
-                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                          <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
-                      )}
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-6 w-2/3 bolunmez">
@@ -1566,154 +1521,49 @@ const processExcelFile = (file: File) => {
                           <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
                           <div className="text-center">
                               <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
-                              <div className="font-bold text-sm border-b border-black px-4 pb-1 text-black">{komiserTamIsim}</div>
-                              <div className="text-[10px] font-bold mt-1 text-black">SAHA KOMİSERİ</div>
+                              <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
+                              <div className="text-[10px] text-slate-500">GSM Telefon No: ''</div>
+                              <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
                           </div>
                       </div>
                   </div>
               </div>
               )}
 
-              {/* ========================================================== */}
-              {/* GELİŞİM LİGİ - YAZDIRILABİLİR 7 SAYFA MATBAA TASARIMI (YENİ EKLENEN) */}
-              {/* ========================================================== */}
-              {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
-                  <>
-                      {/* SAYFA 3: EV SAHİBİ ESAME */}
-                      {gelisimPrintFotolar['gelisim_ev_esame'] && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_ev_esame'] as string} baslik="EV SAHİBİ TAKIM MÜSABAKA ESAME LİSTESİ" />
-                              <RenderA4Footer />
+              {raporTuru === 'gelisim' && safeRaporDetay.gelisim_fotolar && Object.keys(safeRaporDetay.gelisim_fotolar).length > 0 && (
+                  <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez">
+                      <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
+                          <span className="text-3xl">📸</span>
+                          <div>
+                              <h3 className="font-black text-lg tracking-widest text-slate-800 uppercase">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
+                              <p className="text-xs text-slate-500 font-bold uppercase">{mac.ev_sahibi} vs {mac.misafir_takim}</p>
                           </div>
-                      )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {Object.entries(safeRaporDetay.gelisim_fotolar).map(([key, url]) => {
+                              if (!url) return null;
+                              let title = "Akreditasyon Kartı / Esame";
+                              if(key === 'gelisim_ev_esame') title = `Ev Sahibi Esame Listesi`;
+                              if(key === 'gelisim_ev_teknik') title = `Ev Sahibi Sahaya Girecekler (Teknik Kadro)`;
+                              if(key === 'gelisim_mis_esame') title = `Misafir Takım Esame Listesi`;
+                              if(key === 'gelisim_mis_teknik') title = `Misafir Takım Sahaya Girecekler (Teknik Kadro)`;
+                              if(key === 'gelisim_saglik') title = `Doktor / ATT Kartı`;
+                              if(key === 'gelisim_sedyeci1') title = `1. Sedyeci Kartı`;
+                              if(key === 'gelisim_sedyeci2') title = `2. Sedyeci Kartı`;
+                              if(key === 'gelisim_saha_gor') title = `Saha Tanzim Görevlisi`;
 
-                      {/* SAYFA 4: EV SAHİBİ TEKNİK KADRO VE İZİNLER */}
-                      {(gelisimPrintFotolar['gelisim_ev_teknik'] || gelisimPrintFotolar['gelisim_ev_yayin'] || gelisimPrintFotolar['gelisim_ev_foto']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <div className="flex-1 flex flex-col">
-                                  {gelisimPrintFotolar['gelisim_ev_teknik'] && (
-                                      <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
-                                          <div className="w-full h-full flex flex-col">
-                                              <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">EV SAHİBİ TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_ev_teknik'] as string} crossOrigin="anonymous" alt="Ev Sahibi Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
-                                          </div>
-                                      </div>
-                                  )}
-                                  {(gelisimPrintFotolar['gelisim_ev_foto'] || gelisimPrintFotolar['gelisim_ev_yayin']) && (
-                                      <div className="border border-black p-2 mt-auto">
-                                          <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 bg-slate-100 py-1">EV SAHİBİ TAKIM MÜSABAKA YAYIN İZİNLERİ VB.</h3>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              {gelisimPrintFotolar['gelisim_ev_foto'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center">
-                                                      <h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4>
-                                                      <img src={gelisimPrintFotolar['gelisim_ev_foto'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" />
-                                                  </div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                              {gelisimPrintFotolar['gelisim_ev_yayin'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center">
-                                                      <h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4>
-                                                      <img src={gelisimPrintFotolar['gelisim_ev_yayin'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" />
-                                                  </div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
-
-                      {/* SAYFA 5: MİSAFİR ESAME */}
-                      {gelisimPrintFotolar['gelisim_mis_esame'] && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_mis_esame'] as string} baslik="MİSAFİR TAKIM MÜSABAKA ESAME LİSTESİ" />
-                              <RenderA4Footer />
-                          </div>
-                      )}
-
-                      {/* SAYFA 6: MİSAFİR TEKNİK KADRO VE İZİNLER */}
-                      {(gelisimPrintFotolar['gelisim_mis_teknik'] || gelisimPrintFotolar['gelisim_mis_yayin'] || gelisimPrintFotolar['gelisim_mis_foto']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <div className="flex-1 flex flex-col">
-                                  {gelisimPrintFotolar['gelisim_mis_teknik'] && (
-                                      <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
-                                          <div className="w-full h-full flex flex-col">
-                                              <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">MİSAFİR TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_mis_teknik'] as string} crossOrigin="anonymous" alt="Misafir Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
-                                          </div>
-                                      </div>
-                                  )}
-                                  {(gelisimPrintFotolar['gelisim_mis_foto'] || gelisimPrintFotolar['gelisim_mis_yayin']) && (
-                                      <div className="border border-black p-2 mt-auto">
-                                          <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 bg-slate-100 py-1">MİSAFİR TAKIM MÜSABAKA YAYIN İZİNLERİ VB.</h3>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              {gelisimPrintFotolar['gelisim_mis_foto'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center">
-                                                      <h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4>
-                                                      <img src={gelisimPrintFotolar['gelisim_mis_foto'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" />
-                                                  </div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                              {gelisimPrintFotolar['gelisim_mis_yayin'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center">
-                                                      <h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4>
-                                                      <img src={gelisimPrintFotolar['gelisim_mis_yayin'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" />
-                                                  </div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
-
-                      {/* SAYFA 7: SAĞLIK VE SAHA GÖREVLİLERİ (HEPSİ TEK SAYFADA) */}
-                      {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
-                              <div className="flex-1 grid grid-cols-2 gap-4 content-start">
-                                  {gelisimPrintFotolar['gelisim_saglik'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_sedyeci1'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_sedyeci2'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_saha_gor'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                              </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
-                  </>
+                              return (
+                                  <div key={key} className="border border-slate-300 p-2 rounded-lg bg-slate-50 flex flex-col items-center">
+                                      <h4 className="text-[10px] font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 w-full text-center pb-1 uppercase">{title}</h4>
+                                      <img src={url as string} crossOrigin="anonymous" alt={title} className="w-full h-auto max-h-[350px] object-contain border border-slate-300 shadow-sm" />
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
               )}
 
-              {/* 🔥 ESKİ USUL EK RAPORLAR VE FOTOĞRAF GÖSTERME 🔥 */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                   <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
                       {raporTuru === 'amator' ? (
@@ -1746,8 +1596,6 @@ const processExcelFile = (file: File) => {
 
                       <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
                           <h3 className="font-bold text-sm uppercase mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
-                          
-                          {/* 🔥 RADAR BURADA DEVREYE GİRİYOR! 🔥 */}
                           {ekRapor.foto_url ? (
                               <img src={ekRapor.foto_url} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
                           ) : (
@@ -2329,10 +2177,37 @@ const processExcelFile = (file: File) => {
                         <button onClick={() => setSistemTab('hakem_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'hakem_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏃 YENİ HAKEM EKLE</button>
                         <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA MAÇ EKLE</button>
                         <button onClick={() => setSistemTab('statu_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'statu_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📝 STATÜ YÖNETİMİ</button>
+                        
+                        {/* 🔥 YENİ EKLENEN GENEL TALİMAT TABI 🔥 */}
+                        <button onClick={() => setSistemTab('talimat_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'talimat_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📜 GENEL ESASLAR</button>
                     </div>
 
                     <div className="p-6 md:p-8 overflow-y-auto max-h-[70vh] custom-scrollbar bg-[#0f172a]">
                         
+                        {/* 🔥 YENİ EKLENEN GENEL TALİMAT KONTROL MERKEZİ 🔥 */}
+                        {sistemTab === 'talimat_ekle' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
+                                    <h3 className="text-emerald-400 font-bold mb-1">Genel Usul ve Esaslar (Anayasa)</h3>
+                                    <p className="text-slate-300 text-xs">Saha komiserlerinin mobil uygulamada "STATÜLER" bölümünde göreceği ana kuralları (PDF özetlerini) buradan güncelleyebilirsiniz.</p>
+                                </div>
+                                <form onSubmit={talimatKaydetSubmit} className="space-y-5">
+                                    <div>
+                                        <textarea 
+                                            value={genelTalimat} 
+                                            onChange={(e) => setGenelTalimat(e.target.value)} 
+                                            className="w-full bg-slate-900 border border-slate-600 text-white text-xs md:text-sm px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none min-h-[350px] font-sans leading-relaxed whitespace-pre-wrap" 
+                                            placeholder="TFF Genel Usul ve Esasları buraya yapıştırın..." 
+                                            required 
+                                        />
+                                    </div>
+                                    <button type="submit" disabled={talimatKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">
+                                        {talimatKaydediliyor ? '⚙️ YAYINLANIYOR...' : '🚀 TÜM SAHAYA YAYINLA'}
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
                         {sistemTab === 'statu_ekle' && (
                             <div className="space-y-6">
                                 <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-start">
@@ -2435,7 +2310,7 @@ const processExcelFile = (file: File) => {
             </div>
         )}
 
-        {/* 🔥 TFF RAPORU İNDİRME / YAZDIRMA MODALI (ZIRHLI PDF MOTORU) 🔥 */}
+        {/* 🔥 TFF RAPORU İNDİRME / YAZDIRMA MODALI 🔥 */}
         {tamEkranRaporMac && (
             <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
                 <div className="bg-slate-200 rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
@@ -2521,7 +2396,6 @@ const processExcelFile = (file: File) => {
         ) : (
           <div className="space-y-8 animate-fade-in-up">
             
-            {/* 🔥 YENİ EKLENEN: AKILLI İSTİHBARAT ÇUBUĞU 🔥 */}
             <div className="mb-6 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl relative z-10">
                 <div className="flex items-center gap-3">
                     <span className="text-2xl hidden md:block">🔍</span>
@@ -2641,7 +2515,6 @@ const processExcelFile = (file: File) => {
                             {kategoriMazeretAcik && (
                                 <div className="space-y-3 animate-fade-in-down pl-2">
                                     
-                                    {/* 🔥 EXCEL İNDİRME BUTONU 🔥 */}
                                     {gelecekHaftaMazeretleri.length > 0 && (
                                         <div className="flex justify-end mb-4 pr-2">
                                             <button 
@@ -2675,7 +2548,8 @@ const processExcelFile = (file: File) => {
                                                 badge = <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded">KISMİ GÜNLER MÜSAİT</span>;
                                             }
 
-                                            return (<div key={`mazeret-${idx}`} className={`${cardStyle} rounded-xl p-4 shadow-sm`}>
+                                            return (
+                                                <div key={`mazeret-${idx}`} className={`${cardStyle} rounded-xl p-4 shadow-sm`}>
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div>
                                                             <div className="font-bold text-slate-200 text-base">{m.isim}</div>
