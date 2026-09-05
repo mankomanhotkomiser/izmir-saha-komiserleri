@@ -1318,23 +1318,22 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                   ÇIKIŞ
                               </button>
                           )}
+
                       </div>
                   </div>
-
               </div>
           </header>
-
           {/* MİNE: HER YERDEN GÖRÜNEN SABİT UYARI BARI (Navbar'ın içinde güvende!) */}
-          {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevkartlari' && (
-              <button onClick={() => setAktifEkran('gorevkartlari')} className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center">
+          {tebellugBekleyenSayisi > 0 && (aktifEkran as any) !== 'gorevkartlari' && (
+              <button onClick={() => setAktifEkran('gorevkartlari' as any)} className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center">
                   <span className="text-xl animate-bounce">⚠️</span> 
                   <span className="mx-2">DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ</span> 
                   <span className="text-xl animate-bounce">⚠️</span>
               </button>
           )}
+
       </div>
   );
-
   const renderGunSatiri = (key: string, label: string) => {
     const g = gunler[key]
     return (
