@@ -958,7 +958,7 @@ export default function AdminPage() {
       setYukleniyor(false);
   }
 
-  const processExcelFile = (file: File) => {
+const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
           try {
@@ -1000,14 +1000,20 @@ export default function AdminPage() {
                       islenmisSaat = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                   }
 
-                  const komiserKey = Object.keys(normRow).find(k => k.includes('KOMİSER') || k.includes('KOMISER') || k.includes('TC') || k.includes('KİMLİK') || k.includes('GÖREVLİ'));
+                  // 🔥 İŞTE EN SIKI ZIRH BURADA: KISALTMALARI BİLE YAKALIYORUZ! 🔥
+                  const komiserKey = Object.keys(normRow).find(k => k.includes('KOMİSER') || k.includes('KOMISER') || k.includes('KOM.') || k.includes('GÖREVLİ') || k.includes('TC') || k.includes('KİMLİK'));
                   const rawName = String(komiserKey ? normRow[komiserKey] : '').trim();
                   
                   const kodKey = Object.keys(normRow).find(k => k.includes('KOD') || k.includes('M.NO'));
                   const macKodu = String(kodKey ? normRow[kodKey] : '');
 
-                  // 🔥 İŞTE DÜZELTİLEN YER: SAHA KELİMESİNİ ARARKEN "KOMİSER" KELİMESİNİ ELEDİK! 🔥
-                  const sahaKey = Object.keys(normRow).find(k => (k.includes('SAHA') && !k.includes('KOMİSER') && !k.includes('KOMISER')) || k.includes('STAD') || k.includes('YER'));
+                  // SAHA radarı: Eğer içinde KOM, GÖREV veya ATAMA geçiyorsa kesinlikle stadyum değildir diyerek eliyoruz.
+                  const sahaKey = Object.keys(normRow).find(k => {
+                      if (k === 'SAHA' || k === 'STAD' || k === 'STADYUM' || k === 'YER') return true;
+                      if (k.includes('STAD')) return true;
+                      if (k.includes('SAHA') && !k.includes('KOM') && !k.includes('GÖREV') && !k.includes('ATAMA')) return true;
+                      return false;
+                  });
                   const saha = String(sahaKey ? normRow[sahaKey] : '');
 
                   const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR'));
