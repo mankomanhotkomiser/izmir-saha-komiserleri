@@ -40,20 +40,25 @@ const parseDetay = (raw: any) => {
 };
 
 const getAnaKategori = (kategori: any) => {
-    if (!kategori) return 'amator';
-    const kat = turkceBuyukHarf(kategori);
-    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
-    if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
-    return 'amator';
-}
+      if (!kategori) return 'amator';
+      const kat = turkceBuyukHarf(kategori);
+      
+      if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
+      
+      // 🔥 YENİ: KADIN ve PGL ligleri artık Gelişim (Elit) formunu tetikleyecek!
+      if (kat.includes('KADIN') || kat.includes('KIZ') || kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ')) return 'gelisim';
+      
+      if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
+      
+      return 'amator';
+  }
 
-const raporTurunuBelirle = (kategori: any) => {
-    const anaKat = getAnaKategori(kategori);
-    if (anaKat === 'profesyonel') return 'yok';
-    if (anaKat === 'gelisim') return 'gelisim';
-    return 'amator'; 
-}
+  const raporTurunuBelirle = (kategori: any) => {
+      const anaKat = getAnaKategori(kategori);
+      if (anaKat === 'profesyonel') return 'yok';
+      if (anaKat === 'gelisim') return 'gelisim';
+      return 'amator'; 
+  }
 
 const detayliRaporGosterilirMi = (kategori: any) => raporTurunuBelirle(kategori) !== 'yok'; 
 
@@ -1486,17 +1491,31 @@ export default function Home() {
           : (safeRaporDetay.gelisim_fotolar || {});
 
       // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
-      const RenderA4Header = () => (
-          <div className="flex items-center justify-between mb-4 border-b-2 border-slate-800 pb-3">
-              <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-              <div className="text-center flex-col items-center justify-center w-2/4">
-                  <h2 className="font-extrabold text-lg md:text-xl tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                  <h3 className="font-bold text-base md:text-lg mt-1 text-black">GELİŞİM LİGLERİ</h3>
-                  <h3 className="font-bold text-sm md:text-base mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
+  const RenderA4Header = () => {
+          const katAdi = String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR');
+          let ustBaslik = "GELİŞİM LİGLERİ";
+          let sagLogo = "/gelisim-logo.png"; 
+
+          if (katAdi.includes('KADIN') || katAdi.includes('KIZ')) {
+              ustBaslik = "KADIN LİGLERİ";
+              sagLogo = "/kadin-logo.png";
+          } else if (katAdi.includes('PGL') || katAdi.includes('PROFESYONELLİĞE GEÇİŞ')) {
+              ustBaslik = "PROFESYONELLİĞE GEÇİŞ LİGİ";
+              sagLogo = "/pgl-logo.png";
+          }
+
+          return (
+              <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
+                  <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+                  <div className="text-center flex-col items-center justify-center w-2/4">
+                      <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                      <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
+                      <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
+                  </div>
+                  <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
               </div>
-              <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-          </div>
-      );
+          );
+      };
 
       const RenderA4MatchInfo = () => (
           <>
