@@ -326,6 +326,7 @@ export default function Home() {
   const [tamEkranBordroAy, setTamEkranBordroAy] = useState<string | null>(null) 
   const [acikIstatistikKategori, setAcikIstatistikKategori] = useState<string | null>(null)
   const [acikIstatistikMacId, setAcikIstatistikMacId] = useState<number | null>(null)
+  const [istatistikHakemArama, setIstatistikHakemArama] = useState('')
 
   const [tcKimlik, setTcKimlik] = useState('')
   const [bankaAdi, setBankaAdi] = useState('')
@@ -2234,7 +2235,6 @@ export default function Home() {
       );
   } else if (gercekAktifEkran === 'istatistiklerim') {
       
-      // Çift tıklamalı efsanevi akordiyon listesini çizen motor
       const renderIstatistikListe = (liste: any[], baslik: string, toplamSayi: number) => (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
               <h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">
@@ -2254,7 +2254,6 @@ export default function Home() {
                                   </div>
                               </button>
                               
-                              {/* 1. Tıklama: O Lige Ait Maçların Açılması */}
                               {isKatAcik && (
                                   <div className="bg-slate-100 p-2 border-t border-slate-200 space-y-2 animate-fade-in-down">
                                       {maclar.sort(siralamaFiltresi).reverse().map(mac => {
@@ -2273,8 +2272,6 @@ export default function Home() {
                                                           <span className={`transition-transform text-lg ${isMacAcik ? 'rotate-180 text-emerald-400' : 'text-slate-400'}`}>▼</span>
                                                       </div>
                                                   </button>
-                                                  
-                                                  {/* 2. Tıklama: O Maçın Detaylı Görev Kartının Açılması */}
                                                   {isMacAcik && (
                                                       <div className="p-3 bg-slate-50 border-t border-slate-200 animate-fade-in-down">
                                                           <div className="transform scale-[0.98] origin-top">
@@ -2294,6 +2291,24 @@ export default function Home() {
           </div>
       );
 
+      // YENİ: ARAMA MOTORU İŞLEMCİSİ
+      const arananHakem = turkceBuyukHarf(istatistikHakemArama).trim();
+      let hakemAramaSonuclari: any[] = [];
+      
+      if (arananHakem.length >= 3) {
+          hakemAramaSonuclari = maclarForIstatistik.filter((mac: any) => {
+              if (!mac.skor_girildi) return false; 
+              const detay = parseDetay(mac.tff_rapor_detaylari);
+              const h1 = turkceBuyukHarf(detay.hakem || '');
+              const h2 = turkceBuyukHarf(detay.y_hakem_1 || '');
+              const h3 = turkceBuyukHarf(detay.y_hakem_2 || '');
+              const h4 = turkceBuyukHarf(detay.hakem_4 || '');
+              const goz = turkceBuyukHarf(detay.gozlemci || '');
+              
+              return h1.includes(arananHakem) || h2.includes(arananHakem) || h3.includes(arananHakem) || h4.includes(arananHakem) || goz.includes(arananHakem);
+          }).sort(siralamaFiltresi).reverse();
+      }
+
       ekranIcerigi = (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           {renderOrtakHeader(true)}
@@ -2310,16 +2325,80 @@ export default function Home() {
                       </div>
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6 shadow-sm">
-                      <p className="text-blue-800 text-xs font-bold text-center leading-relaxed">💡 Lig isimlerinin üzerine tıklayarak o ligde görev aldığınız tüm maçları listeleyebilir, ardından maçların üzerine tıklayarak skor, hakem ve detaylı görev kartlarına ulaşabilirsiniz.</p>
+                  {/* 🔥 YENİ: HAKEM / GÖZLEMCİ ARAMA ÇUBUĞU 🔥 */}
+                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md mb-6 relative">
+                      <div className="flex items-center gap-3">
+                          <span className="text-2xl hidden md:block">🕵️‍♂️</span>
+                          <input 
+                              type="text" 
+                              value={istatistikHakemArama} 
+                              onChange={(e) => setIstatistikHakemArama(e.target.value)} 
+                              placeholder="Kiminle maça çıktım? (Hakem veya Gözlemci Adı Yazın...)" 
+                              className="w-full bg-slate-900 border-2 border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                          />
+                          {istatistikHakemArama && (
+                              <button onClick={() => setIstatistikHakemArama('')} className="bg-red-900/50 hover:bg-red-800 text-red-400 px-4 py-3 rounded-lg font-bold transition-colors">SİL</button>
+                          )}
+                      </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-                      {renderIstatistikListe(siraliAmatorler, 'AMATÖR LİGLER', amatorCount)}
-                      {renderIstatistikListe(siraliGelisimler, 'GELİŞİM LİGLERİ', gelisimCount)}
-                      {renderIstatistikListe(siraliKadinlar, 'KADIN FUTBOL LİGLERİ', kadinCount)}
-                      {renderIstatistikListe(siraliProflar, 'PROFESYONEL LİGLER', profCount)}
-                  </div>
+                  {arananHakem.length > 0 && arananHakem.length < 3 ? (
+                      <div className="text-center p-4 text-slate-500 font-bold mb-6">Sistemin aramaya başlaması için en az 3 harf girmelisiniz...</div>
+                  ) : arananHakem.length >= 3 ? (
+                      /* 🎯 ARAMA SONUÇLARI EKRANI 🎯 */
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-6 animate-fade-in-down">
+                          <h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">
+                              ARAMA SONUÇLARI <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{hakemAramaSonuclari.length} EŞLEŞME</span>
+                          </h4>
+                          {hakemAramaSonuclari.length === 0 ? (
+                              <div className="text-center p-6 text-slate-500 italic font-bold">"{arananHakem}" ismiyle çıkılmış bir maç kaydı bulunamadı.<br/><span className="text-xs font-normal mt-2 block">(Not: Sistem sadece sizin detaylı TFF raporu gönderdiğiniz maçların içinde arama yapabilir).</span></div>
+                          ) : (
+                              <div className="space-y-3">
+                                  {hakemAramaSonuclari.map((mac) => {
+                                      const isMacAcik = acikIstatistikMacId === mac.id;
+                                      return (
+                                          <div key={mac.id} className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+                                              <button onClick={() => setAcikIstatistikMacId(isMacAcik ? null : mac.id)} className={`w-full flex justify-between items-center p-3 transition-colors focus:outline-none ${isMacAcik ? 'bg-emerald-900 text-white' : 'hover:bg-emerald-50 text-slate-700'}`}>
+                                                  <div className="text-left pr-2">
+                                                      <div className={`text-[10px] font-bold ${isMacAcik ? 'text-emerald-300' : 'text-slate-500'}`}>{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)} | {mac.kategori_adi}</div>
+                                                      <div className="font-black mt-0.5 leading-tight">{mac.ev_sahibi} <span className={isMacAcik ? 'text-emerald-400' : 'text-slate-400'}>vs</span> {mac.misafir_takim}</div>
+                                                  </div>
+                                                  <div className="flex items-center gap-2 shrink-0">
+                                                      <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest ${mac.skor_girildi ? (isMacAcik ? 'bg-emerald-800 text-emerald-200' : 'bg-green-100 text-green-700 border border-green-200') : (isMacAcik ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500 border border-slate-300')}`}>
+                                                          {mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'SKOR YOK'}
+                                                      </span>
+                                                      <span className={`transition-transform text-lg ${isMacAcik ? 'rotate-180 text-emerald-400' : 'text-slate-400'}`}>▼</span>
+                                                  </div>
+                                              </button>
+                                              
+                                              {/* Detaylı Görev Kartı */}
+                                              {isMacAcik && (
+                                                  <div className="p-3 bg-slate-50 border-t border-slate-200 animate-fade-in-down">
+                                                      <div className="transform scale-[0.98] origin-top">
+                                                          {renderOrjinalGorevKarti(mac, true)}
+                                                      </div>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      )
+                                  })}
+                              </div>
+                          )}
+                      </div>
+                  ) : (
+                      /* 📊 NORMAL LİG İSTATİSTİKLERİ EKRANI 📊 */
+                      <>
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6 shadow-sm">
+                            <p className="text-blue-800 text-xs font-bold text-center leading-relaxed">💡 Lig isimlerinin üzerine tıklayarak o ligde görev aldığınız tüm maçları listeleyebilir, ardından maçların üzerine tıklayarak skor, hakem ve detaylı görev kartlarına ulaşabilirsiniz.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+                            {renderIstatistikListe(siraliAmatorler, 'AMATÖR LİGLER', amatorCount)}
+                            {renderIstatistikListe(siraliGelisimler, 'GELİŞİM LİGLERİ', gelisimCount)}
+                            {renderIstatistikListe(siraliKadinlar, 'KADIN FUTBOL LİGLERİ', kadinCount)}
+                            {renderIstatistikListe(siraliProflar, 'PROFESYONEL LİGLER', profCount)}
+                        </div>
+                      </>
+                  )}
               </div>
           </div>
         </main>
