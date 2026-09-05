@@ -1265,7 +1265,6 @@ const renderTffRaporu = (mac: any, prefix: string) => {
       
       const raporTuru = raporTurunuBelirle(mac.kategori_adi);
       const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
-      const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
       const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
       const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
@@ -1310,12 +1309,14 @@ const renderTffRaporu = (mac: any, prefix: string) => {
           </>
       );
 
+      // YENİ: DİJİTAL YAZISI KALKTI, İMZA ALANI EKLENDİ VE EN ALTA SABİTLENDİ
       const RenderA4Footer = () => (
-          <div className="mt-8 border-t border-black pt-2 flex justify-between items-end">
-              <div className="text-[10px] text-slate-500 font-bold">* Bu belge Saha Operasyon Merkezi üzerinden dijital olarak oluşturulmuştur.</div>
-              <div className="text-right">
-                  <div className="text-[10px] font-bold">SAHA KOMİSERİ</div>
+          <div className="mt-auto pt-6 flex justify-between items-end border-t border-black">
+              <div className="text-xs font-bold mb-2">Rapor Tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
+              <div className="text-center w-48">
+                  <div className="h-10 border-b border-dashed border-black mb-1"></div>
                   <div className="text-sm font-black uppercase">{komiserTamIsim}</div>
+                  <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
               </div>
           </div>
       );
@@ -1330,19 +1331,41 @@ const renderTffRaporu = (mac: any, prefix: string) => {
       );
 
       return (
-          <div id={`${prefix}-form-${mac.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
-              <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
+          <div id={`${prefix}-form-${mac.id}`} className="w-full flex flex-col gap-8 font-sans text-black mobile-zoom bg-slate-200 p-4">
+              <style dangerouslySetInnerHTML={{__html: `
+                  @media print {
+                      @page { margin: 8mm; size: A4 portrait; }
+                      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white !important; margin: 0 !important; padding: 0 !important; }
+                      .mobile-zoom { zoom: 1 !important; transform: none !important; background: white !important; padding: 0 !important; gap: 0 !important; }
+                      .print-page {
+                          height: 280mm !important;
+                          max-height: 280mm !important;
+                          page-break-after: always;
+                          page-break-inside: avoid;
+                          overflow: hidden;
+                          margin: 0 !important;
+                          border: 2px solid black !important;
+                          background: white !important;
+                      }
+                      .print-page:last-of-type { page-break-after: auto; }
+                      .tff-no-print { display: none !important; }
+                  }
+                  @media screen {
+                      .print-page { min-height: 1050px; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+                      @media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }
+                  }
+              `}} />
 
-              {/* AMATÖR RAPOR KISMI */}
+              {/* AMATÖR RAPOR (TEK SAYFA) */}
               {raporTuru === 'amator' && (
-              <div className="border-[3px] border-double border-slate-600 p-4 bolunmez">
+              <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
                       <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                       <div className="text-[10px] font-black tracking-widest text-[#E30A17] mb-1">TFF</div>
                       <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest mt-1 text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
                       <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black bolunmez">
+                  <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
                       <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div></div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{formatMacKodu(mac?.mac_kodu)}</span></div></div>
                       <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
@@ -1351,9 +1374,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.ev_sahibi || '-'}</span></div></div>
                           <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</span></div>
                       </div>
-                      
                       <div className="p-2 border-b border-dashed border-black flex justify-between items-center"><span className="text-[10px] font-bold w-12">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{mac?.kategori_adi || '-'}</span></div>
-                      
                       <div className="grid grid-cols-4 border-b border-black border-r border-l-0">
                           <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs uppercase truncate text-black">{mac?.misafir_takim || '-'}</span></div></div>
                           <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span></div>
@@ -1363,7 +1384,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           <div className="p-2 flex justify-between items-center"><span className="text-[10px] font-bold">SAAT:</span> <span className="font-bold text-xs text-black">{guvenliSaat(mac?.saat)}</span></div>
                       </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black bolunmez">
+                  <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
                       <div className="bg-slate-100/50 p-1.5 border-r border-b border-dashed border-black text-center text-[11px] font-bold">HAKEM BİLGİLERİ</div>
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       <div className="border-r border-black flex flex-col">
@@ -1383,8 +1404,8 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           </div>
                       </div>
                   </div>
-                  <h3 className="text-center font-black tracking-widest text-sm mb-2 border-b-2 border-black w-32 mx-auto pb-1 text-black bolunmez">İ H R A Ç L A R</h3>
-                  <div className="border border-black mb-6 text-black bolunmez">
+                  <h3 className="text-center font-black tracking-widest text-sm mb-2 border-b-2 border-black w-32 mx-auto pb-1 text-black">İ H R A Ç L A R</h3>
+                  <div className="border border-black mb-6 text-black">
                       <div className="grid grid-cols-2 text-center text-xs font-bold border-b border-black">
                           <div className="p-1.5 border-r border-black bg-slate-100/50">EV SAHİBİ KULÜP</div><div className="p-1.5 bg-slate-100/50">MİSAFİR KULÜP</div>
                       </div>
@@ -1393,13 +1414,13 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           <div className="grid grid-cols-12"><div className="col-span-2 p-1 border-r border-dashed border-black">FORMA NO</div><div className="col-span-7 p-1 border-r border-dashed border-black">ADI SOYADI</div><div className="col-span-3 p-1">LİSANS NO</div></div>
                       </div>
                       {Array.from({ length: maxSatir }).map((_, idx) => (
-                          <div key={`ihrac-${idx}`} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
-                              <div className="grid grid-cols-12 border-r border-black relative">
+                          <div key={`ihrac-${idx}`} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0">
+                              <div className="grid grid-cols-12 border-r border-black">
                                   <div className="col-span-2 p-1 border-r border-dashed border-black"><input readOnly type="text" value={ihracEvListesi[idx]?.forma || ''} className="w-full text-center outline-none bg-transparent pointer-events-none" /></div>
                                   <div className="col-span-7 p-1 border-r border-dashed border-black"><input readOnly type="text" value={ihracEvListesi[idx]?.isim || ''} className="w-full text-left outline-none bg-transparent px-1 uppercase pointer-events-none" /></div>
                                   <div className="col-span-3 p-1"><input readOnly type="text" value={ihracEvListesi[idx]?.lisans || ''} className="w-full text-center outline-none bg-transparent pointer-events-none" /></div>
                               </div>
-                              <div className="grid grid-cols-12 relative">
+                              <div className="grid grid-cols-12">
                                   <div className="col-span-2 p-1 border-r border-dashed border-black"><input readOnly type="text" value={ihracMisListesi[idx]?.forma || ''} className="w-full text-center outline-none bg-transparent pointer-events-none" /></div>
                                   <div className="col-span-7 p-1 border-r border-dashed border-black"><input readOnly type="text" value={ihracMisListesi[idx]?.isim || ''} className="w-full text-left outline-none bg-transparent px-1 uppercase pointer-events-none" /></div>
                                   <div className="col-span-3 p-1"><input readOnly type="text" value={ihracMisListesi[idx]?.lisans || ''} className="w-full text-center outline-none bg-transparent pointer-events-none" /></div>
@@ -1407,54 +1428,19 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           </div>
                       ))}
                   </div>
-                  <div className="mb-8 text-black bolunmez">
+                  <div className="flex-1 flex flex-col mb-4 text-black">
                       <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 uppercase tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
-                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} className="w-full outline-none bg-transparent font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-dashed border-slate-300 p-2 pointer-events-none"></textarea>
+                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'} className="w-full flex-1 outline-none bg-transparent font-serif text-sm leading-relaxed resize-none border border-dashed border-slate-300 p-2 pointer-events-none"></textarea>
                   </div>
-                  <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black bolunmez">
-                      <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
-                      <div className="text-center">
-                          <div className="font-serif text-2xl text-blue-800 -mb-2 italic opacity-80" style={{fontFamily: "'Brush Script MT', cursive"}}>{komiserIlkIsim}</div>
-                          <div className="font-bold text-sm border-b border-black px-4 pb-1">{komiserTamIsim}</div>
-                          <div className="text-[10px] text-slate-500">GSM Telefon No: ''</div>
-                          <div className="text-[10px] font-bold mt-1">SAHA KOMİSERİ</div>
-                      </div>
-                  </div>
+                  <RenderA4Footer />
               </div>
               )}
 
-              {/* GELİŞİM LİGİ RAPORU (ANA SAYFA 1-2) */}
+              {/* GELİŞİM LİGİ RAPORU (SAYFA 1) */}
               {raporTuru === 'gelisim' && (
-              <div className="border-[3px] border-double border-slate-600 p-4 bg-white text-black font-sans bolunmez">
-                  <div className="flex items-center justify-between mb-4 border-b-2 border-red-600 pb-3">
-                      <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-                      <div className="text-center flex-col items-center justify-center w-2/4">
-                          <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                          <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">GELİŞİM LİGLERİ</h3>
-                          <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
-                      </div>
-                      <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-                  </div>
-
-                  <div className="border border-black text-xs font-bold mb-4">
-                      <div className="flex border-b border-black text-center bg-slate-100">
-                          <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
-                      </div>
-                      <div className="flex text-center uppercase">
-                          <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac.saha}</div><div className="w-1/5 p-2 truncate">{mac.kategori_adi}</div>
-                      </div>
-                  </div>
-
-                  <div className="border-2 border-black text-xs font-bold mb-6">
-                      <div className="grid grid-cols-6 border-b border-black">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
-                          <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div></div>
-                      </div>
-                      <div className="grid grid-cols-6">
-                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
-                          <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div></div>
-                      </div>
-                  </div>
+              <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
+                  <RenderA4Header />
+                  <RenderA4MatchInfo />
 
                   <h3 className="font-bold text-sm mb-1 uppercase">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
@@ -1466,7 +1452,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                       <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
                   </div>
 
-                  <div className="border border-black text-xs font-bold mb-6 w-2/3">
+                  <div className="border border-black text-xs font-bold mb-6 w-3/4">
                       <div className="flex border-b border-black">
                           <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">GÜVENLİK GÖREVLİSİ (VAR MI?)</div>
                           <div className="w-1/2 flex items-center justify-center p-1 gap-4">
@@ -1519,9 +1505,15 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                       <p className="mb-2">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
                       {gelisimOrganizasyon.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dashed border-slate-300 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
                       <p className="mt-4 mb-1">(b) Müsabaka sonu değerlendirmesi</p>
-                      <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} className="w-full border-b border-dashed border-black bg-transparent outline-none resize-none h-10 pointer-events-none"></textarea>
+                      <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} className="w-full border-b border-dashed border-black bg-transparent outline-none resize-none h-12 pointer-events-none"></textarea>
                   </div>
+              </div>
+              )}
 
+              {/* GELİŞİM LİGİ RAPORU (SAYFA 2) - TEKNİK HUSUSLAR BURADAN BAŞLIYOR! */}
+              {raporTuru === 'gelisim' && (
+              <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
+                  
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">II) TEKNİK HUSUSLAR :</div>
                   <div className="mb-4 text-xs font-medium space-y-1">
                       <p className="mb-2">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
@@ -1550,12 +1542,12 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                   </div>
 
                   <div className="bg-slate-100 p-2 font-black text-sm mb-2">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
-                  <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''} className="w-full border-b border-dashed border-black bg-transparent outline-none resize-none min-h-[50px] mb-4 text-xs pointer-events-none"></textarea>
+                  <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''} className="w-full border border-dashed border-black bg-transparent outline-none resize-none min-h-[40px] mb-4 p-2 text-xs pointer-events-none"></textarea>
 
-                  <div className="mb-4">
+                  <div className="flex-1 flex flex-col mb-4">
                       <h3 className="font-bold text-xs uppercase mb-1">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
                       <p className="text-[10px] mb-1">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || ''} className="w-full outline-none border border-dashed border-black min-h-[150px] p-2 text-sm bg-transparent pointer-events-none"></textarea>
+                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'} className="w-full flex-1 outline-none border border-dashed border-black p-2 text-sm bg-transparent pointer-events-none resize-none"></textarea>
                   </div>
 
                   <RenderA4Footer />
@@ -1564,7 +1556,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
               {/* EK RAPORLAR EKRANI */}
               {ekRaporlarListesi.map((ekRapor: any, index: number) => (
-                  <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
+                  <div key={ekRapor.id} className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                       {raporTuru === 'amator' ? (
                           <div className="flex flex-col items-center mb-8 border-b-[3px] border-double border-red-600 pb-4 text-center">
                               <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
@@ -1588,20 +1580,19 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                           <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
                       </div>
 
-                      <div className="mb-6">
+                      <div className="mb-6 flex-1">
                           <h3 className="font-bold text-sm uppercase mb-2 bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
                           <div className="w-full min-h-[200px] p-4 border border-dashed border-black whitespace-pre-wrap">{ekRapor.text}</div>
                       </div>
 
-                      <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
+                      <div className="mb-8 border border-dashed border-black p-4 flex flex-col items-center justify-center relative">
                           <h3 className="font-bold text-sm uppercase mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
                           {ekRapor.foto_url ? (
-                              <img src={ekRapor.foto_url} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
+                              <img src={ekRapor.foto_url} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[300px] object-contain shadow-sm border border-slate-200" />
                           ) : (
-                              <div className="text-slate-400 text-center tff-no-print">
+                              <div className="text-slate-400 text-center tff-no-print p-10">
                                   <span className="text-4xl block mb-2">📸</span>
                                   <p className="text-sm font-bold">Kanıt Fotoğrafı Yok</p>
-                                  <p className="text-[10px] mt-1 text-slate-500">Bu rapora görsel eklenmemiştir.</p>
                               </div>
                           )}
                       </div>
@@ -1610,12 +1601,12 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                   </div>
               ))}
 
-              {/* GELİŞİM LİGİ - MATBAA TASARIMI (5 EKSTRA SAYFA) */}
+              {/* GELİŞİM LİGİ - ESAMELER VE BELGELER (5 EKSTRA SAYFA) */}
               {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
                   <>
                       {/* SAYFA 3: EV SAHİBİ ESAME */}
                       {gelisimPrintFotolar['gelisim_ev_esame'] && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                          <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                               <RenderA4Header />
                               <RenderA4MatchInfo />
                               <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_ev_esame'] as string} baslik="EV SAHİBİ TAKIM MÜSABAKA ESAME LİSTESİ" />
@@ -1625,7 +1616,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                       {/* SAYFA 4: EV SAHİBİ TEKNİK KADRO VE İZİNLER */}
                       {(gelisimPrintFotolar['gelisim_ev_teknik'] || gelisimPrintFotolar['gelisim_ev_yayin'] || gelisimPrintFotolar['gelisim_ev_foto']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                          <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                               <RenderA4Header />
                               <RenderA4MatchInfo />
                               <div className="flex-1 flex flex-col">
@@ -1633,7 +1624,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                       <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
                                           <div className="w-full h-full flex flex-col">
                                               <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">EV SAHİBİ TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_ev_teknik'] as string} crossOrigin="anonymous" alt="Ev Sahibi Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
+                                              <img src={gelisimPrintFotolar['gelisim_ev_teknik'] as string} crossOrigin="anonymous" alt="Ev Sahibi Teknik" className="max-w-full max-h-[350px] mx-auto object-contain shadow-sm flex-1" />
                                           </div>
                                       </div>
                                   )}
@@ -1657,7 +1648,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                       {/* SAYFA 5: MİSAFİR ESAME */}
                       {gelisimPrintFotolar['gelisim_mis_esame'] && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                          <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                               <RenderA4Header />
                               <RenderA4MatchInfo />
                               <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_mis_esame'] as string} baslik="MİSAFİR TAKIM MÜSABAKA ESAME LİSTESİ" />
@@ -1667,7 +1658,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                       {/* SAYFA 6: MİSAFİR TEKNİK KADRO VE İZİNLER */}
                       {(gelisimPrintFotolar['gelisim_mis_teknik'] || gelisimPrintFotolar['gelisim_mis_yayin'] || gelisimPrintFotolar['gelisim_mis_foto']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                          <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                               <RenderA4Header />
                               <RenderA4MatchInfo />
                               <div className="flex-1 flex flex-col">
@@ -1675,7 +1666,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                       <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
                                           <div className="w-full h-full flex flex-col">
                                               <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">MİSAFİR TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_mis_teknik'] as string} crossOrigin="anonymous" alt="Misafir Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
+                                              <img src={gelisimPrintFotolar['gelisim_mis_teknik'] as string} crossOrigin="anonymous" alt="Misafir Teknik" className="max-w-full max-h-[350px] mx-auto object-contain shadow-sm flex-1" />
                                           </div>
                                       </div>
                                   )}
@@ -1699,22 +1690,22 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                       {/* SAYFA 7: SAĞLIK VE SAHA GÖREVLİLERİ */}
                       {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
-                          <div className="border-[3px] border-double border-slate-600 p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                          <div className="print-page bg-white p-6 border-2 border-black mx-auto max-w-[800px] w-full flex flex-col relative">
                               <RenderA4Header />
                               <RenderA4MatchInfo />
                               <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
                               <div className="flex-1 grid grid-cols-2 gap-4 content-start">
                                   {gelisimPrintFotolar['gelisim_saglik'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4><img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4><img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_sedyeci1'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_sedyeci2'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_saha_gor'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4><img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4><img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
                                   )}
                               </div>
                               <RenderA4Footer />
