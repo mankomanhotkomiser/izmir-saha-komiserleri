@@ -60,6 +60,19 @@ const getAnaKategori = (kategori: any) => {
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
     return 'amator';
 }
+const guvenliSaat = (saatMetni: any) => {
+    if (!saatMetni) return "-";
+    try { return String(saatMetni).substring(0, 5); } catch (e) { return "-"; }
+}
+
+const raporTurunuBelirle = (kategori: any) => {
+    const anaKat = getAnaKategori(kategori);
+    if (anaKat === 'profesyonel') return 'yok';
+    if (anaKat === 'gelisim') return 'gelisim';
+    return 'amator'; 
+}
+
+const detayliRaporGosterilirMi = (kategori: any) => raporTurunuBelirle(kategori) !== 'yok';
 
 export default function AdminPage() {
   // ==========================================
