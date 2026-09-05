@@ -62,7 +62,6 @@ const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const kat = turkceBuyukHarf(kategori);
     
-    // TEK HAKEM: U11, U12, U13
     if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
         kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
         kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
@@ -70,7 +69,6 @@ const getHakemGosterimModu = (kategori: any) => {
         return 'tek_hakem';
     }
     
-    // ÜÇ HAKEM (ORTA, 1.YRD, 2.YRD): U14, U15, U16
     if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
         kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
         kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
@@ -78,14 +76,12 @@ const getHakemGosterimModu = (kategori: any) => {
         return 'uc_hakem';
     }
 
-    // DÖRT HAKEM + GÖZLEMCİ: U17, U19 (Gelişim veya Amatör fark etmez)
     if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
         kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
         kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) {
         return 'dort_ve_gozlemci';
     }
 
-    // Geri kalan tüm yetişkin amatör veya belirtilmeyenler için standart
     return 'dort_kutu'; 
 };
 
@@ -287,11 +283,15 @@ export default function Home() {
   const [girisHatasi, setGirisHatasi] = useState<string | null>(null)
   const [girisYukleniyor, setGirisYukleniyor] = useState(false)
   const [seciliKomiser, setSeciliKomiser] = useState<any | null>(null)
+  
   const [sifreDegistirAcik, setSifreDegistirAcik] = useState(false)
+  const [rehberAcik, setRehberAcik] = useState(false)
+  const [statuModalAcik, setStatuModalAcik] = useState(false)
+  const [acikStatuKategori, setAcikStatuKategori] = useState<string | null>(null)
+
   const [eskiSifre, setEskiSifre] = useState('')
   const [yeniSifre, setYeniSifre] = useState('')
   const [sifremiUnuttumAcik, setSifremiUnuttumAcik] = useState(false)
-  const [rehberAcik, setRehberAcik] = useState(false)
   const [zorunluMazeret, setZorunluMazeret] = useState(false)
   
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
@@ -539,7 +539,6 @@ export default function Home() {
         const kayitliId = localStorage.getItem('izmirKomiserId')
         const kayitliSifre = localStorage.getItem('izmirKomiserSifre')
         
-        // Bordro Hafıza Kontrolleri
         const kayitliProfUcret = localStorage.getItem('bordro_prof_ucret');
         if(kayitliProfUcret) setProfUcretDurumlari(JSON.parse(kayitliProfUcret));
         
@@ -904,7 +903,8 @@ export default function Home() {
           reader.readAsDataURL(file);
       }
   }
-const ekRaporGuncelle = (id: number, text: string) => {
+
+  const ekRaporGuncelle = (id: number, text: string) => {
       setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r) }));
   }
 
@@ -1008,8 +1008,8 @@ const ekRaporGuncelle = (id: number, text: string) => {
       } catch (err) {
           alert("PDF/Yazdır ekranı hazırlanırken bir sorun oluştu.");
       }
-  } 
-  
+  }
+
   const yeniHakemleriKaydet = async (detaylar: any) => {
       const girilenHakemler = [
           detaylar.hakem, detaylar.y_hakem_1, detaylar.y_hakem_2, detaylar.hakem_4
@@ -1318,7 +1318,7 @@ const ekRaporGuncelle = (id: number, text: string) => {
                   <span className="text-[10px] md:text-xs text-slate-400 font-semibold tracking-wider">KATEGORİ / LİG</span>
                   {bagliStatu && (
                       <button onClick={() => setAcikStatu(bagliStatu)} className="text-[9px] bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold transition-colors flex items-center gap-1 shadow-sm">
-                          ℹ️ STATÜ
+                          STATÜ İNCELE
                       </button>
                   )}
               </div>
@@ -1563,9 +1563,6 @@ const ekRaporGuncelle = (id: number, text: string) => {
               </div>
               )}
 
-              {/* ========================================================== */}
-              {/* GELİŞİM LİGİ RAPORU (SAYFA 1 ve 2 - Gelişim Ligi Şablonu) */}
-              {/* ========================================================== */}
               {raporTuru === 'gelisim' && (
               <div className="border-[3px] border-double border-slate-600 p-4 bg-white text-black font-sans bolunmez">
                   <RenderA4Header />
@@ -1994,7 +1991,13 @@ const ekRaporGuncelle = (id: number, text: string) => {
             {sifreUyariGoster && (<div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse"><div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm tracking-wide">GÜVENLİK UYARISI</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div><button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs tracking-widest w-full sm:w-auto">ŞİFREMİ DEĞİŞTİR</button></div>)}
             <div className="bg-slate-800 rounded-2xl shadow-xl p-6 mb-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 border-t-4 border-blue-500 relative overflow-hidden">
               <div className="text-center md:text-left flex-1 relative z-10 w-full"><h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">{turkceBuyukHarf(seciliKomiser?.ad_soyad || 'KOMİSER')}</h2><div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2"><span className="bg-slate-700 text-blue-100 font-mono text-xs font-bold px-3 py-1.5 rounded-md border border-slate-600 shadow-sm">SİCİL NO: {seciliKomiser?.komiser_id || '-'}</span><span className="bg-blue-900/50 text-blue-200 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-800 shadow-sm">BU SEZON: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} GÖREV</span></div><div className="mt-5 space-y-3 animate-fade-in-down w-full">{tebellugBekleyenSayisi > 0 ? (<div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm animate-pulse gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2">🔔 Yeni Atanan {tebellugBekleyenSayisi} Göreviniz Var!</span><button onClick={() => setAktifEkran('gorevKartlari')} className="w-full sm:w-auto text-[10px] md:text-xs bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow border border-blue-600">ÖNCE TEBELLÜĞ ET</button></div>) : (<>{eksikSkorSayisi > 0 && (<div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">⏳ Skoru Beklenen {eksikSkorSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded shadow border border-amber-500">GİRİŞ YAP</button></div>)}{eksikDetayliSayisi > 0 && (<div className="bg-red-50 border border-red-300 text-red-900 px-4 py-3 rounded-lg flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3"><span className="font-bold text-xs md:text-sm flex items-center gap-2 text-center sm:text-left">📝 Detaylı Raporu Beklenen {eksikDetayliSayisi} Maçınız Var</span><button onClick={() => setAktifEkran('skorRapor')} className="w-full sm:w-auto text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow border border-red-500">RAPORLA</button></div>)}{herSeyTamam && (<div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-lg flex items-start shadow-sm animate-fade-in-up"><span className="text-2xl md:text-3xl mr-3 mt-1">✅</span><div><h4 className="font-black text-sm md:text-base tracking-wider text-emerald-900">{globalAktifHaftaNo}. HAFTA GÖREVLERİ TAMAMLANDI</h4><p className="text-[10px] md:text-xs font-medium mt-0.5 text-emerald-800">Tarafınıza tevdi edilen tüm müsabakaları tebellüğ ettiniz ve raporlamalarını eksiksiz tamamladınız. İzmir Şube Yönetimi adına teşekkür ederiz.</p></div></div>)}</>)}</div></div>
-              <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto z-20 shrink-0 mt-2 md:mt-0 justify-center"><button onClick={() => setRehberAcik(true)} className="flex-1 md:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">ℹ️ KULLANIM REHBERİ</button><button onClick={() => setSifreDegistirAcik(true)} className="flex-1 md:flex-none justify-center bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">🔑 ŞİFREMİ DEĞİŞTİR</button></div>
+              
+              {/* 🔥 GÜNCELLENEN BUTONLAR (KULLANIM, ŞİFRE, STATÜ) 🔥 */}
+              <div className="flex flex-col gap-2 w-full md:w-auto z-20 shrink-0 mt-2 md:mt-0 justify-center">
+                  <button onClick={() => { setAcikStatuKategori('gelisim'); setStatuModalAcik(true); }} className="flex-1 md:flex-none justify-center bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">STATÜLER</button>
+                  <button onClick={() => setRehberAcik(true)} className="flex-1 md:flex-none justify-center bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">KULLANIM REHBERİ</button>
+                  <button onClick={() => setSifreDegistirAcik(true)} className="flex-1 md:flex-none justify-center bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-500 py-3 px-4 md:p-2.5 rounded-lg shadow-md transition-colors text-xs font-bold flex items-center gap-2">ŞİFREMİ DEĞİŞTİR</button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -2002,10 +2005,14 @@ const ekRaporGuncelle = (id: number, text: string) => {
               <button onClick={() => setAktifEkran('skorRapor')} className="flex flex-col items-center justify-center p-6 md:p-8 rounded-2xl shadow-md bg-gradient-to-br from-sky-500 to-blue-700 border-2 border-blue-800 hover:scale-[1.02] transition-transform relative group"><h4 className="font-black text-xl md:text-2xl text-white relative z-10 text-center">SKOR VE SAHA RAPORU</h4><p className="text-sm text-center mt-2 text-sky-100 font-medium relative z-10">Hızlı skoru bildirin ve detaylı müsabaka raporu oluşturun.</p></button>
             </div>
 
-            <button onClick={() => setAktifEkran('bordrolarim')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">💰 MAÇ BORDROLARIM</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Aylık görev dökümleriniz ve hakediş listeleriniz.</p></div></button>
             <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">🔍 HAFTALIK BÜLTEN VE GÖREV ARAMA</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Saha, takım veya komiser ismine göre İzmir'deki tüm güncel görevleri sorgulayın.</p></div></button>
             <button onClick={() => setAktifEkran('istatistiklerim')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">SEZONLUK İSTATİSTİKLERİM</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Görev aldığınız liglerin detaylı dökümü.</p></div></button>
-            <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">📅 MÜSAİTLİK VE MAZERET BİLDİRİMİ</h4></div></button>
+            
+            {/* 🔥 GÜNCELLENEN MÜSAİTLİK BUTONU 🔥 */}
+            <button onClick={() => setAktifEkran('mazeretBildir')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">MÜSAİTLİK VE MAZERET BİLDİRİMİ</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Gelecek hafta için görev alma durumunuzu belirtin.</p></div></button>
+            
+            {/* 🔥 GÜNCELLENEN BORDRO BUTONU (DOLAR SİLİNDİ, EN ALTA ALINDI) 🔥 */}
+            <button onClick={() => setAktifEkran('bordrolarim')} className="w-full flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">BORDROLARIM</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Aylık görev dökümleriniz ve hakediş listeleriniz.</p></div></button>
           </div>
         </main>
       );
@@ -2294,6 +2301,64 @@ const ekRaporGuncelle = (id: number, text: string) => {
                               <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors text-sm shadow-md">Kaydet</button>
                           </div>
                       </form>
+                  </div>
+              </div>
+          )}
+
+          {/* 🔥 GÜNCELLENEN YENİ STATÜ MODALI 🔥 */}
+          {statuModalAcik && (
+              <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
+                  <div className="bg-slate-50 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 flex flex-col">
+                      <div className="bg-emerald-700 p-4 flex justify-between items-center shadow-md shrink-0">
+                          <h2 className="text-white font-black tracking-widest text-base md:text-lg uppercase">MÜSABAKA STATÜLERİ VE KURALLAR</h2>
+                          <button onClick={() => setStatuModalAcik(false)} className="text-emerald-200 hover:text-white font-bold text-2xl leading-none transition-colors">✕</button>
+                      </div>
+                      
+                      {/* STATÜ SEKMELERİ */}
+                      <div className="flex bg-white border-b border-slate-300 shrink-0">
+                          <button onClick={() => setAcikStatuKategori('gelisim')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'gelisim' ? 'bg-emerald-50 text-emerald-700 border-b-4 border-emerald-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF GELİŞİM LİGİ STATÜLERİ</button>
+                          <button onClick={() => setAcikStatuKategori('amator')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'amator' ? 'bg-blue-50 text-blue-700 border-b-4 border-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 AMATÖR LİG STATÜLERİ</button>
+                          <button onClick={() => setAcikStatuKategori('kadin')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'kadin' ? 'bg-purple-50 text-purple-700 border-b-4 border-purple-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF KADINLAR LİGLERİ STATÜLERİ</button>
+                      </div>
+
+                      {/* STATÜ LİSTESİ İÇERİĞİ */}
+                      <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                          {(() => {
+                              const filtrelenmis = tumStatuler.filter((s: any) => {
+                                  const kat = getAnaKategori(s.kategori_anahtar);
+                                  return kat === acikStatuKategori;
+                              });
+
+                              if (filtrelenmis.length === 0) {
+                                  return (
+                                      <div className="text-center py-10">
+                                          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Bu kategoriye ait statü henüz sisteme girilmemiştir.</p>
+                                          <p className="text-slate-400 text-xs mt-2">Şube Yönetimi tarafından eklendiğinde burada görünecektir.</p>
+                                      </div>
+                                  )
+                              }
+
+                              return (
+                                  <div className="space-y-4">
+                                      {filtrelenmis.map((st: any, idx: number) => (
+                                          <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                              <div className="bg-slate-800 px-4 py-3 flex justify-between items-center">
+                                                  <h3 className="text-white font-black uppercase tracking-wider text-sm">{st.baslik || st.kategori_anahtar}</h3>
+                                              </div>
+                                              <div className="p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Yaş Sınırı</span><span className="font-bold text-sm text-slate-800">{st.yas_siniri || '-'}</span></div>
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Müsabaka Süresi</span><span className="font-black text-sm text-blue-700">{st.sure || '-'}</span></div>
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Oyuncu Değişikliği</span><span className="font-bold text-sm text-slate-800">{st.degisiklik || '-'}</span></div>
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Top Numarası</span><span className="font-black text-sm text-amber-600">{st.top || '-'}</span></div>
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Beraberlik Durumu</span><span className="font-bold text-sm text-slate-800">{st.beraberlik || '-'}</span></div>
+                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Hakem Sayısı</span><span className="font-bold text-sm text-slate-800">{st.hakem || '-'}</span></div>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              )
+                          })()}
+                      </div>
                   </div>
               </div>
           )}
