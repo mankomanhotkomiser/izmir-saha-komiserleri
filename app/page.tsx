@@ -1272,9 +1272,8 @@ export default function Home() {
       <header className="bg-slate-800 text-white shadow-md">
         <div className="max-w-4xl mx-auto px-3 py-3 md:py-4 flex flex-col gap-3 md:gap-4">
           
-          {/* 1. KAT (ÜST SATIR): SADECE LOGO - TAM ORTALANMIŞ */}
-          <div className="flex justify-center w-full bg-white p-2 rounded-lg shadow-sm border border-slate-200">
-              <img src="/dernek-logo.png" alt="TFSKD Logo" className="h-12 md:h-16 w-auto object-contain" />
+          <div className="flex justify-center w-full bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden">
+            <img src="/dernek-logo.png" alt="TFSKD Logo" className="w-full max-w-full h-auto object-contain" />
           </div>
           
           {/* 2. KAT (ALT SATIR): TARİH ROZETİ VE SAĞDA BUTON */}
