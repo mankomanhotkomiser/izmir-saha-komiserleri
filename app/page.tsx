@@ -321,7 +321,7 @@ export default function Home() {
   const [acikSkorMacId, setAcikSkorMacId] = useState<number | null>(null)
   const [evSkor, setEvSkor] = useState<string>('')
   const [misafirSkor, setMisafirSkor] = useState<string>('')
-  const [macDurumu, setMacDurumu] = useState<'' | 'oynandi' | 'yarida_kaldi' | 'takimlar_cikmadi'>('')
+  const [macDurumu, setMacDurumu] = useState<'' | 'oynandi' | 'yarida_kaldi' | 'oynanmadi' | 'takimlar_cikmadi'>('')
   const [olayDurumu, setOlayDurumu] = useState<'olaysiz' | 'teknik_olay' | 'emniyetlik_olay' | 'hava_muhalefeti' | 'saha_sorunu'>('olaysiz')
   const [raporNotu, setRaporNotu] = useState('')
   
@@ -1046,10 +1046,12 @@ export default function Home() {
                         lowerNot.includes('yarıda kaldi') ||
                         lowerNot.includes('yarida kaldı') ||
                         lowerNot.includes('tamamlanamadı') ||
-                        lowerNot.includes('tamamlanamadi');
+                        lowerNot.includes('tamamlanamadi') ||
+                        lowerNot.includes('oynanmadı') ||
+                        lowerNot.includes('oynanmadi');
 
     if (olayYaridaMi && macDurumu === 'oynandi') {
-        alert("🚨 DİKKAT: Raporunuzda maçın 'tatil' edildiğini veya 'yarıda kaldığını' belirttiniz!\n\nBu yüzden müsabaka durumunu 'Müsabaka Tamamlandı' olarak seçemezsiniz. Lütfen durumu 'Maç Yarıda Kaldı' olarak düzeltip tekrar gönderiniz.");
+        alert("🚨 DİKKAT: Raporunuzda maçın tatil edildiğini, yarıda kaldığını veya oynanmadığını belirttiniz!\n\nBu yüzden müsabaka durumunu 'Müsabaka Tamamlandı' olarak seçemezsiniz. Lütfen durumu 'Maç Yarıda Kaldı' veya 'Oynanmadı' olarak düzeltip tekrar gönderiniz.");
         return;
     }
 
@@ -1124,8 +1126,8 @@ export default function Home() {
     }
 
     const guncellenecekVeri = {
-      ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || evSkor === '') ? null : Number(evSkor),
-      misafir_skor: (macDurumu === 'takimlar_cikmadi' || misafirSkor === '') ? null : Number(misafirSkor),
+      ev_sahibi_skor: (macDurumu === 'takimlar_cikmadi' || macDurumu === 'oynanmadi' || evSkor === '') ? null : Number(evSkor),
+      misafir_skor: (macDurumu === 'takimlar_cikmadi' || macDurumu === 'oynanmadi' || misafirSkor === '') ? null : Number(misafirSkor),
       mac_durumu: macDurumu, olay_durumu: olayDurumu, rapor_notu: raporNotu, skor_girildi: true, tff_rapor_detaylari: kaydedilecekDetay
     };
 
@@ -1580,9 +1582,9 @@ export default function Home() {
                               
                               let title = "Akreditasyon Kartı / Esame";
                               if(key === 'gelisim_ev_esame') title = `Ev Sahibi Esame Listesi`;
-                              if(key === 'gelisim_ev_teknik') title = `Ev Sahibi Teknik Kadro Toplu Lise`;
+                              if(key === 'gelisim_ev_teknik') title = `Ev Sahibi Sahaya Girecekler (Teknik Kadro)`;
                               if(key === 'gelisim_mis_esame') title = `Misafir Takım Esame Listesi`;
-                              if(key === 'gelisim_mis_teknik') title = `Misafir Takım Teknik Kadro Toplu Liste`;
+                              if(key === 'gelisim_mis_teknik') title = `Misafir Takım Sahaya Girecekler (Teknik Kadro)`;
                               if(key === 'gelisim_saglik') title = `Doktor / ATT Kartı`;
                               if(key === 'gelisim_sedyeci1') title = `1. Sedyeci Kartı`;
                               if(key === 'gelisim_sedyeci2') title = `2. Sedyeci Kartı`;
@@ -1615,8 +1617,8 @@ export default function Home() {
                           <div>
                               <h4 className="font-black text-sm bg-blue-100 text-blue-800 p-2 rounded border border-blue-200 mb-3 tracking-widest uppercase">🏠 EV SAHİBİ: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                                  <RenderGelisimUpload title="1. Esame Listesi (Kadro)" imgKey="gelisim_ev_esame" desc="Ev sahibi takımın tam esame listesi" />
-                                  <RenderGelisimUpload title="2. Teknik Kadro Toplu Liste" imgKey="gelisim_ev_teknik" desc="Sahaya çıkan teknik kadro A4 belgesi" />
+                                  <RenderGelisimUpload title="1. Esame Listesi (Futbolcular)" imgKey="gelisim_ev_esame" desc="Ev sahibi takımın tam esame listesi" />
+                                  <RenderGelisimUpload title="2. Sahaya Girecekler Listesi" imgKey="gelisim_ev_teknik" desc="Kulübün verdiği toplu A4 belgesi" />
                               </div>
                           </div>
 
@@ -1624,8 +1626,8 @@ export default function Home() {
                           <div>
                               <h4 className="font-black text-sm bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-3 tracking-widest uppercase">🚌 MİSAFİR: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                                  <RenderGelisimUpload title="1. Esame Listesi (Kadro)" imgKey="gelisim_mis_esame" desc="Misafir takımın tam esame listesi" />
-                                  <RenderGelisimUpload title="2. Teknik Kadro Toplu Liste" imgKey="gelisim_mis_teknik" desc="Sahaya çıkan teknik kadro A4 belgesi" />
+                                  <RenderGelisimUpload title="1. Esame Listesi (Futbolcular)" imgKey="gelisim_mis_esame" desc="Misafir takımın tam esame listesi" />
+                                  <RenderGelisimUpload title="2. Sahaya Girecekler Listesi" imgKey="gelisim_mis_teknik" desc="Kulübün verdiği toplu A4 belgesi" />
                               </div>
                           </div>
 
@@ -1945,21 +1947,30 @@ export default function Home() {
                                 <select value={macDurumu} onChange={(e:any) => setMacDurumu(e.target.value)} className={`w-full p-3 md:p-4 border-2 rounded-xl font-black text-sm md:text-base text-center appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${macDurumu === '' ? 'border-red-400 bg-red-50 text-red-700' : 'border-slate-200 text-slate-700 bg-white focus:border-slate-500'}`}>
                                     <option value="" disabled>-- MÜSABAKANIN DURUMUNU SEÇİNİZ --</option>
                                     <option value="oynandi">MÜSABAKA TAMAMLANDI (OYNANDI)</option>
-                                    <option value="yarida_kaldi">MAÇ YARIDA KALDI / TATİL EDİLDİ</option>
+                                    <option value="yarida_kaldi">MÜSABAKA YARIDA KALDI / TATİL EDİLDİ</option>
+                                    <option value="oynanmadi">MÜSABAKA OYNANMADI</option>
                                     <option value="takimlar_cikmadi">TAKIM(LAR) SAHAYA ÇIKMADI</option>
                                 </select>
                                 
                                 {macDurumu === 'oynandi' && (<div className="mt-5 bg-slate-50 p-4 border border-slate-200 rounded-xl flex items-center justify-between gap-3 w-full shadow-inner"><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{turkceBuyukHarf(mac?.ev_sahibi || '-')}</label><select value={evSkor} onChange={(e: any) => setEvSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`ev-${s}`} value={s}>{s}</option>)}</select></div><span className="text-2xl font-black text-slate-300">-</span><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{turkceBuyukHarf(mac?.misafir_takim || '-')}</label><select value={misafirSkor} onChange={(e: any) => setMisafirSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`misafir-${s}`} value={s}>{s}</option>)}</select></div></div>)}
-                                {macDurumu === 'yarida_kaldi' && (<div className="mt-5 bg-red-50 p-5 border border-red-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🛑</span><p className="text-xs font-bold text-red-800 leading-relaxed">Maç yarıda kaldığı için skor kilitlenmiştir. <br/>Lütfen yarıda kalma sebebini ve (eğer varsa) o anki skoru aşağıdaki &apos;Sistem Notu&apos; kısmına detaylıca yazınız.</p></div>)}
+                                {macDurumu === 'yarida_kaldi' && (<div className="mt-5 bg-red-50 p-5 border border-red-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🛑</span><p className="text-xs font-bold text-red-800 leading-relaxed">Müsabaka yarıda kaldığı veya tatil edildiği için skor kilitlenmiştir. <br/>Lütfen sebebini ve (eğer varsa) o anki skoru aşağıdaki 'Sistem Notu' kısmına detaylıca yazınız.</p></div>)}
+                                {macDurumu === 'oynanmadi' && (<div className="mt-5 bg-slate-100 p-5 border border-slate-300 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🌧️</span><p className="text-xs font-bold text-slate-700 leading-relaxed">Müsabaka hiç başlamadığı (oynanmadığı) için skor kilitlenmiştir. <br/>Lütfen oynanmama sebebini (Hava muhalefeti, tesis vb.) 'Sistem Notu' kısmına yazınız.</p></div>)}
                                 {macDurumu === 'takimlar_cikmadi' && (<div className="mt-5 bg-amber-50 p-5 border border-amber-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🏟️</span><p className="text-xs font-bold text-amber-800 leading-relaxed">Takımlar sahaya çıkmadığı için skor kilitlenmiştir. <br/>Lütfen Sistem Notu kısmına hangi takımın gelmediğini belirtiniz.</p></div>)}
                               </div>
                               <div>
                                 <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">SAHA OLAYLARI</label>
-                                <div className="grid grid-cols-3 gap-2 mb-2"><button onClick={() => setOlayDurumu('olaysiz')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm text-center leading-none font-black uppercase">OLAYSIZ</span></button><button onClick={() => setOlayDurumu('teknik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'teknik_olay' ? 'bg-amber-50 border-amber-400 text-amber-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">TEKNİK</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(İhraç, vb.)</span></button><button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-50 border-red-400 text-red-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">EMNİYET</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(Kavga vb.)</span></button></div>
-                                <div className="grid grid-cols-2 gap-2"><button onClick={() => { setOlayDurumu('hava_muhalefeti'); setMacDurumu('yarida_kaldi'); }} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>☁️ HAVA MUHALEFETİ</button><button onClick={() => { setOlayDurumu('saha_sorunu'); setMacDurumu('yarida_kaldi'); }} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>🏟️ TESİS SORUNU</button></div>
+                                <div className="grid grid-cols-3 gap-2 mb-2">
+                                  <button onClick={() => setOlayDurumu('olaysiz')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm text-center leading-none font-black uppercase">OLAYSIZ</span></button>
+                                  <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'teknik_olay' ? 'bg-amber-50 border-amber-400 text-amber-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">TEKNİK</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(İhraç vb.)</span></button>
+                                  <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-50 border-red-400 text-red-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">EMNİYET</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(Kavga vb.)</span></button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button onClick={() => setOlayDurumu('hava_muhalefeti')} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>☁️ HAVA MUHALEFETİ</button>
+                                  <button onClick={() => setOlayDurumu('saha_sorunu')} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>🏟️ TESİS SORUNU</button>
+                                </div>
                               </div>
                             </div>
-                            <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5"><label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label><textarea value={raporNotu} onChange={(e: any) => handleHizliNotChange(e.target.value)} className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`} placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "İzmir Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya yarıda kalma sebebinin detayını (dakika ve skorla birlikte) yazınız..."}></textarea></div>
+                            <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5"><label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label><textarea value={raporNotu} onChange={(e: any) => handleHizliNotChange(e.target.value)} className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`} placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "İzmir Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya oynanmama/yarıda kalma sebebinin detayını yazınız..."}></textarea></div>
                             <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className={`w-full text-white font-black py-4 rounded-xl shadow-sm transition-transform hover:scale-[1.01] text-xs md:text-sm tracking-widest mt-5 flex items-center justify-center gap-2 ${macDurumu === '' ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-900 disabled:opacity-70'}`}>{skorKaydediliyor ? '⚙️ GÖNDERİLİYOR...' : (raporGonderilmis ? (detayliGoster ? '💾 HIZLI SKORU GÜNCELLE' : '💾 SKORU GÜNCELLE') : (detayliGoster ? '🚀 HIZLI SKORU İLET' : '🚀 YÖNETİME İLET'))}</button>
                           </div>
                           {detayliGoster && (
@@ -2075,197 +2086,197 @@ export default function Home() {
 
           {acikStatu && (
               <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
-                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300">
-                      <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700">
-                          <h2 className="text-white font-black tracking-widest text-sm flex items-center gap-2"><span className="text-xl">ℹ️</span> {turkceBuyukHarf(acikStatu.baslik)}</h2>
-                          <button onClick={() => setAcikStatu(null)} className="text-slate-300 hover:text-white font-bold text-xl leading-none transition-colors">✕</button>
-                      </div>
-                      <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                          <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">🏃 YAŞ SINIRI</h4>
-                              <p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri}</p>
+<div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300">
+                              <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700">
+                                  <h2 className="text-white font-black tracking-widest text-sm flex items-center gap-2"><span className="text-xl">ℹ️</span> {turkceBuyukHarf(acikStatu.baslik)}</h2>
+                                  <button onClick={() => setAcikStatu(null)} className="text-slate-300 hover:text-white font-bold text-xl leading-none transition-colors">✕</button>
+                              </div>
+                              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                  <div className="border-b border-slate-200 pb-3">
+                                      <h4 className="text-[10px] font-bold text-slate-400 mb-1">🏃 YAŞ SINIRI</h4>
+                                      <p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri}</p>
+                                  </div>
+                                  <div className="flex gap-4 border-b border-slate-200 pb-3">
+                                      <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⏱️ MÜSABAKA SÜRESİ</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure}</p></div>
+                                      <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top}</p></div>
+                                  </div>
+                                  <div className="flex gap-4 border-b border-slate-200 pb-3">
+                                      <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div>
+                                  </div>
+                                  <div className="border-b border-slate-200 pb-3">
+                                      <h4 className="text-[10px] font-bold text-slate-400 mb-1">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
+                                      <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik}</p>
+                                  </div>
+                                  <div className="pb-2">
+                                      <h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ BERABERLİK DURUMU</h4>
+                                      <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik}</p>
+                                  </div>
+                              </div>
+                              <div className="bg-slate-50 p-3 text-center border-t border-slate-200">
+                                  <button onClick={() => setAcikStatu(null)} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg text-xs tracking-widest transition-colors w-full shadow-sm">ANLADIM, KAPAT</button>
+                              </div>
                           </div>
-                          <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⏱️ MÜSABAKA SÜRESİ</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure}</p></div>
-                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top}</p></div>
+                      </div>
+                  )}
+
+                  {arsivTamEkranMac && (
+                      <div className="fixed inset-0 bg-black/90 z-[120] flex flex-col backdrop-blur-sm">
+                          <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
+                              <h2 className="text-xs md:text-lg font-black text-white tracking-widest truncate flex-1 pr-4">📄 TFF RAPORU: {turkceBuyukHarf(arsivTamEkranMac.ev_sahibi)} <span className="font-medium text-slate-400">vs</span> {turkceBuyukHarf(arsivTamEkranMac.misafir_takim)}</h2>
+                              <div className="flex items-center gap-3 shrink-0">
+                                  <button onClick={() => tffTutanakIndir(arsivTamEkranMac, 'arsiv-tam')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">📸 İNDİR</button>
+                                  <button onClick={() => setArsivTamEkranMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button>
+                              </div>
                           </div>
-                          <div className="flex gap-4 border-b border-slate-200 pb-3">
-<div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div>
-                          </div>
-                          <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik}</p>
-                          </div>
-                          <div className="pb-2">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ BERABERLİK DURUMU</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik}</p>
+                          <div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar">
+                              <div className="shadow-2xl bg-white w-full max-w-none md:max-w-max transform origin-top mx-auto">
+                                  {renderTffRaporu(arsivTamEkranMac, 'arsiv-tam')}
+                              </div>
                           </div>
                       </div>
-                      <div className="bg-slate-50 p-3 text-center border-t border-slate-200">
-                          <button onClick={() => setAcikStatu(null)} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg text-xs tracking-widest transition-colors w-full shadow-sm">ANLADIM, KAPAT</button>
-                      </div>
-                  </div>
-              </div>
-          )}
+                  )}
 
-          {arsivTamEkranMac && (
-              <div className="fixed inset-0 bg-black/90 z-[120] flex flex-col backdrop-blur-sm">
-                  <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
-                      <h2 className="text-xs md:text-lg font-black text-white tracking-widest truncate flex-1 pr-4">📄 TFF RAPORU: {turkceBuyukHarf(arsivTamEkranMac.ev_sahibi)} <span className="font-medium text-slate-400">vs</span> {turkceBuyukHarf(arsivTamEkranMac.misafir_takim)}</h2>
-                      <div className="flex items-center gap-3 shrink-0">
-                          <button onClick={() => tffTutanakIndir(arsivTamEkranMac, 'arsiv-tam')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">📸 İNDİR</button>
-                          <button onClick={() => setArsivTamEkranMac(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button>
-                      </div>
-                  </div>
-                  <div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar">
-                      <div className="shadow-2xl bg-white w-full max-w-none md:max-w-max transform origin-top mx-auto">
-                          {renderTffRaporu(arsivTamEkranMac, 'arsiv-tam')}
-                      </div>
-                  </div>
-              </div>
-          )}
+                  {tamEkranBordroAy && (
+                      <div className="fixed inset-0 bg-black/90 z-[150] flex flex-col backdrop-blur-sm tff-no-print">
+                          <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
+                              <h2 className="text-xs md:text-lg font-black text-white tracking-widest uppercase flex-1 pr-4 flex items-center gap-2"><span className="text-2xl">🖨️</span> BORDRO ÖNİZLEME: {tamEkranBordroAy}</h2>
+                              <div className="flex items-center gap-3 shrink-0">
+                                  <button onClick={bordroIndirYazdir} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">🖨️ PDF İNDİR / YAZDIR</button>
+                                  <button onClick={() => setTamEkranBordroAy(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button>
+                              </div>
+                          </div>
+                          <div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar">
+                              <div className="shadow-2xl bg-white w-full max-w-[800px] transform origin-top mx-auto">
+                                  <div id="bordro-print-area" className="w-full bg-white p-6 relative font-sans text-black mobile-zoom">
+                                        <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
+                                        
+                                        <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
+                                        
+                                        <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
+                                            <tbody>
+                                                <tr><td className="border border-black p-1.5 w-1/4 bg-slate-100/50">ADI SOYADI</td><td className="border border-black p-1.5 w-3/4 uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</td></tr>
+                                                <tr><td className="border border-black p-1.5 bg-slate-100/50">T.C. KİMLİK NO</td><td className="border border-black p-1.5"><input type="text" value={tcKimlik} onChange={e => bankaBilgisiGuncelle('tc', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Buraya yazınız..." /></td></tr>
+                                                <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA</td><td className="border border-black p-1.5"><input type="text" value={bankaAdi} onChange={e => bankaBilgisiGuncelle('banka', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: İŞ BANKASI" /></td></tr>
+                                                <tr><td className="border border-black p-1.5 bg-slate-100/50">ŞUBE KODU</td><td className="border border-black p-1.5"><input type="text" value={subeKodu} onChange={e => bankaBilgisiGuncelle('sube', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: 3447-YEŞİLYURT" /></td></tr>
+                                                <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA HESAP NO</td><td className="border border-black p-1.5"><input type="text" value={hesapNo} onChange={e => bankaBilgisiGuncelle('hesap', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Hesap no..." /></td></tr>
+                                                <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA IBAN NO</td><td className="border border-black p-1.5"><input type="text" value={ibanNo} onChange={e => bankaBilgisiGuncelle('iban', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="TR..." /></td></tr>
+                                            </tbody>
+                                        </table>
 
-          {tamEkranBordroAy && (
-              <div className="fixed inset-0 bg-black/90 z-[150] flex flex-col backdrop-blur-sm tff-no-print">
-                  <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center shrink-0 shadow-lg">
-                      <h2 className="text-xs md:text-lg font-black text-white tracking-widest uppercase flex-1 pr-4 flex items-center gap-2"><span className="text-2xl">🖨️</span> BORDRO ÖNİZLEME: {tamEkranBordroAy}</h2>
-                      <div className="flex items-center gap-3 shrink-0">
-                          <button onClick={bordroIndirYazdir} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-xs font-bold tracking-widest shadow-lg flex items-center gap-2 transition-colors">🖨️ PDF İNDİR / YAZDIR</button>
-                          <button onClick={() => setTamEkranBordroAy(null)} className="text-slate-400 hover:text-red-500 font-bold text-2xl md:text-3xl leading-none transition-colors">✕</button>
-                      </div>
-                  </div>
-                  <div className="flex-1 overflow-auto bg-slate-300 p-2 md:p-8 flex justify-center items-start custom-scrollbar">
-                      <div className="shadow-2xl bg-white w-full max-w-[800px] transform origin-top mx-auto">
-                          <div id="bordro-print-area" className="w-full bg-white p-6 relative font-sans text-black mobile-zoom">
-                                <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
-                                
-                                <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
-                                
-                                <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
-                                    <tbody>
-                                        <tr><td className="border border-black p-1.5 w-1/4 bg-slate-100/50">ADI SOYADI</td><td className="border border-black p-1.5 w-3/4 uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</td></tr>
-                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">T.C. KİMLİK NO</td><td className="border border-black p-1.5"><input type="text" value={tcKimlik} onChange={e => bankaBilgisiGuncelle('tc', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Buraya yazınız..." /></td></tr>
-                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA</td><td className="border border-black p-1.5"><input type="text" value={bankaAdi} onChange={e => bankaBilgisiGuncelle('banka', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: İŞ BANKASI" /></td></tr>
-                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">ŞUBE KODU</td><td className="border border-black p-1.5"><input type="text" value={subeKodu} onChange={e => bankaBilgisiGuncelle('sube', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Örn: 3447-YEŞİLYURT" /></td></tr>
-                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA HESAP NO</td><td className="border border-black p-1.5"><input type="text" value={hesapNo} onChange={e => bankaBilgisiGuncelle('hesap', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="Hesap no..." /></td></tr>
-                                        <tr><td className="border border-black p-1.5 bg-slate-100/50">BANKA IBAN NO</td><td className="border border-black p-1.5"><input type="text" value={ibanNo} onChange={e => bankaBilgisiGuncelle('iban', e.target.value)} className="w-full outline-none bg-yellow-50 focus:bg-white" placeholder="TR..." /></td></tr>
-                                    </tbody>
-                                </table>
+                                        <div className="text-right mb-6 mt-2 tff-no-print">
+                                            <button onClick={finansBilgileriniKaydet} disabled={finansKaydediliyor} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-md transition-colors">
+                                                {finansKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : '💾 BİLGİLERİMİ SİSTEME KAYDET'}
+                                            </button>
+                                        </div>
 
-                                <div className="text-right mb-6 mt-2 tff-no-print">
-                                    <button onClick={finansBilgileriniKaydet} disabled={finansKaydediliyor} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-xs font-bold tracking-widest shadow-md transition-colors">
-                                        {finansKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : '💾 BİLGİLERİMİ SİSTEME KAYDET'}
-                                    </button>
-                                </div>
+                                        <div className="text-[10px] mb-8 relative">
+                                            <p className="uppercase mb-8">{tamEkranBordroAy.replace('-', '/')} AYIN DA GÖREV ALDIĞIM MAÇ<br/>VE YOL ÜCRETLERİ AŞAĞIDAKİ GİBİDİR. TAHSİL EDİLDİĞİNDE YUKARIDAKİ<br/>BANKA HESABIMA YATIRILMASINI ARZ EDERİM.</p>
+                                            <div className="absolute right-0 top-6 text-center">
+                                                <div className="font-bold mb-6">İMZA</div>
+                                                <div className="uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</div>
+                                            </div>
+                                        </div>
 
-                                <div className="text-[10px] mb-8 relative">
-                                    <p className="uppercase mb-8">{tamEkranBordroAy.replace('-', '/')} AYIN DA GÖREV ALDIĞIM MAÇ<br/>VE YOL ÜCRETLERİ AŞAĞIDAKİ GİBİDİR. TAHSİL EDİLDİĞİNDE YUKARIDAKİ<br/>BANKA HESABIMA YATIRILMASINI ARZ EDERİM.</p>
-                                    <div className="absolute right-0 top-6 text-center">
-                                        <div className="font-bold mb-6">İMZA</div>
-                                        <div className="uppercase">{turkceBuyukHarf(seciliKomiser?.ad_soyad || '')}</div>
-                                    </div>
-                                </div>
+                                        <div className="text-[9px] mb-4 font-bold tracking-tight">
+                                            <p>(lütfen tüm açıklamaları okuduktan sonra eksiksiz doldurunuz)</p>
+                                            <p>lütfen ay sonlarında veya engeç takip eden ayın 5'ine kadar gönderiniz.</p>
+                                            <p>Göndermiyenlerin ücretleri bankada bekletilecek ve bir sonraki ayın ücretleri ile birlikte ödenecektir</p>
+                                            <p>Her ayın 1-31 arasındaki müsabakalar yazılacaktır.Diğer aya denk gelen müsabakalar yazılmayacaktır</p>
+                                            <br/>
+                                            <p>1.<span className="text-red-600">PROFESYONEL MÜSABAKALARI EN ÜST BÖLÜME YAZINIZ.ÜCRET ALINDI YSA ALINDI OLARAK BELİRTİNİZ</span></p>
+                                            <p>2.)MÜSABAKA NEVİ MUHAKKAK YAZILACAKTIR. (S.L-U-19.1AK.U11 GİBİ)</p>
+                                            <p>3.)U14-U13-U11 MÜSABAKALARINDA HARCIRAH ÖDENMEMEKTEDİR.İÇ MAÇ SAYILACAK.<br/>DEPLASMANDA BU MAÇLARIN YOL ÜCRETİ DERNEK TARAFINDAN KARŞILANACAKTIR.</p>
+                                            <p>4.)HER NEVİDEKİ MÜSABAKALARDA MERKEZ İLÇELERE YOL PARASI YAZMAYINIZ.<br/>GÜZELBAHÇE -YELKİYE-MENDERESE -HARMANDALI YA KADAR OLAN MÜSABAKALARA YOL PARASI YAZILMAYACAKTIR</p>
+                                            <p>5). ARKA ARKAYA ÇIKILAN 2 ADET U-11 VEYA 2 ADET U-12 MÜSABAKASI TEK MÜSABAKA SAYILIR.</p>
+                                        </div>
 
-                                <div className="text-[9px] mb-4 font-bold tracking-tight">
-                                    <p>(lütfen tüm açıklamaları okuduktan sonra eksiksiz doldurunuz)</p>
-                                    <p>lütfen ay sonlarında veya engeç takip eden ayın 5'ine kadar gönderiniz.</p>
-                                    <p>Göndermiyenlerin ücretleri bankada bekletilecek ve bir sonraki ayın ücretleri ile birlikte ödenecektir</p>
-                                    <p>Her ayın 1-31 arasındaki müsabakalar yazılacaktır.Diğer aya denk gelen müsabakalar yazılmayacaktır</p>
-                                    <br/>
-                                    <p>1.<span className="text-red-600">PROFESYONEL MÜSABAKALARI EN ÜST BÖLÜME YAZINIZ.ÜCRET ALINDI YSA ALINDI OLARAK BELİRTİNİZ</span></p>
-                                    <p>2.)MÜSABAKA NEVİ MUHAKKAK YAZILACAKTIR. (S.L-U-19.1AK.U11 GİBİ)</p>
-                                    <p>3.)U14-U13-U11 MÜSABAKALARINDA HARCIRAH ÖDENMEMEKTEDİR.İÇ MAÇ SAYILACAK.<br/>DEPLASMANDA BU MAÇLARIN YOL ÜCRETİ DERNEK TARAFINDAN KARŞILANACAKTIR.</p>
-                                    <p>4.)HER NEVİDEKİ MÜSABAKALARDA MERKEZ İLÇELERE YOL PARASI YAZMAYINIZ.<br/>GÜZELBAHÇE -YELKİYE-MENDERESE -HARMANDALI YA KADAR OLAN MÜSABAKALARA YOL PARASI YAZILMAYACAKTIR</p>
-                                    <p>5). ARKA ARKAYA ÇIKILAN 2 ADET U-11 VEYA 2 ADET U-12 MÜSABAKASI TEK MÜSABAKA SAYILIR.</p>
-                                </div>
-
-                                <h3 className="text-center font-bold text-red-600 text-[11px] mb-1">ÇIKILAN PROFESYONEL MÜSABAKA</h3>
-                                <table className="w-full text-[10px] font-bold border-collapse border border-black text-center mb-8">
-                                    <thead className="bg-white">
-                                        <tr>
-                                            <th className="border border-black p-1 w-8"></th>
-                                            <th className="border border-black p-1 w-20">TARİH</th>
-                                            <th className="border border-black p-1 text-left">EV SAHİBİ TAKIM</th>
-                                            <th className="border border-black p-1 w-24">LİGİ</th>
-                                            <th className="border border-black p-1 w-16">YOL</th>
-                                            <th className="border border-black p-1 w-28 text-[8px]">ÜCRET ALINDI / ALINMADI</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(() => {
-                                            const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
-                                            const profMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) === 'profesyonel');
-                                            
-                                            if (profMaclar.length === 0) {
-                                                return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-slate-400">-</td></tr>;
-                                            }
-                                            
-                                            return profMaclar.map((m, i) => (
-                                                <tr key={i}>
-                                                    <td className="border border-black p-1"></td>
-                                                    <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
-                                                    <td className="border border-black p-1 text-left uppercase">{turkceBuyukHarf(m.ev_sahibi)}</td>
-                                                    <td className="border border-black p-1 uppercase">{turkceBuyukHarf(m.kategori_adi)}</td>
-                                                    <td className="border border-black p-1"></td>
-                                                    <td className="border border-black p-0">
-                                                        <select value={profUcretDurumlari[m.id] || ''} onChange={(e) => profUcretGuncelle(m.id, e.target.value)} className="w-full text-center outline-none bg-yellow-50 focus:bg-white text-[9px] font-bold cursor-pointer h-full py-1">
-                                                            <option value="">-- SEÇ --</option>
-                                                            <option value="ALINDI">ALINDI</option>
-                                                            <option value="ALINMADI">ALINMADI</option>
-                                                        </select>
-                                                    </td>
+                                        <h3 className="text-center font-bold text-red-600 text-[11px] mb-1">ÇIKILAN PROFESYONEL MÜSABAKA</h3>
+                                        <table className="w-full text-[10px] font-bold border-collapse border border-black text-center mb-8">
+                                            <thead className="bg-white">
+                                                <tr>
+                                                    <th className="border border-black p-1 w-8"></th>
+                                                    <th className="border border-black p-1 w-20">TARİH</th>
+                                                    <th className="border border-black p-1 text-left">EV SAHİBİ TAKIM</th>
+                                                    <th className="border border-black p-1 w-24">LİGİ</th>
+                                                    <th className="border border-black p-1 w-16">YOL</th>
+                                                    <th className="border border-black p-1 w-28 text-[8px]">ÜCRET ALINDI / ALINMADI</th>
                                                 </tr>
-                                            ));
-                                        })()}
-                                    </tbody>
-                                </table>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
+                                                    const profMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) === 'profesyonel');
+                                                    
+                                                    if (profMaclar.length === 0) {
+                                                        return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-slate-400">-</td></tr>;
+                                                    }
+                                                    
+                                                    return profMaclar.map((m, i) => (
+                                                        <tr key={i}>
+                                                            <td className="border border-black p-1"></td>
+                                                            <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
+                                                            <td className="border border-black p-1 text-left uppercase">{turkceBuyukHarf(m.ev_sahibi)}</td>
+                                                            <td className="border border-black p-1 uppercase">{turkceBuyukHarf(m.kategori_adi)}</td>
+                                                            <td className="border border-black p-1"></td>
+                                                            <td className="border border-black p-0">
+                                                                <select value={profUcretDurumlari[m.id] || ''} onChange={(e) => profUcretGuncelle(m.id, e.target.value)} className="w-full text-center outline-none bg-yellow-50 focus:bg-white text-[9px] font-bold cursor-pointer h-full py-1">
+                                                                    <option value="">-- SEÇ --</option>
+                                                                    <option value="ALINDI">ALINDI</option>
+                                                                    <option value="ALINMADI">ALINMADI</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                    ));
+                                                })()}
+                                            </tbody>
+                                        </table>
 
-                                <table className="w-full text-[10px] font-bold border-collapse border border-black text-center">
-                                    <thead className="bg-slate-100">
-                                        <tr>
-                                            <th className="border border-black p-1 w-8">S.NO</th>
-                                            <th className="border border-black p-1 w-20">TARİH</th>
-                                            <th className="border border-black p-1 text-left">STAD</th>
-                                            <th className="border border-black p-1 w-12">SAAT</th>
-                                            <th className="border border-black p-1 w-24">NEVİ</th>
-                                            <th className="border border-black p-1 w-24">YOL ÜCRETİ</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(() => {
-                                            const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
-                                            const amatorMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) !== 'profesyonel');
-                                            
-                                            if (amatorMaclar.length === 0) {
-                                                return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>;
-                                            }
-
-                                            return amatorMaclar.map((m, i) => (
-                                                <tr key={i}>
-                                                    <td className="border border-black p-1">{i + 1}</td>
-                                                    <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
-                                                    <td className="border border-black p-1 text-left uppercase truncate max-w-[200px]">{turkceBuyukHarf(m.saha)}</td>
-                                                    <td className="border border-black p-1">{guvenliSaat(m.saat)}</td>
-                                                    <td className="border border-black p-1 uppercase text-[9px] truncate max-w-[100px]">{turkceBuyukHarf(m.kategori_adi)}</td>
-                                                    <td className="border border-black p-1"></td>
+                                        <table className="w-full text-[10px] font-bold border-collapse border border-black text-center">
+                                            <thead className="bg-slate-100">
+                                                <tr>
+                                                    <th className="border border-black p-1 w-8">S.NO</th>
+                                                    <th className="border border-black p-1 w-20">TARİH</th>
+                                                    <th className="border border-black p-1 text-left">STAD</th>
+                                                    <th className="border border-black p-1 w-12">SAAT</th>
+                                                    <th className="border border-black p-1 w-24">NEVİ</th>
+                                                    <th className="border border-black p-1 w-24">YOL ÜCRETİ</th>
                                                 </tr>
-                                            ));
-                                        })()}
-                                        <tr>
-                                            <td colSpan={2} className="border border-black p-1 text-left bg-slate-100/50">TOPLAM İÇ MAÇ</td>
-                                            <td className="border border-black p-1 font-black text-sm">{komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && getAnaKategori(m.kategori_adi) !== 'profesyonel').length}</td>
-                                            <td colSpan={2} className="border border-black p-1 bg-slate-100/50">TOPLAM DIŞ MAÇ</td>
-                                            <td className="border border-black p-1 text-left bg-slate-100/50"><span className="float-left">TOPLAM YOL ÜCRETİ</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
+                                                    const amatorMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) !== 'profesyonel');
+                                                    
+                                                    if (amatorMaclar.length === 0) {
+                                                        return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>;
+                                                    }
+
+                                                    return amatorMaclar.map((m, i) => (
+                                                        <tr key={i}>
+                                                            <td className="border border-black p-1">{i + 1}</td>
+                                                            <td className="border border-black p-1">{guvenliTarih(m.tarih)}</td>
+                                                            <td className="border border-black p-1 text-left uppercase truncate max-w-[200px]">{turkceBuyukHarf(m.saha)}</td>
+                                                            <td className="border border-black p-1">{guvenliSaat(m.saat)}</td>
+                                                            <td className="border border-black p-1 uppercase text-[9px] truncate max-w-[100px]">{turkceBuyukHarf(m.kategori_adi)}</td>
+                                                            <td className="border border-black p-1"></td>
+                                                        </tr>
+                                                    ));
+                                                })()}
+                                                <tr>
+                                                    <td colSpan={2} className="border border-black p-1 text-left bg-slate-100/50">TOPLAM İÇ MAÇ</td>
+                                                    <td className="border border-black p-1 font-black text-sm">{komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && getAnaKategori(m.kategori_adi) !== 'profesyonel').length}</td>
+                                                    <td colSpan={2} className="border border-black p-1 bg-slate-100/50">TOPLAM DIŞ MAÇ</td>
+                                                    <td className="border border-black p-1 text-left bg-slate-100/50"><span className="float-left">TOPLAM YOL ÜCRETİ</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                  </div>
+                              </div>
                           </div>
                       </div>
-                  </div>
-              </div>
-          )}
+                  )}
 
-          <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-      </Fragment>
-  );
-}
+                  <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
+              </Fragment>
+          );
+        }

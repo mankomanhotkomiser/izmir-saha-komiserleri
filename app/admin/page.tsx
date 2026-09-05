@@ -1006,7 +1006,8 @@ export default function AdminPage() {
                   const kodKey = Object.keys(normRow).find(k => k.includes('KOD') || k.includes('M.NO'));
                   const macKodu = String(kodKey ? normRow[kodKey] : '');
 
-                  const sahaKey = Object.keys(normRow).find(k => k.includes('SAHA') || k.includes('STAD') || k.includes('YER'));
+                  // 🔥 İŞTE DÜZELTİLEN YER: SAHA KELİMESİNİ ARARKEN "KOMİSER" KELİMESİNİ ELEDİK! 🔥
+                  const sahaKey = Object.keys(normRow).find(k => (k.includes('SAHA') && !k.includes('KOMİSER') && !k.includes('KOMISER')) || k.includes('STAD') || k.includes('YER'));
                   const saha = String(sahaKey ? normRow[sahaKey] : '');
 
                   const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR'));
