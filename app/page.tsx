@@ -1198,49 +1198,118 @@ export default function Home() {
     } catch (err) { alert("Bağlantı hatası!"); } 
     finally { setSkorKaydediliyor(false); }
   }
+
+// 🔥 TEBELLÜĞ BEKLEYEN MAÇLAR İÇİN TATLI DİNG-DONG ALARMI 🔥
+  useEffect(() => {
+      let interval: any;
+      let audioCtx: any;
+      
+      // Giriş yapılmışsa ve bekleyen maç varsa
+      if (aktifEkran !== 'giris' && tebellugBekleyenSayisi > 0) {
+          try {
+              const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+              audioCtx = new AudioContext();
+              
+              const playDingDong = () => {
+                  if (audioCtx.state === 'suspended') audioCtx.resume();
+                  const now = audioCtx.currentTime;
+                  
+                  // 1. Ses (Ding - İnce Nota)
+                  const osc1 = audioCtx.createOscillator();
+                  const gain1 = audioCtx.createGain();
+                  osc1.type = 'sine';
+                  osc1.frequency.setValueAtTime(880, now); 
+                  gain1.gain.setValueAtTime(0, now);
+                  gain1.gain.linearRampToValueAtTime(0.15, now + 0.05);
+                  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                  osc1.connect(gain1);
+                  gain1.connect(audioCtx.destination);
+                  osc1.start(now);
+                  osc1.stop(now + 0.5);
+
+                  // 2. Ses (Dong - Kalın Nota)
+                  const osc2 = audioCtx.createOscillator();
+                  const gain2 = audioCtx.createGain();
+                  osc2.type = 'sine';
+                  osc2.frequency.setValueAtTime(700, now + 0.3); 
+                  gain2.gain.setValueAtTime(0, now + 0.3);
+                  gain2.gain.linearRampToValueAtTime(0.2, now + 0.35);
+                  gain2.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+                  osc2.connect(gain2);
+                  gain2.connect(audioCtx.destination);
+                  osc2.start(now + 0.3);
+                  osc2.stop(now + 1.2);
+              };
+
+              // Sayfa açıldığında 1 saniye sonra ilk uyarıyı çal
+              setTimeout(playDingDong, 1000);
+              
+              // Tebellüğ edilene kadar HER 10 SANİYEDE BİR ÇALMAYA DEVAM ET!
+              interval = setInterval(playDingDong, 10000); 
+
+          } catch(e) {
+              console.log("Tarayıcı ses API'sini engelliyor olabilir.");
+          }
+      }
+      
+      return () => { 
+          if (interval) clearInterval(interval); 
+          if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
+      }
+  }, [aktifEkran, tebellugBekleyenSayisi]);
+
   // ==========================================
   // COMPONENT GÖRSEL FONKSİYONLARI
   // ==========================================
   const renderOrtakHeader = (geriButonuGoster = false) => (
-    <header className="bg-slate-800 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-4xl mx-auto px-3 py-3 md:py-4 flex flex-col gap-3 md:gap-4">
-        
-        {/* 1. KAT (ÜST SATIR): SADECE LOGO - TAM ORTALANMIŞ */}
-        <div className="flex justify-center w-full bg-white p-2 rounded-lg shadow-sm border border-slate-200">
-            <img src="/dernek-logo.png" alt="TFSKD Logo" className="h-12 md:h-16 w-auto object-contain" />
-        </div>
-        
-        {/* 2. KAT (ALT SATIR): TARİH ROZETİ VE SAĞDA BUTON */}
-        <div className="flex justify-between items-end w-full">
+    <div className="sticky top-0 z-50">
+      <header className="bg-slate-800 text-white shadow-md">
+        <div className="max-w-4xl mx-auto px-3 py-3 md:py-4 flex flex-col gap-3 md:gap-4">
           
-          {/* SOL TARAF: HAFTA VE TARİH BİLGİSİ (YIL İLE BİRLİKTE) */}
-          <div className="flex flex-col">
-            <div className="inline-block bg-slate-900/80 px-3 py-2 rounded-lg border border-slate-600 shadow-md">
-                <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-tight">
-                  {globalAktifHaftaNo}. PROGRAM HAFTASI
-                  <span className="block mt-0.5 text-blue-300 text-[10px] md:text-xs font-bold">
-                    {haftaTarihAraligi ? `(${haftaTarihAraligi})` : '(20 - 26 Aralık 2025)'}
-                  </span>
-                </p>
+          {/* 1. KAT (ÜST SATIR): SADECE LOGO - TAM ORTALANMIŞ */}
+          <div className="flex justify-center w-full bg-white p-2 rounded-lg shadow-sm border border-slate-200">
+              <img src="/dernek-logo.png" alt="TFSKD Logo" className="h-12 md:h-16 w-auto object-contain" />
+          </div>
+          
+          {/* 2. KAT (ALT SATIR): TARİH ROZETİ VE SAĞDA BUTON */}
+          <div className="flex justify-between items-end w-full">
+            
+            {/* SOL TARAF: HAFTA VE TARİH BİLGİSİ (YIL İLE BİRLİKTE) */}
+            <div className="flex flex-col">
+              <div className="inline-block bg-slate-900/80 px-3 py-2 rounded-lg border border-slate-600 shadow-md">
+                  <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-tight">
+                    {globalAktifHaftaNo}. PROGRAM HAFTASI
+                    <span className="block mt-0.5 text-blue-300 text-[10px] md:text-xs font-bold">
+                      {haftaTarihAraligi ? `(${haftaTarihAraligi})` : '(20 - 26 Aralık 2025)'}
+                    </span>
+                  </p>
+              </div>
             </div>
-          </div>
-          
-          {/* SAĞ TARAF: GERİ DÖN / ÇIKIŞ BUTONU (SAĞ ALT KÖŞE) */}
-          <div className="shrink-0 mb-0.5">
-            {geriButonuGoster && !zorunluMazeret ? (
-              <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center justify-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest">
-                  GERİ DÖN
-              </button>
-            ) : (
-              <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow transition-colors tracking-widest border border-red-800">
-                  ÇIKIŞ
-              </button>
-            )}
-          </div>
+            
+            {/* SAĞ TARAF: GERİ DÖN / ÇIKIŞ BUTONU (SAĞ ALT KÖŞE) */}
+            <div className="shrink-0 mb-0.5">
+              {geriButonuGoster && !zorunluMazeret ? (
+                <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center justify-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest">
+                    GERİ DÖN
+                </button>
+              ) : (
+                <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow transition-colors tracking-widest border border-red-800">
+                    ÇIKIŞ
+                </button>
+              )}
+            </div>
 
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* 🔥 YENİ: HER YERDEN GÖRÜNEN SABİT UYARI BARI 🔥 */}
+      {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevKartlari' && !zorunluMazeret && (
+          <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center gap-3 transition-colors border-b-2 border-amber-600">
+              <span className="text-xl animate-bounce">🔔</span> DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ <span className="text-xl animate-bounce">🔔</span>
+          </button>
+      )}
+    </div>
   );
 
   const renderGunSatiri = (key: string, label: string) => {
