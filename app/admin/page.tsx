@@ -1263,7 +1263,26 @@ const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
       
-      const raporTuru = raporTurunuBelirle(mac.kategori_adi);
+      const katAdi = String(mac.kategori_adi || '').toLocaleUpperCase('tr-TR');
+      
+      // ZEKA MOTORU: Kadın ve PGL liglerini 7 Sayfalık Elit Şablona dahil eder
+      let raporTuru = raporTurunuBelirle(mac.kategori_adi);
+      if (katAdi.includes('KADIN') || katAdi.includes('KIZ') || katAdi.includes('PGL') || katAdi.includes('PROFESYONELLİĞE GEÇİŞ')) {
+          raporTuru = 'gelisim'; 
+      }
+
+      // DİNAMİK BAŞLIK VE LOGO MOTORU
+      let ustBaslik = "GELİŞİM LİGLERİ";
+      let sagLogo = "/gelisim-logo.png"; // Public klasöründen okur
+
+      if (katAdi.includes('KADIN') || katAdi.includes('KIZ')) {
+          ustBaslik = "KADIN LİGLERİ";
+          sagLogo = "/kadin-logo.png";
+      } else if (katAdi.includes('PGL') || katAdi.includes('PROFESYONELLİĞE GEÇİŞ')) {
+          ustBaslik = "PROFESYONELLİĞE GEÇİŞ LİGİ";
+          sagLogo = "/pgl-logo.png";
+      }
+
       const komiserTamIsim = komiserIsmiBul(mac.komiser_id);
       const komiserIlkIsim = typeof komiserTamIsim === 'string' ? komiserTamIsim.split(' ')[0] : 'KOMİSER';
       const ihracEvListesi = Array.isArray(safeRaporDetay.ihrac_ev) ? safeRaporDetay.ihrac_ev : [];
@@ -1276,15 +1295,14 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
       // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
       const RenderA4Header = () => (
-          // ÇİZGİ KALDIRILDI
-          <div className="flex items-center justify-between mb-4 pb-2">
+          <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
               <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
               <div className="text-center flex-col items-center justify-center w-2/4">
                   <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                  <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">GELİŞİM LİGLERİ</h3>
+                  <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
                   <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
               </div>
-              <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+              <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
           </div>
       );
 
@@ -1312,7 +1330,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
       );
 
       const RenderA4Footer = () => (
-          <div className="mt-auto pt-4 flex justify-end items-end shrink-0">
+          <div className="mt-auto pt-4 flex justify-end items-end shrink-0 border-t border-black">
               <div className="text-center w-48">
                   <div className="h-10 mb-1"></div>
                   <div className="text-sm font-black uppercase">{komiserTamIsim}</div>
@@ -1358,24 +1376,11 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                       @media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }
                   }
                   
-                  /* ÇİZGİLİ DEFTER EFEKTİ */
-                  .ruled-textarea {
-                      background-image: repeating-linear-gradient(transparent, transparent 23px, #cbd5e1 24px);
-                      line-height: 24px;
-                      background-attachment: local;
-                      border: 1px solid #94a3b8;
-                  }
-                  
-                  /* SIFIR TİRE, TEMİZ GÖRÜNÜM İÇİN INPUT STİLİ */
-                  .clean-input {
-                      border-bottom: 1px solid black;
-                      background: transparent;
-                      outline: none;
-                      padding: 0 4px;
-                  }
+                  .ruled-textarea { background-image: repeating-linear-gradient(transparent, transparent 23px, #cbd5e1 24px); line-height: 24px; background-attachment: local; border: 1px solid #94a3b8; }
+                  .clean-input { border-bottom: 1px solid black; background: transparent; outline: none; padding: 0 4px; }
               `}} />
 
-              {/* AMATÖR RAPOR (TEK SAYFA - DOKUNULMADI) */}
+              {/* AMATÖR RAPOR (TEK SAYFA) */}
               {raporTuru === 'amator' && (
               <div className="print-page relative">
                   <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
@@ -1455,7 +1460,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
               </div>
               )}
 
-              {/* GELİŞİM LİGİ RAPORU (SAYFA 1) */}
+              {/* DİNAMİK ELİT RAPOR (SAYFA 1) */}
               {raporTuru === 'gelisim' && (
               <div className="print-page flex flex-col relative">
                   <RenderA4Header />
@@ -1518,7 +1523,6 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                       <p className="mt-4 mb-2 font-bold">(b) Müsabaka sonu değerlendirmesi</p>
                   </div>
                   
-                  {/* YENİ ÇİZGİLİ DEFTER EFEKTİ VE ESNEK ALAN */}
                   <textarea 
                       readOnly 
                       value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} 
@@ -1527,7 +1531,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
               </div>
               )}
 
-              {/* GELİŞİM LİGİ RAPORU (SAYFA 2) */}
+              {/* DİNAMİK ELİT RAPOR (SAYFA 2) */}
               {raporTuru === 'gelisim' && (
               <div className="print-page flex flex-col relative">
                   
@@ -1564,7 +1568,6 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                   <div className="flex-1 flex flex-col min-h-[150px]">
                       <h3 className="font-black text-xs uppercase mb-1 bg-slate-100 p-2 border border-slate-300">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
                       <p className="text-[9px] mb-1 font-bold text-slate-600">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      {/* Olaylar Alanı Da Çizgili Defter */}
                       <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'} className="ruled-textarea w-full flex-1 outline-none p-2 text-sm bg-transparent pointer-events-none resize-none font-serif text-blue-900"></textarea>
                   </div>
 
@@ -1582,13 +1585,14 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                               <h3 className="font-bold text-lg md:text-xl uppercase mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
                           </div>
                       ) : (
-                          <div className="flex items-center justify-between mb-8 border-b-2 border-red-600 pb-4 shrink-0">
+                          <div className="flex items-center justify-between mb-8 pb-4 shrink-0 border-b-2 border-slate-800">
                               <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
                               <div className="text-center flex flex-col items-center justify-center w-2/4">
-                                  <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                                  <h3 className="font-bold text-lg md:text-xl uppercase mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                                  <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                  <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
+                                  <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
                               </div>
-                              <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+                              <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
                           </div>
                       )}
 
@@ -1619,7 +1623,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                   </div>
               ))}
 
-              {/* GELİŞİM LİGİ - ESAMELER VE BELGELER (5 EKSTRA SAYFA) */}
+              {/* DİNAMİK ELİT RAPOR - ESAMELER VE BELGELER (5 EKSTRA SAYFA) */}
               {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
                   <>
                       {gelisimPrintFotolar['gelisim_ev_esame'] && (
