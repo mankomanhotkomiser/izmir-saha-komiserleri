@@ -283,6 +283,18 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
+
+const [kucukHeader, setKucukHeader] = useState(false);
+
+  useEffect(() => {
+      const handleScroll = () => {
+          setKucukHeader(window.scrollY > 20); // 20 piksel kaydırınca logoyu sakla
+      };
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   const [kullaniciIdInput, setKullaniciIdInput] = useState('')
   const [sifreInput, setSifreInput] = useState('')
@@ -1267,54 +1279,60 @@ export default function Home() {
   // ==========================================
   // COMPONENT GÖRSEL FONKSİYONLARI
   // ==========================================
-  const renderOrtakHeader = (geriButonuGoster = false) => (
-    <div className="sticky top-0 z-50">
-      <header className="bg-slate-800 text-white shadow-md">
-        <div className="max-w-4xl mx-auto px-3 py-3 md:py-4 flex flex-col gap-3 md:gap-4">
-          
-          <div className="flex justify-center w-full bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden">
-            <img src="/dernek-logo.png" alt="TFSKD Logo" className="w-full max-w-full h-auto object-contain" />
-          </div>
-          
-          {/* 2. KAT (ALT SATIR): TARİH ROZETİ VE SAĞDA BUTON */}
-          <div className="flex justify-between items-end w-full">
-            
-            {/* SOL TARAF: HAFTA VE TARİH BİLGİSİ (YIL İLE BİRLİKTE) */}
-            <div className="flex flex-col">
-              <div className="inline-block bg-slate-900/80 px-3 py-2 rounded-lg border border-slate-600 shadow-md">
-                  <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-tight">
-                    {globalAktifHaftaNo}. PROGRAM HAFTASI
-                    <span className="block mt-0.5 text-blue-300 text-[10px] md:text-xs font-bold">
-                      {haftaTarihAraligi ? `(${haftaTarihAraligi})` : '(20 - 26 Aralık 2025)'}
-                    </span>
-                  </p>
+
+const renderOrtakHeader = (geriDonusuGoster = false) => (
+      <div className="sticky top-0 z-50 w-full transition-all duration-300 shadow-md">
+          <header className="bg-slate-800 text-white w-full p-0 m-0">
+              <div className="w-full flex flex-col items-center p-0 m-0">
+                  
+                  {/* 1. KAT: LOGO ALANI (Sıfıra Sıfır, Aşağı Kaydırınca Gizlenir) */}
+                  <div className={`w-full bg-white flex justify-center items-center transition-all duration-500 origin-top overflow-hidden ${kucukHeader ? 'max-h-0 opacity-0' : 'max-h-[150px] opacity-100'}`}>
+                      <img 
+                          src="/dernek-logo.png" 
+                          alt="TFSKD Logo" 
+                          className="w-full max-w-lg h-auto object-contain block m-0 p-0" 
+                      />
+                  </div>
+
+                  {/* 2. KAT: HAFTA VE BUTONLAR (Kompakt ve Dar) */}
+                  <div className={`w-full max-w-4xl mx-auto flex justify-between items-end transition-all duration-300 px-2 py-1`}>
+                      
+                      {/* SOL TARAF: HAFTA BİLGİSİ */}
+                      <div className="inline-block bg-slate-900 px-2 py-1 rounded border border-slate-700 shadow-sm shrink-0">
+                          <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-none m-0">
+                              {globalAktifHaftaNo}. PROGRAM HAFTASI
+                              <span className="block text-blue-300 font-bold text-[9px] md:text-[10px] mt-0.5">
+                                  ({haftaTarihAraligi ? haftaTarihAraligi : '20 - 26 Aralık 2026'})
+                              </span>
+                          </p>
+                      </div>
+
+                      {/* SAĞ TARAF: BUTON (Geri Dön veya Çıkış) */}
+                      <div className="shrink-0 flex items-end">
+                          {geriDonusuGoster ? (
+                              <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); }} className="flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
+                                  GERİ DÖN
+                              </button>
+                          ) : (
+                              <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
+                                  ÇIKIŞ
+                              </button>
+                          )}
+                      </div>
+                  </div>
+
               </div>
-            </div>
-            
-            {/* SAĞ TARAF: GERİ DÖN / ÇIKIŞ BUTONU (SAĞ ALT KÖŞE) */}
-            <div className="shrink-0 mb-0.5">
-              {geriButonuGoster && !zorunluMazeret ? (
-                <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center justify-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest">
-                    GERİ DÖN
-                </button>
-              ) : (
-                <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-2 md:py-2.5 px-4 md:px-6 rounded-lg shadow transition-colors tracking-widest border border-red-800">
-                    ÇIKIŞ
-                </button>
-              )}
-            </div>
+          </header>
 
-          </div>
-        </div>
-      </header>
-
-      {/* 🔥 YENİ: HER YERDEN GÖRÜNEN SABİT UYARI BARI 🔥 */}
-      {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevKartlari' && !zorunluMazeret && (
-          <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full bg-amber-500 hover:bg-amber-400 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center gap-3 transition-colors border-b-2 border-amber-600">
-              <span className="text-xl animate-bounce">🔔</span> DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ <span className="text-xl animate-bounce">🔔</span>
-          </button>
-      )}
-    </div>
+          {/* MİNE: HER YERDEN GÖRÜNEN SABİT UYARI BARI (Navbar'ın içinde güvende!) */}
+          {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevkartlari' && (
+              <button onClick={() => setAktifEkran('gorevkartlari')} className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center">
+                  <span className="text-xl animate-bounce">⚠️</span> 
+                  <span className="mx-2">DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ</span> 
+                  <span className="text-xl animate-bounce">⚠️</span>
+              </button>
+          )}
+      </div>
   );
 
   const renderGunSatiri = (key: string, label: string) => {
