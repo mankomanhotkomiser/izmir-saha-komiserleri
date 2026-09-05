@@ -324,6 +324,8 @@ export default function Home() {
   const [arsivTamEkranMac, setArsivTamEkranMac] = useState<any | null>(null) 
   const [acikBordroAy, setAcikBordroAy] = useState<string | null>(null) 
   const [tamEkranBordroAy, setTamEkranBordroAy] = useState<string | null>(null) 
+  const [acikIstatistikKategori, setAcikIstatistikKategori] = useState<string | null>(null)
+  const [acikIstatistikMacId, setAcikIstatistikMacId] = useState<number | null>(null)
 
   const [tcKimlik, setTcKimlik] = useState('')
   const [bankaAdi, setBankaAdi] = useState('')
@@ -412,26 +414,26 @@ export default function Home() {
 
   // İstatistikler için
   let amatorCount = 0; let profCount = 0; let gelisimCount = 0; let kadinCount = 0;
-  const amatorKategoriler: Record<string, number> = {};
-  const profKategoriler: Record<string, number> = {};
-  const gelisimKategoriler: Record<string, number> = {};
-  const kadinKategoriler: Record<string, number> = {};
+  const amatorKategoriler: Record<string, any[]> = {};
+  const profKategoriler: Record<string, any[]> = {};
+  const gelisimKategoriler: Record<string, any[]> = {};
+  const kadinKategoriler: Record<string, any[]> = {};
 
   const maclarForIstatistik = Array.isArray(komiserMaclari) ? komiserMaclari : [];
   maclarForIstatistik.forEach((mac: any) => {
       if (!mac) return;
       const anaKat = getAnaKategori(mac?.kategori_adi);
       const katAdi = formatKategori(mac?.kategori_adi);
-      if (anaKat === 'profesyonel') { profCount++; profKategoriler[katAdi] = (profKategoriler[katAdi] || 0) + 1; } 
-      else if (anaKat === 'gelisim') { gelisimCount++; gelisimKategoriler[katAdi] = (gelisimKategoriler[katAdi] || 0) + 1; } 
-      else if (anaKat === 'kadin') { kadinCount++; kadinKategoriler[katAdi] = (kadinKategoriler[katAdi] || 0) + 1; } 
-      else { amatorCount++; amatorKategoriler[katAdi] = (amatorKategoriler[katAdi] || 0) + 1; }
+      if (anaKat === 'profesyonel') { profCount++; if(!profKategoriler[katAdi]) profKategoriler[katAdi] = []; profKategoriler[katAdi].push(mac); } 
+      else if (anaKat === 'gelisim') { gelisimCount++; if(!gelisimKategoriler[katAdi]) gelisimKategoriler[katAdi] = []; gelisimKategoriler[katAdi].push(mac); } 
+      else if (anaKat === 'kadin') { kadinCount++; if(!kadinKategoriler[katAdi]) kadinKategoriler[katAdi] = []; kadinKategoriler[katAdi].push(mac); } 
+      else { amatorCount++; if(!amatorKategoriler[katAdi]) amatorKategoriler[katAdi] = []; amatorKategoriler[katAdi].push(mac); }
   });
 
-  const siraliAmatorler = Object.entries(amatorKategoriler).sort((a: any, b: any) => b[1] - a[1]);
-  const siraliProflar = Object.entries(profKategoriler).sort((a: any, b: any) => b[1] - a[1]);
-  const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a: any, b: any) => b[1] - a[1]);
-  const siraliKadinlar = Object.entries(kadinKategoriler).sort((a: any, b: any) => b[1] - a[1]);
+  const siraliAmatorler = Object.entries(amatorKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
+  const siraliProflar = Object.entries(profKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
+  const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
+  const siraliKadinlar = Object.entries(kadinKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
 
   const guvenliTumMaclar = Array.isArray(tumAktifMaclar) ? tumAktifMaclar : [];
   let filtrelenmisMaclar = guvenliTumMaclar;
@@ -2231,17 +2233,92 @@ export default function Home() {
         </main>
       );
   } else if (gercekAktifEkran === 'istatistiklerim') {
+      
+      // Çift tıklamalı efsanevi akordiyon listesini çizen motor
+      const renderIstatistikListe = (liste: any[], baslik: string, toplamSayi: number) => (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
+              <h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">
+                  {baslik} <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{toplamSayi}</span>
+              </h4>
+              <ul className="space-y-2">
+                  {liste.length === 0 && <li className="text-xs text-slate-400 italic">Bu kategoride kayıt yok.</li>}
+                  {liste.map(([kat, maclar]: [string, any[]]) => {
+                      const isKatAcik = acikIstatistikKategori === kat;
+                      return (
+                          <li key={kat} className="bg-white rounded text-xs border border-slate-200 shadow-sm overflow-hidden transition-all duration-300">
+                              <button onClick={() => setAcikIstatistikKategori(isKatAcik ? null : kat)} className={`w-full flex justify-between items-center p-3 transition-colors focus:outline-none ${isKatAcik ? 'bg-slate-800' : 'hover:bg-slate-50'}`}>
+                                  <span className={`font-bold truncate pr-2 text-left ${isKatAcik ? 'text-white' : 'text-slate-700'}`}>{kat}</span>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                      <span className={`px-2 py-0.5 rounded font-black border ${isKatAcik ? 'bg-slate-700 text-white border-slate-600' : 'bg-slate-100 text-slate-800 border-slate-300'}`}>{maclar.length}</span>
+                                      <span className={`font-black transition-transform ${isKatAcik ? 'rotate-180 text-emerald-400' : 'text-slate-400'}`}>▼</span>
+                                  </div>
+                              </button>
+                              
+                              {/* 1. Tıklama: O Lige Ait Maçların Açılması */}
+                              {isKatAcik && (
+                                  <div className="bg-slate-100 p-2 border-t border-slate-200 space-y-2 animate-fade-in-down">
+                                      {maclar.sort(siralamaFiltresi).reverse().map(mac => {
+                                          const isMacAcik = acikIstatistikMacId === mac.id;
+                                          return (
+                                              <div key={mac.id} className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+                                                  <button onClick={() => setAcikIstatistikMacId(isMacAcik ? null : mac.id)} className={`w-full flex justify-between items-center p-3 transition-colors focus:outline-none ${isMacAcik ? 'bg-blue-900 text-white' : 'hover:bg-slate-50 text-slate-700'}`}>
+                                                      <div className="text-left pr-2">
+                                                          <div className={`text-[10px] font-bold ${isMacAcik ? 'text-blue-300' : 'text-slate-500'}`}>{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</div>
+                                                          <div className="font-black mt-0.5 leading-tight">{mac.ev_sahibi} <span className={isMacAcik ? 'text-blue-400' : 'text-slate-400'}>vs</span> {mac.misafir_takim}</div>
+                                                      </div>
+                                                      <div className="flex items-center gap-2 shrink-0">
+                                                          <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest ${mac.skor_girildi ? (isMacAcik ? 'bg-blue-800 text-blue-200' : 'bg-green-100 text-green-700 border border-green-200') : (isMacAcik ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500 border border-slate-300')}`}>
+                                                              {mac.skor_girildi && mac.ev_sahibi_skor !== null ? `${mac.ev_sahibi_skor} - ${mac.misafir_skor}` : 'SKOR YOK'}
+                                                          </span>
+                                                          <span className={`transition-transform text-lg ${isMacAcik ? 'rotate-180 text-emerald-400' : 'text-slate-400'}`}>▼</span>
+                                                      </div>
+                                                  </button>
+                                                  
+                                                  {/* 2. Tıklama: O Maçın Detaylı Görev Kartının Açılması */}
+                                                  {isMacAcik && (
+                                                      <div className="p-3 bg-slate-50 border-t border-slate-200 animate-fade-in-down">
+                                                          <div className="transform scale-[0.98] origin-top">
+                                                              {renderOrjinalGorevKarti(mac, true)}
+                                                          </div>
+                                                      </div>
+                                                  )}
+                                              </div>
+                                          )
+                                      })}
+                                  </div>
+                              )}
+                          </li>
+                      )
+                  })}
+              </ul>
+          </div>
+      );
+
       ekranIcerigi = (
         <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
           {renderOrtakHeader(true)}
           <div className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
               <div className="bg-white rounded-xl p-5 md:p-8 border border-slate-200 shadow-sm">
-                  <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-200 pb-5 mb-8 gap-4"><div className="text-center md:text-left"><h3 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">{turkceBuyukHarf(seciliKomiser?.ad_soyad || 'KOMİSER')}</h3><span className="text-slate-500 text-xs font-mono font-bold tracking-widest mt-1 inline-block">SİCİL: {seciliKomiser?.komiser_id || '-'}</span></div><div className="bg-slate-800 px-6 py-4 rounded-xl shadow-md border border-slate-700 min-w-[160px]"><div className="text-[10px] text-slate-400 font-bold tracking-widest text-center">TOPLAM GÖREV SAYISI</div><div className="text-4xl font-black text-white text-center mt-1">{maclarForIstatistik.length}</div></div></div>
+                  <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-200 pb-5 mb-8 gap-4">
+                      <div className="text-center md:text-left">
+                          <h3 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">{turkceBuyukHarf(seciliKomiser?.ad_soyad || 'KOMİSER')}</h3>
+                          <span className="text-slate-500 text-xs font-mono font-bold tracking-widest mt-1 inline-block">SİCİL: {seciliKomiser?.komiser_id || '-'}</span>
+                      </div>
+                      <div className="bg-slate-800 px-6 py-4 rounded-xl shadow-md border border-slate-700 min-w-[160px]">
+                          <div className="text-[10px] text-slate-400 font-bold tracking-widest text-center">TOPLAM GÖREV SAYISI</div>
+                          <div className="text-4xl font-black text-white text-center mt-1">{maclarForIstatistik.length}</div>
+                      </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6 shadow-sm">
+                      <p className="text-blue-800 text-xs font-bold text-center leading-relaxed">💡 Lig isimlerinin üzerine tıklayarak o ligde görev aldığınız tüm maçları listeleyebilir, ardından maçların üzerine tıklayarak skor, hakem ve detaylı görev kartlarına ulaşabilirsiniz.</p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5"><h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">AMATÖR LİGLER <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{amatorCount}</span></h4><ul className="space-y-2">{siraliAmatorler.length === 0 && <li className="text-xs text-slate-400 italic">Bu kategoride kayıt yok.</li>}{siraliAmatorler.map(([kat, count]: any) => (<li key={kat} className="flex justify-between items-center bg-white p-2.5 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-slate-800">{count}</span></li>))}</ul></div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5"><h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">GELİŞİM LİGLERİ <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{gelisimCount}</span></h4><ul className="space-y-2">{siraliGelisimler.length === 0 && <li className="text-xs text-slate-400 italic">Bu kategoride kayıt yok.</li>}{siraliGelisimler.map(([kat, count]: any) => (<li key={kat} className="flex justify-between items-center bg-white p-2.5 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-slate-800">{count}</span></li>))}</ul></div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5"><h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">KADIN FUTBOL LİGLERİ <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{kadinCount}</span></h4><ul className="space-y-2">{siraliKadinlar.length === 0 && <li className="text-xs text-slate-400 italic">Bu kategoride kayıt yok.</li>}{siraliKadinlar.map(([kat, count]: any) => (<li key={kat} className="flex justify-between items-center bg-white p-2.5 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-slate-800">{count}</span></li>))}</ul></div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-5"><h4 className="text-slate-800 font-black text-sm tracking-widest mb-4 border-b border-slate-200 pb-2 flex justify-between items-center">PROFESYONEL LİGLER <span className="bg-slate-800 text-white px-2.5 py-1 rounded text-xs">{profCount}</span></h4><ul className="space-y-2">{siraliProflar.length === 0 && <li className="text-xs text-slate-400 italic">Bu kategoride kayıt yok.</li>}{siraliProflar.map(([kat, count]: any) => (<li key={kat} className="flex justify-between items-center bg-white p-2.5 rounded text-xs border border-slate-100 shadow-sm"><span className="text-slate-600 font-bold truncate pr-2">{kat}</span><span className="font-black text-slate-800">{count}</span></li>))}</ul></div>
+                      {renderIstatistikListe(siraliAmatorler, 'AMATÖR LİGLER', amatorCount)}
+                      {renderIstatistikListe(siraliGelisimler, 'GELİŞİM LİGLERİ', gelisimCount)}
+                      {renderIstatistikListe(siraliKadinlar, 'KADIN FUTBOL LİGLERİ', kadinCount)}
+                      {renderIstatistikListe(siraliProflar, 'PROFESYONEL LİGLER', profCount)}
                   </div>
               </div>
           </div>
