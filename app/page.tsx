@@ -1201,23 +1201,36 @@ export default function Home() {
     <header className="bg-slate-800 text-white shadow-md sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="hidden sm:flex items-center justify-center bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
-              <img src={DERNEK_LOGO} alt="Logo" className="w-10 h-10 object-contain" crossOrigin="anonymous" />
+          
+          {/* 🔥 YENİ DERNEK LOGOSU BURAYA GELDİ (Banner olduğu için genişliğe izin veriyoruz) 🔥 */}
+          <div className="flex items-center justify-center bg-white p-1.5 md:p-2 rounded-lg shadow-sm border border-slate-200 shrink-0">
+              <img src="https://www.tfskdizmir.org/uploads/baskan/izmirfskd_banner.jpg" alt="TFSKD Logo" className="h-10 md:h-14 w-auto object-contain" crossOrigin="anonymous" />
           </div>
-          <div>
+          
+          <div className="hidden sm:block">
             <h1 className="font-black text-xl md:text-2xl leading-tight tracking-wide text-white">SAHA OPERASYON MERKEZİ</h1>
-            <h1 className="font-bold text-lg md:text-xl leading-tight text-slate-300 tracking-wide">İZMİR ŞUBESİ</h1>
-            <div className="mt-2 inline-block bg-slate-900/50 px-3 py-1 rounded border border-slate-700 shadow-sm">
+            
+            {/* 🔥 HAFTA VE TARİH BİLGİSİ KESİNLİKLE KORUNDU 🔥 */}
+            <div className="mt-1.5 inline-block bg-slate-900/50 px-3 py-1 rounded border border-slate-700 shadow-sm">
                 <p className="text-slate-100 text-[10px] md:text-xs font-bold tracking-wider">{globalAktifHaftaNo}. PROGRAM HAFTASI {haftaTarihAraligi ? `(${haftaTarihAraligi})` : ''}</p>
             </div>
           </div>
+          
+          {/* Mobilde Sadece Hafta Rozeti Görünsün (Logo geniş olduğu için telefonda yazıları taşırmasın) */}
+          <div className="sm:hidden flex flex-col justify-center">
+              <div className="inline-block bg-slate-900/50 px-2 py-1 rounded border border-slate-700 shadow-sm">
+                  <p className="text-slate-100 text-[9px] font-bold tracking-wider">{globalAktifHaftaNo}. HAFTA <br/> {haftaTarihAraligi ? `${haftaTarihAraligi}` : ''}</p>
+              </div>
+          </div>
         </div>
+        
+        {/* 🔥 ÇIKIŞ VE GERİ BUTONLARI KESİNLİKLE KORUNDU 🔥 */}
         {geriButonuGoster && !zorunluMazeret ? (
-          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest">
+          <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-4 md:px-5 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest shrink-0">
               GERİ DÖN
           </button>
         ) : (
-          <button onClick={cikisYap} className="bg-red-700 hover:bg-red-800 text-white text-xs md:text-sm font-bold py-2.5 px-5 rounded-lg shadow transition-colors tracking-widest border border-red-800">
+          <button onClick={cikisYap} className="bg-red-700 hover:bg-red-800 text-white text-xs md:text-sm font-bold py-2.5 px-4 md:px-5 rounded-lg shadow transition-colors tracking-widest border border-red-800 shrink-0">
               ÇIKIŞ
           </button>
         )}
