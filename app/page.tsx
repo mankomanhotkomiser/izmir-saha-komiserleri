@@ -1202,21 +1202,18 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
         <div className="flex items-center gap-3 md:gap-4">
           
-          {/* 🔥 YENİ DERNEK LOGOSU BURAYA GELDİ (Banner olduğu için genişliğe izin veriyoruz) 🔥 */}
+          {/* 🔥 LOKALDEKİ PNG LOGOMUZ BURAYA GELDİ 🔥 */}
           <div className="flex items-center justify-center bg-white p-1.5 md:p-2 rounded-lg shadow-sm border border-slate-200 shrink-0">
-              <img src="https://www.tfskdizmir.org/uploads/baskan/izmirfskd_banner.jpg" alt="TFSKD Logo" className="h-10 md:h-14 w-auto object-contain" crossOrigin="anonymous" />
+              <img src="/dernek-logo.png" alt="TFSKD Logo" className="h-10 md:h-14 w-auto object-contain" />
           </div>
           
           <div className="hidden sm:block">
             <h1 className="font-black text-xl md:text-2xl leading-tight tracking-wide text-white">SAHA OPERASYON MERKEZİ</h1>
-            
-            {/* 🔥 HAFTA VE TARİH BİLGİSİ KESİNLİKLE KORUNDU 🔥 */}
             <div className="mt-1.5 inline-block bg-slate-900/50 px-3 py-1 rounded border border-slate-700 shadow-sm">
                 <p className="text-slate-100 text-[10px] md:text-xs font-bold tracking-wider">{globalAktifHaftaNo}. PROGRAM HAFTASI {haftaTarihAraligi ? `(${haftaTarihAraligi})` : ''}</p>
             </div>
           </div>
           
-          {/* Mobilde Sadece Hafta Rozeti Görünsün (Logo geniş olduğu için telefonda yazıları taşırmasın) */}
           <div className="sm:hidden flex flex-col justify-center">
               <div className="inline-block bg-slate-900/50 px-2 py-1 rounded border border-slate-700 shadow-sm">
                   <p className="text-slate-100 text-[9px] font-bold tracking-wider">{globalAktifHaftaNo}. HAFTA <br/> {haftaTarihAraligi ? `${haftaTarihAraligi}` : ''}</p>
@@ -1224,7 +1221,6 @@ export default function Home() {
           </div>
         </div>
         
-        {/* 🔥 ÇIKIŞ VE GERİ BUTONLARI KESİNLİKLE KORUNDU 🔥 */}
         {geriButonuGoster && !zorunluMazeret ? (
           <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); setAcikHaftalar([]); skorFormunuSifirla(); setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikStatu(null); setArsivTamEkranMac(null); setTamEkranBordroAy(null); setAcikBordroAy(null); }} className="flex items-center gap-1.5 bg-slate-100 text-slate-800 hover:bg-white text-xs md:text-sm font-bold py-2.5 px-4 md:px-5 rounded-lg shadow-sm transition-colors border border-slate-300 tracking-widest shrink-0">
               GERİ DÖN
