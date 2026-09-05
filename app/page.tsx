@@ -288,6 +288,7 @@ export default function Home() {
   const [rehberAcik, setRehberAcik] = useState(false)
   const [statuModalAcik, setStatuModalAcik] = useState(false)
   const [acikStatuKategori, setAcikStatuKategori] = useState<string | null>(null)
+  const [acikStatuAkordiyon, setAcikStatuAkordiyon] = useState<number | null>(null)
 
   const [eskiSifre, setEskiSifre] = useState('')
   const [yeniSifre, setYeniSifre] = useState('')
@@ -2319,23 +2320,23 @@ export default function Home() {
               </div>
           )}
 
-          {/* 🔥 GÜNCELLENEN YENİ STATÜ MODALI 🔥 */}
+{/* 🔥 GÜNCELLENEN YENİ STATÜ MODALI (AKORDİYONLU) 🔥 */}
           {statuModalAcik && (
               <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
                   <div className="bg-slate-50 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 flex flex-col">
                       <div className="bg-emerald-700 p-4 flex justify-between items-center shadow-md shrink-0">
                           <h2 className="text-white font-black tracking-widest text-base md:text-lg uppercase">MÜSABAKA STATÜLERİ VE KURALLAR</h2>
-                          <button onClick={() => setStatuModalAcik(false)} className="text-emerald-200 hover:text-white font-bold text-2xl leading-none transition-colors">✕</button>
+                          <button onClick={() => { setStatuModalAcik(false); setAcikStatuAkordiyon(null); }} className="text-emerald-200 hover:text-white font-bold text-2xl leading-none transition-colors">✕</button>
                       </div>
                       
                       {/* STATÜ SEKMELERİ */}
                       <div className="flex bg-white border-b border-slate-300 shrink-0">
-                          <button onClick={() => setAcikStatuKategori('gelisim')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'gelisim' ? 'bg-emerald-50 text-emerald-700 border-b-4 border-emerald-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF GELİŞİM LİGİ STATÜLERİ</button>
-                          <button onClick={() => setAcikStatuKategori('amator')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'amator' ? 'bg-blue-50 text-blue-700 border-b-4 border-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 AMATÖR LİG STATÜLERİ</button>
-                          <button onClick={() => setAcikStatuKategori('kadin')} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'kadin' ? 'bg-purple-50 text-purple-700 border-b-4 border-purple-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF KADINLAR LİGLERİ STATÜLERİ</button>
+                          <button onClick={() => { setAcikStatuKategori('gelisim'); setAcikStatuAkordiyon(null); }} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'gelisim' ? 'bg-emerald-50 text-emerald-700 border-b-4 border-emerald-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF GELİŞİM LİGİ STATÜLERİ</button>
+                          <button onClick={() => { setAcikStatuKategori('amator'); setAcikStatuAkordiyon(null); }} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'amator' ? 'bg-blue-50 text-blue-700 border-b-4 border-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 AMATÖR LİG STATÜLERİ</button>
+                          <button onClick={() => { setAcikStatuKategori('kadin'); setAcikStatuAkordiyon(null); }} className={`flex-1 py-3 px-2 font-black uppercase text-[10px] md:text-xs tracking-wider transition-all ${acikStatuKategori === 'kadin' ? 'bg-purple-50 text-purple-700 border-b-4 border-purple-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>2026-2027 TFF KADINLAR LİGLERİ</button>
                       </div>
 
-                      {/* STATÜ LİSTESİ İÇERİĞİ */}
+                      {/* STATÜ LİSTESİ İÇERİĞİ (AKORDİYON SİSTEMİ) */}
                       <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
                           {(() => {
                               const filtrelenmis = tumStatuler.filter((s: any) => {
@@ -2353,22 +2354,38 @@ export default function Home() {
                               }
 
                               return (
-                                  <div className="space-y-4">
-                                      {filtrelenmis.map((st: any, idx: number) => (
-                                          <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                              <div className="bg-slate-800 px-4 py-3 flex justify-between items-center">
-                                                  <h3 className="text-white font-black uppercase tracking-wider text-sm">{st.baslik || st.kategori_anahtar}</h3>
+                                  <div className="space-y-3">
+                                      {filtrelenmis.sort((a,b) => String(a?.kategori_anahtar || '').localeCompare(String(b?.kategori_anahtar || ''), 'tr-TR')).map((st: any, idx: number) => {
+                                          const isAcik = acikStatuAkordiyon === st.id;
+                                          
+                                          return (
+                                              <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+                                                  {/* AKORDİYON BAŞLIĞI */}
+                                                  <button 
+                                                    onClick={() => setAcikStatuAkordiyon(isAcik ? null : st.id)} 
+                                                    className={`w-full px-4 py-4 flex justify-between items-center transition-colors focus:outline-none ${isAcik ? 'bg-slate-900' : 'bg-slate-800 hover:bg-slate-700'}`}
+                                                  >
+                                                      <h3 className="text-white font-black uppercase tracking-wider text-sm text-left">{st.baslik || st.kategori_anahtar}</h3>
+                                                      <span className={`text-emerald-400 font-black text-xl transform transition-transform duration-300 ${isAcik ? 'rotate-180' : ''}`}>▼</span>
+                                                  </button>
+                                                  
+                                                  {/* AKORDİYON İÇERİĞİ (AÇILAN KISIM) */}
+                                                  {isAcik && (
+                                                      <div className="p-4 bg-slate-50 border-t border-slate-200 animate-fade-in-down">
+                                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">🏃 Yaş Sınırı</span><span className="font-bold text-sm text-slate-800">{st.yas_siniri || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">⏱️ Müsabaka Süresi</span><span className="font-black text-sm text-blue-700">{st.sure || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">☕ Devre Arası</span><span className="font-bold text-sm text-slate-800">{st.devre_arasi || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">🔄 Oyuncu Değişikliği</span><span className="font-bold text-sm text-slate-800">{st.degisiklik || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">⚽ Top Numarası</span><span className="font-black text-sm text-amber-600">{st.top || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">⚖️ Hakem Sayısı</span><span className="font-bold text-sm text-slate-800">{st.hakem || '-'}</span></div>
+                                                              <div className="bg-white p-3 rounded border border-slate-200 shadow-sm md:col-span-2"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">⚔️ Beraberlik Durumu</span><span className="font-bold text-sm text-slate-800">{st.beraberlik || '-'}</span></div>
+                                                          </div>
+                                                      </div>
+                                                  )}
                                               </div>
-                                              <div className="p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Yaş Sınırı</span><span className="font-bold text-sm text-slate-800">{st.yas_siniri || '-'}</span></div>
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Müsabaka Süresi</span><span className="font-black text-sm text-blue-700">{st.sure || '-'}</span></div>
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Oyuncu Değişikliği</span><span className="font-bold text-sm text-slate-800">{st.degisiklik || '-'}</span></div>
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Top Numarası</span><span className="font-black text-sm text-amber-600">{st.top || '-'}</span></div>
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Beraberlik Durumu</span><span className="font-bold text-sm text-slate-800">{st.beraberlik || '-'}</span></div>
-                                                  <div className="bg-white p-3 rounded border border-slate-200 shadow-sm"><span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase">Hakem Sayısı</span><span className="font-bold text-sm text-slate-800">{st.hakem || '-'}</span></div>
-                                              </div>
-                                          </div>
-                                      ))}
+                                          )
+                                      })}
                                   </div>
                               )
                           })()}
