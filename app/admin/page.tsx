@@ -248,6 +248,24 @@ const EvetHayirBox = ({ val }: { val: any }) => (
     </div>
 );
 
+const getHakemGosterimModu = (kategori: any) => {
+    if (!kategori) return 'dort_kutu';
+    const kat = turkceBuyukHarf(kategori);
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
+        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ')) { return 'tek_hakem'; }
+    if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
+        kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
+        kat.includes('14 YAŞ') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) { return 'uc_hakem'; }
+    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
+        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
+        kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) { return 'dort_ve_gozlemci'; }
+    return 'dort_kutu'; 
+};
+
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
