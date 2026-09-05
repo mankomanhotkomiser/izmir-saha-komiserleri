@@ -2394,35 +2394,44 @@ export default function Home() {
               </div>
           )}
 
-          {acikStatu && (
+         {acikStatu && (
               <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
-                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300">
-                      <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700">
+                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 flex flex-col max-h-[90vh]">
+                      <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700 shrink-0">
                           <h2 className="text-white font-black tracking-widest text-sm flex items-center gap-2"><span className="text-xl">ℹ️</span> {turkceBuyukHarf(acikStatu.baslik)}</h2>
                           <button onClick={() => setAcikStatu(null)} className="text-slate-300 hover:text-white font-bold text-xl leading-none transition-colors">✕</button>
                       </div>
-                      <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                      <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                           <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">🏃 YAŞ SINIRI</h4>
-                              <p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri}</p>
+                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">🏃 YAŞ SINIRI</h4>
+                              <p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri || '-'}</p>
                           </div>
                           <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⏱️ MÜSABAKA SÜRESİ</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure}</p></div>
-                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top}</p></div>
+                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⏱️ MÜSABAKA SÜRESİ</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure || '-'}</p></div>
+                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">☕ DEVRE ARASI</h4><p className="text-sm font-black text-slate-800">{acikStatu.devre_arasi || '-'}</p></div>
                           </div>
                           <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem}</p></div>
+                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top || '-'}</p></div>
+                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem || '-'}</p></div>
                           </div>
                           <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik}</p>
+                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
+                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik || '-'}</p>
                           </div>
                           <div className="pb-2">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1">⚖️ BERABERLİK DURUMU</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik}</p>
+                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚔️ BERABERLİK DURUMU</h4>
+                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik || '-'}</p>
                           </div>
+                          
+                          {/* İLERİDE EKLENECEK "EKSTRA BİLGİ/ÖZEL NOT" İÇİN GİZLİ ALTYAPI */}
+                          {acikStatu.ekstra_bilgi && (
+                              <div className="pt-3 border-t border-slate-200 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                  <h4 className="text-[10px] font-bold text-amber-700 mb-1 uppercase">📌 ÖZEL NOT / EKSTRA BİLGİ</h4>
+                                  <p className="text-sm font-semibold text-amber-900 leading-snug">{acikStatu.ekstra_bilgi}</p>
+                              </div>
+                          )}
                       </div>
-                      <div className="bg-slate-50 p-3 text-center border-t border-slate-200">
+                      <div className="bg-slate-50 p-3 text-center border-t border-slate-200 shrink-0">
                           <button onClick={() => setAcikStatu(null)} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg text-xs tracking-widest transition-colors w-full shadow-sm">ANLADIM, KAPAT</button>
                       </div>
                   </div>
