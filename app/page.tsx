@@ -288,7 +288,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
   useEffect(() => {
       const handleScroll = () => {
-          setKucukHeader(window.scrollY > 20); // 20 piksel kaydırınca logoyu sakla
+          if (window.scrollY > 150) {
+              setKucukHeader(true);
+          } else if (window.scrollY < 10) {
+              setKucukHeader(false);
+          }
       };
       window.addEventListener('scroll', handleScroll);
       return () => window.removeEventListener('scroll', handleScroll);
