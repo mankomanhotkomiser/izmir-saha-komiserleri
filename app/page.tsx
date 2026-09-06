@@ -69,27 +69,62 @@ const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const kat = turkceBuyukHarf(kategori);
     
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
-        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ')) {
+    const isGelisim = kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U');
+    const isKizlar = kat.includes('KIZLAR') || kat.includes('KIZ');
+    const isKadinlar = kat.includes('KADIN') && !isKizlar;
+    const isBAL = kat.includes('BAL') || kat.includes('BÖLGESEL');
+    
+    // 1. BAL LİGİ
+    if (isBAL) return 'dort_ve_gozlemci';
+    
+    // 2. KADINLAR LİGLERİ
+    if (isKadinlar) {
+        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci';
+        return 'uc_ve_gozlemci';
+    }
+    
+    // 3. KIZLAR LİGLERİ
+    if (isKizlar) {
+        return 'uc_hakem';
+    }
+    
+    // 4. PGL ve PAF LİGLERİ
+    if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('PAF')) {
+        return 'dort_ve_gozlemci';
+    }
+    
+    // 5. GELİŞİM LİGLERİ
+    if (isGelisim) {
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
+            kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
+            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
+        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
+            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
+    }
+    
+    // 6. YEREL AMATÖR LİGLER
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('11 YAŞ') ||
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
+        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
         return 'tek_hakem';
     }
     
-    if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
-        kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
-        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
-        kat.includes('14 YAŞ') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) {
+    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
         return 'uc_hakem';
     }
-
-    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
-        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
-        kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) {
-        return 'dort_ve_gozlemci';
+    
+    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
+        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('19 YAŞ') ||
+        kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
+        kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
+        kat.includes('SÜPER AMATÖR')) {
+        return 'uc_ve_gozlemci';
     }
-
-    return 'dort_kutu'; 
+    
+    return 'dort_kutu';
 };
 
 const formatKategori = (rawKategori: any) => {
@@ -1219,7 +1254,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
             alert("⚠️ Lütfen Orta Hakem bilgisini giriniz!"); return; 
         }
         
-        if (hakemModu === 'uc_hakem' || hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') {
+        if (hakemModu === 'uc_hakem' || hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') {
             if (!raporDetay.y_hakem_1 || raporDetay.y_hakem_1.trim() === '' || raporDetay.y_hakem_1.includes('TIKLA')) { alert("⚠️ Lütfen 1. Yardımcı Hakem bilgisini giriniz!"); return; }
             if (!raporDetay.y_hakem_2 || raporDetay.y_hakem_2.trim() === '' || raporDetay.y_hakem_2.includes('TIKLA')) { alert("⚠️ Lütfen 2. Yardımcı Hakem bilgisini giriniz!"); return; }
         }
@@ -1228,7 +1263,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
              if (!raporDetay.hakem_4 || raporDetay.hakem_4.trim() === '' || raporDetay.hakem_4.includes('TIKLA')) { alert("⚠️ Lütfen 4. Hakem bilgisini giriniz!"); return; }
         }
 
-        if (hakemModu === 'dort_ve_gozlemci') {
+        if (hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') {
              if (!raporDetay.gozlemci || raporDetay.gozlemci.trim() === '' || raporDetay.gozlemci.includes('TIKLA')) { alert("⚠️ Lütfen Müsabaka Gözlemcisi bilgisini giriniz!"); return; }
         }
 
@@ -1737,12 +1772,15 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                   <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {prefix === 'aktif' ? <input list="hakem-listesi" type="text" value={safeRaporDetay?.y_hakem_2 || ''} onChange={(e: any) => raporDetayGuncelle('y_hakem_2', turkceBuyukHarf(e.target.value))} className="w-full text-[11px] outline-none bg-slate-100 border border-slate-300 pl-2 py-1 font-black text-slate-800 ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.y_hakem_2)}</span>}</div>
                               </>
                           )}
+
                           {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
                               <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {prefix === 'aktif' ? <input list="hakem-listesi" type="text" value={safeRaporDetay?.hakem_4 || ''} onChange={(e: any) => raporDetayGuncelle('hakem_4', turkceBuyukHarf(e.target.value))} className="w-full text-[11px] outline-none bg-slate-100 border border-slate-300 pl-2 py-1 font-black text-slate-800 ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.hakem_4)}</span>}</div>
                           )}
-                          {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
+                          
+                          {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
                               <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {prefix === 'aktif' ? <input list="gozlemci-listesi" type="text" value={safeRaporDetay?.gozlemci || ''} onChange={(e: any) => raporDetayGuncelle('gozlemci', turkceBuyukHarf(e.target.value))} className="w-full text-[11px] outline-none bg-slate-100 border border-slate-300 pl-2 py-1 font-black text-slate-800 ml-2 rounded shadow-sm" placeholder="Seç veya Yeni İsim Yaz..." /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.gozlemci)}</span>}</div>
                           )}
+
                       </div>
                       <div className="flex flex-col">
                           <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
