@@ -379,7 +379,7 @@ export default function AdminPage() {
   const [genelArama, setGenelArama] = useState('')
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
-    if (sifre === '3535') { setGirisYapildi(true); setHatasi(''); } 
+    if (sifre === '20003535') { setGirisYapildi(true); setHatasi(''); } 
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
