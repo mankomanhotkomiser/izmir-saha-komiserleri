@@ -356,7 +356,7 @@ export default function AdminPage() {
       id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', 
       sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '',
       oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', 
-      saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: ''
+      saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '', gozlemci: ''
   })
   const [statuKaydediliyor, setStatuKaydediliyor] = useState(false)
 
@@ -991,8 +991,11 @@ export default function AdminPage() {
               saha_olcusu: statuForm.saha_olcusu,
               en_az_oyuncu_sahaya_cikis: statuForm.en_az_oyuncu_sahaya_cikis,
               en_az_oyuncu_tatil: statuForm.en_az_oyuncu_tatil,
-              yabanci_oyuncu: statuForm.yabanci_oyuncu
+              yabanci_oyuncu: statuForm.yabanci_oyuncu,
+              gozlemci: statuForm.gozlemci
           };
+          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '', gozlemci: '' });
+          
           
           if (statuForm.id) {
               const { error } = await supabase.from('lig_statuleri').update(payload).eq('id', statuForm.id);
@@ -2486,17 +2489,18 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                                     <div className="bg-slate-800/50 p-3 rounded border border-slate-700/50">
                                         <h4 className="text-blue-400 font-black text-sm uppercase mb-3 border-b border-slate-700/50 pb-2">4. MAÇ BİLGİLERİ (SAHA, SÜRE, HAKEM)</h4>
+                                        
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Müsabaka Süresi</label><input type="text" value={statuForm.sure} onChange={e => setStatuForm({...statuForm, sure: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 2 x 45 Dk." /></div>
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Devre Süresi</label><input type="text" value={statuForm.devre_arasi} onChange={e => setStatuForm({...statuForm, devre_arasi: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 15 Dk." /></div>
-                                            <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hakem Sayısı</label><input type="text" value={statuForm.hakem} onChange={e => setStatuForm({...statuForm, hakem: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 3 HAKEM 1 GÖZLEMCİ" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hakem Sayısı</label><input type="text" value={statuForm.hakem} onChange={e => setStatuForm({...statuForm, hakem: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 3 HAKEM" /></div>
+                                            <div><label className="block text-[10px] font-bold text-emerald-400 uppercase mb-1">Gözlemci Durumu</label><select value={statuForm.gozlemci || ''} onChange={e => setStatuForm({...statuForm, gozlemci: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500 font-bold cursor-pointer"><option value="">-- Seçiniz --</option><option value="VAR">VAR</option><option value="YOK">YOK</option></select></div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Top</label><input type="text" value={statuForm.top} onChange={e => setStatuForm({...statuForm, top: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 5 NUMARA" /></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Saha Ölçüsü</label><input type="text" value={statuForm.saha_olcusu} onChange={e => setStatuForm({...statuForm, saha_olcusu: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: NORMAL veya YARIM SAHA 1/2" /></div>
-                                            <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Uzatma Süresi (Penaltı Durumu)</label><input type="text" value={statuForm.beraberlik} onChange={e => setStatuForm({...statuForm, beraberlik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: UZATMA YOK DİREK PENALTI" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Uzatma Süresi / Penaltı</label><input type="text" value={statuForm.beraberlik} onChange={e => setStatuForm({...statuForm, beraberlik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: UZATMA YOK DİREK PENALTI" /></div>
                                         </div>
-                                    </div>
 
                                     <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 ŞABLONU GÜNCELLE' : '✅ YENİ LİG ŞABLONUNU SİSTEME EKLE')}</button></div>
                                 </form>
