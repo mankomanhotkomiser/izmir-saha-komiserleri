@@ -2874,25 +2874,86 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                         <span className="text-lg">📥</span> MAZERETLERİ EXCEL İNDİR
                                     </button>
                                 </div>
-                                <div className="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                                <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                                     {gelecekHaftaMazeretleri.length === 0 ? (
-                                        <div className="text-center text-slate-500 font-bold py-6 bg-slate-900 rounded-lg">Gelecek hafta için henüz mazeret bildiren yok.</div>
+                                        <div className="text-center text-slate-500 font-bold py-6 bg-slate-900 rounded-lg border border-slate-700">Gelecek hafta için henüz mazeret bildiren yok.</div>
                                     ) : (
                                         gelecekHaftaMazeretleri.map((m: any, i: number) => {
                                             let durumSinif = "border-slate-700 bg-slate-900";
                                             let durumIkon = "❓";
-                                            let durumText = "KISMİ";
-                                            if (m.detaylar?.mod === 'yok' || m.komple_yok) { durumSinif = "border-red-900/50 bg-red-950/20"; durumIkon = "⛔"; durumText = "YOK"; }
-                                            else if (m.detaylar?.mod === 'full') { durumSinif = "border-emerald-900/50 bg-emerald-950/20"; durumIkon = "✅"; durumText = "FULL"; }
+                                            let durumText = "KISMİ MÜSAİT";
                                             
+                                            if (m.detaylar?.mod === 'yok' || m.komple_yok) { 
+                                                durumSinif = "border-red-900/50 bg-red-950/20"; 
+                                                durumIkon = "⛔"; 
+                                                durumText = "GÖREV İSTEMİYOR"; 
+                                            } else if (m.detaylar?.mod === 'full') { 
+                                                durumSinif = "border-emerald-900/50 bg-emerald-950/20"; 
+                                                durumIkon = "✅"; 
+                                                durumText = "TÜM HAFTA MÜSAİT"; 
+                                            } else if (m.detaylar?.mod === 'secmeli') {
+                                                durumSinif = "border-blue-900/50 bg-blue-950/20";
+                                                durumIkon = "📅";
+                                                durumText = "GÜN/SAAT SEÇTİ";
+                                            }
+
+                                            const gunIsimleri: Record<string, string> = {
+                                                pazartesi: 'Pazartesi', sali: 'Salı', carsamba: 'Çarşamba', 
+                                                persembe: 'Perşembe', cuma: 'Cuma', cumartesi: 'Cumartesi', pazar: 'Pazar'
+                                            };
+
                                             return (
-                                                <div key={i} className={`p-3 rounded-lg border ${durumSinif}`}>
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <div className="font-bold text-white uppercase text-sm">{m.isim}</div>
-                                                        <div className="flex items-center gap-2 bg-slate-950 px-2 py-1 rounded text-xs font-black tracking-widest">{durumIkon} {durumText}</div>
+                                                <div key={i} className={`p-5 rounded-xl border-2 ${durumSinif} shadow-lg`}>
+                                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/50 pb-3 mb-3 gap-3">
+                                                        <div>
+                                                            <div className="font-black text-white uppercase text-base">{m.isim}</div>
+                                                            <div className="text-xs text-slate-400 font-mono mt-1">SİCİL: {m.komiser_id} | BİLDİRİM: <span className="text-slate-300">{new Date(m.olusturulma_tarihi).toLocaleString('tr-TR')}</span></div>
+                                                        </div>
+                                                        <div className="flex shrink-0">
+                                                            <span className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-lg text-xs font-black tracking-widest border border-slate-800 shadow-inner">
+                                                                <span className="text-xl">{durumIkon}</span> {durumText}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    {m.aciklama && <div className="text-xs text-slate-400 bg-slate-950/50 p-2 rounded mb-2 border-l-2 border-slate-600 italic">"{m.aciklama}"</div>}
-                                                    <div className="text-[10px] text-slate-500 font-mono">Bildirim: {new Date(m.olusturulma_tarihi).toLocaleString('tr-TR')}</div>
+
+                                                    <div className="space-y-3">
+                                                        {m.detaylar?.mod === 'full' && (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {m.detaylar?.genelMerkez && <span className="bg-emerald-900/80 text-emerald-300 text-xs font-bold px-3 py-1.5 rounded shadow-sm">📍 MERKEZ MÜSAİT</span>}
+                                                                {m.detaylar?.genelDeplasman && <span className="bg-emerald-900/80 text-emerald-300 text-xs font-bold px-3 py-1.5 rounded shadow-sm">🚌 DEPLASMAN MÜSAİT</span>}
+                                                            </div>
+                                                        )}
+
+                                                        {m.detaylar?.mod === 'secmeli' && m.detaylar?.gunler && (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                {Object.keys(gunIsimleri).map((gKey) => {
+                                                                    const g = m.detaylar.gunler[gKey];
+                                                                    if (!g || !g.active) return null;
+                                                                    return (
+                                                                        <div key={gKey} className="bg-slate-950 border border-slate-700 rounded-lg p-3 flex flex-col gap-2 shadow-inner">
+                                                                            <div className="font-black text-blue-400 text-sm uppercase tracking-widest border-b border-slate-800 pb-1">{gunIsimleri[gKey]}</div>
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-xs font-mono text-white bg-slate-800 px-2 py-1 rounded">
+                                                                                    {g.tumGun ? 'TÜM GÜN' : `${g.baslangic} - ${g.bitis}`}
+                                                                                </span>
+                                                                                <div className="flex gap-1">
+                                                                                    {g.merkez && <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-1 rounded" title="Merkez">MRK</span>}
+                                                                                    {g.deplasman && <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-1 rounded" title="Deplasman">DEP</span>}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {m.aciklama && (
+                                                        <div className="mt-4 text-sm text-amber-200 bg-amber-950/30 p-3 rounded-lg border-l-4 border-amber-500 font-serif shadow-inner">
+                                                            <span className="font-black uppercase text-amber-500 mr-2 tracking-widest">ÖZEL NOT:</span>
+                                                            "{m.aciklama}"
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })
