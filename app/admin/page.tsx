@@ -277,6 +277,9 @@ export default function AdminPage() {
   const [tumMazeretler, setTumMazeretler] = useState<any[]>([])
   const [globalAktifHaftaNo, setGlobalAktifHaftaNo] = useState<number>(1)
   const [yukleniyor, setYukleniyor] = useState(true)
+  const [sifreTalepleri, setSifreTalepleri] = useState<any[]>([])
+  const [yeniSifreler, setYeniSifreler] = useState<Record<number, string>>({})
+  const [talepIslemiYapiliyor, setTalepIslemiYapiliyor] = useState<number | null>(null)
 
   const [acikMacId, setAcikMacId] = useState<number | null>(null)
   const [tamEkranRaporMac, setTamEkranRaporMac] = useState<any>(null)
@@ -422,6 +425,9 @@ export default function AdminPage() {
 
       const { data: statuData } = await supabase.from('lig_statuleri').select('*');
       if (statuData) setTumStatuler(statuData || []);
+      // Bekleyen şifre taleplerini çek
+      const { data: taleplerData } = await supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').order('created_at', { ascending: false });
+      if (taleplerData) setSifreTalepleri(taleplerData);
 
       // 🔥 YENİ: GENEL TALİMAT VERİSİNİ ÇEKME 🔥
       const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single();
@@ -479,7 +485,37 @@ export default function AdminPage() {
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [girisYapildi]);
+const sifreTalebiniOnayla = async (talepId: number, komiserId: string) => {
+      const atananSifre = yeniSifreler[talepId] !== undefined ? yeniSifreler[talepId] : '1923'; 
+      
+      if (atananSifre.length !== 4 || !/^\d+$/.test(atananSifre)) {
+          alert("Şifre 4 haneli RAKAM olmalıdır!"); return;
+      }
+      if (!window.confirm(`${komiserId} sicilli komiserin şifresi ${atananSifre} olarak güncellenecektir. Onaylıyor musunuz?`)) return;
 
+      setTalepIslemiYapiliyor(talepId);
+      try {
+          const { error: komiserError } = await supabase.from('komiserler').update({ sifre: atananSifre }).eq('komiser_id', komiserId);
+          if (komiserError) throw komiserError;
+
+          const { error: talepError } = await supabase.from('sifre_talepleri').update({ durum: 'onaylandi' }).eq('id', talepId);
+          if (talepError) throw talepError;
+
+          alert(`✅ İşlem Başarılı! Komiserin yeni şifresi ${atananSifre} oldu.`);
+          setSifreTalepleri(prev => prev.filter(t => t.id !== talepId));
+      } catch (error: any) { alert("Hata oluştu: " + error.message); }
+      setTalepIslemiYapiliyor(null);
+  }
+  
+  const sifreTalebiniReddet = async (talepId: number) => {
+      if (!window.confirm("Bu talebi iptal etmek / reddetmek istediğinize emin misiniz?")) return;
+      setTalepIslemiYapiliyor(talepId);
+      try {
+          await supabase.from('sifre_talepleri').update({ durum: 'reddedildi' }).eq('id', talepId);
+          setSifreTalepleri(prev => prev.filter(t => t.id !== talepId));
+      } catch (error) {}
+      setTalepIslemiYapiliyor(null);
+  }
   const komiserIsmiBul = (id: any) => {
     if (!id || id === 'null' || id === '') return 'Atanmamış';
     const komiser = (tumKomiserler || []).find(k => String(k?.komiser_id) === String(id))
@@ -2557,6 +2593,60 @@ const renderTffRaporu = (mac: any, prefix: string) => {
             {Object.keys(haftalikGruplar).length > 0 && (
                 <div className="bg-slate-900 p-2 rounded-lg flex overflow-x-auto gap-2 mb-6 shadow-inner custom-scrollbar items-center border border-slate-700">
                     <span className="text-slate-500 font-bold text-xs uppercase tracking-widest px-3">ZAMAN MAKİNESİ:</span>
+                    {/* 🔥 ŞİFRE SIFIRLAMA TALEPLERİ RADARI 🔥 */}
+            {sifreTalepleri.length > 0 && (
+                <div className="bg-red-950/40 border-2 border-red-500 rounded-2xl p-6 mb-6 shadow-2xl animate-fade-in-down">
+                    <div className="flex items-center gap-3 mb-4 border-b border-red-900/50 pb-3">
+                        <span className="text-3xl animate-pulse">🚨</span>
+                        <div>
+                            <h3 className="text-red-400 font-black text-xl tracking-widest uppercase">ŞİFRE SIFIRLAMA TALEPLERİ</h3>
+                            <p className="text-slate-300 text-xs mt-1">Dışarıda kapıda kalan {sifreTalepleri.length} komiser sizden şifre belirlemenizi bekliyor.</p>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {sifreTalepleri.map((talep) => (
+                            <div key={talep.id} className="bg-slate-900 border border-red-900/50 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow">SİCİL: {talep.komiser_id}</span>
+                                        <span className="text-slate-400 text-[10px]">{new Date(talep.created_at).toLocaleString('tr-TR')}</span>
+                                    </div>
+                                    <div className="text-white text-base font-bold uppercase">{talep.ad_soyad || komiserIsmiBul(talep.komiser_id)}</div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs font-bold">YENİ ŞİFRE:</span>
+                                        <input 
+                                            type="text" 
+                                            maxLength={4}
+                                            placeholder="1923"
+                                            value={yeniSifreler[talep.id] !== undefined ? yeniSifreler[talep.id] : '1923'}
+                                            onChange={(e) => setYeniSifreler({...yeniSifreler, [talep.id]: e.target.value})}
+                                            className="bg-slate-950 text-white border border-slate-600 rounded-lg pl-20 pr-3 py-2.5 text-sm focus:outline-none focus:border-red-500 font-black tracking-widest w-40 text-center"
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => sifreTalebiniOnayla(talep.id, talep.komiser_id)}
+                                        disabled={talepIslemiYapiliyor === talep.id}
+                                        className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-xs font-black px-4 py-3 rounded-lg shadow-lg transition-colors whitespace-nowrap"
+                                    >
+                                        {talepIslemiYapiliyor === talep.id ? '⚙️ İŞLENİYOR...' : 'ONAYLA'}
+                                    </button>
+                                    <button 
+                                        onClick={() => sifreTalebiniReddet(talep.id)}
+                                        disabled={talepIslemiYapiliyor === talep.id}
+                                        className="bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-400 border border-slate-700 px-3 py-3 rounded-lg text-xs font-bold transition-colors"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
                     {Object.keys(haftalikGruplar).map(Number).sort((a,b) => a-b).map(haftaNo => (
                         <button key={haftaNo} onClick={() => setGoruntulenenHafta(haftaNo)} className={`px-4 py-2.5 rounded font-bold text-xs whitespace-nowrap transition-colors border shadow-sm ${goruntulenenHafta === haftaNo ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'}`}>{haftaNo === globalAktifHaftaNo ? `🔥 AKTİF OPERASYON (${haftaNo}. HAFTA)` : `📁 ${haftaNo}. HAFTA ARŞİVİ`}</button>
                     ))}
