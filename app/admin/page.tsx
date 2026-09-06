@@ -382,8 +382,8 @@ export default function AdminPage() {
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
-    // YENİ 8 HANELİ ADMİN ŞİFRESİ
-    if (sifre === '12345678') { setGirisYapildi(true); setHatasi(''); } 
+    // ÖNDER KOMUTANIN ÖZEL ŞİFRESİ
+    if (sifre === '20003535') { setGirisYapildi(true); setHatasi(''); } 
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
