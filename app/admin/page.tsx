@@ -52,21 +52,67 @@ const detayliRaporGosterilirMi = (kategori: any) => {
   return tur !== 'yok'; 
 }
 
+// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const kat = turkceBuyukHarf(kategori);
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || 
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || 
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || 
-        kat.includes('11 YAŞ') || kat.includes('12 YAŞ') || kat.includes('13 YAŞ')) { return 'tek_hakem'; }
-    if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || 
-        kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || 
-        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || 
-        kat.includes('14 YAŞ') || kat.includes('15 YAŞ') || kat.includes('16 YAŞ')) { return 'uc_hakem'; }
-    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || 
-        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || 
-        kat.includes('17 YAŞ') || kat.includes('19 YAŞ')) { return 'dort_ve_gozlemci'; }
-    return 'dort_kutu'; 
+    
+    const isGelisim = kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U');
+    const isKizlar = kat.includes('KIZLAR') || kat.includes('KIZ');
+    const isKadinlar = kat.includes('KADIN') && !isKizlar;
+    const isBAL = kat.includes('BAL') || kat.includes('BÖLGESEL');
+    
+    // 1. BAL LİGİ
+    if (isBAL) return 'dort_ve_gozlemci';
+    
+    // 2. KADINLAR LİGLERİ
+    if (isKadinlar) {
+        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci';
+        return 'uc_ve_gozlemci';
+    }
+    
+    // 3. KIZLAR LİGLERİ
+    if (isKizlar) {
+        return 'uc_hakem';
+    }
+    
+    // 4. PGL ve PAF LİGLERİ
+    if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('PAF')) {
+        return 'dort_ve_gozlemci';
+    }
+    
+    // 5. GELİŞİM LİGLERİ
+    if (isGelisim) {
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
+            kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
+            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
+        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
+            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
+    }
+    
+    // 6. YEREL AMATÖR LİGLER
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('11 YAŞ') ||
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
+        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
+        return 'tek_hakem';
+    }
+    
+    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
+        return 'uc_hakem';
+    }
+    
+    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
+        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('19 YAŞ') ||
+        kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
+        kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
+        kat.includes('SÜPER AMATÖR')) {
+        return 'uc_ve_gozlemci';
+    }
+    
+    return 'dort_kutu';
 };
 
 const guvenliTarih = (tarihMetni: any) => {
