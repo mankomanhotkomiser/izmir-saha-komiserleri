@@ -47,6 +47,11 @@ const raporTurunuBelirle = (kategori: any) => {
     return 'amator'; 
 }
 
+const detayliRaporGosterilirMi = (kategori: any) => {
+  const tur = raporTurunuBelirle(kategori);
+  return tur !== 'yok'; 
+}
+
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'uc_ve_gozlemci'; 
@@ -79,12 +84,12 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
         kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
         kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
-        return 'tek_hakem'; // U12 VB. SADECE TEK HAKEM
+        return 'tek_hakem';
     }
     
     if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
         kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
-        return 'uc_hakem'; // 3 HAKEM, GÖZLEMCİ YOK
+        return 'uc_hakem';
     }
     
     if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
@@ -92,7 +97,7 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
         kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
         kat.includes('SÜPER AMATÖR')) {
-        return 'uc_ve_gozlemci'; // U17 VB. 3 HAKEM + 1 GÖZLEMCİ, ASLA 4. HAKEM YOK
+        return 'uc_ve_gozlemci'; 
     }
     
     return 'uc_ve_gozlemci';
@@ -293,10 +298,7 @@ const EvetHayirBox = ({ val }: { val: any }) => (
         </div>
     </div>
 );
-const detayliRaporGosterilirMi = (kategori: any) => {
-  const tur = raporTurunuBelirle(kategori);
-  return tur !== 'yok'; 
-}
+
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -319,8 +321,8 @@ export default function AdminPage() {
   const [kategoriKirmiziAcik, setKategoriKirmiziAcik] = useState(true)
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
+  const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true)
   const [kategoriIptalAcik, setKategoriIptalAcik] = useState(false)
-  const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true);
   const [kategoriMazeretAcik, setKategoriMazeretAcik] = useState(false) 
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
   const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') 
@@ -377,9 +379,11 @@ export default function AdminPage() {
   const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
 
   const [genelArama, setGenelArama] = useState('')
+
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
-    if (sifre === '20003535') { setGirisYapildi(true); setHatasi(''); } 
+    // YENİ 8 HANELİ ADMİN ŞİFRESİ
+    if (sifre === '12345678') { setGirisYapildi(true); setHatasi(''); } 
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
@@ -552,10 +556,25 @@ export default function AdminPage() {
       } catch (error) {}
       setTalepIslemiYapiliyor(null);
   }
+  // 🔥 ÇELİK KASA KONTROL MOTORU (EVRAK YOKSA PARA YOK) 🔥
+  const isHakedisTamam = (mac: any) => {
+      if (!mac.skor_girildi) return false; // Hiçbir şekilde skor yoksa reddet
+      
+      const anaKat = getAnaKategori(mac.kategori_adi);
+      const isBAL = turkceBuyukHarf(mac.kategori_adi).includes('BAL') || turkceBuyukHarf(mac.kategori_adi).includes('BÖLGESEL');
+      
+      // Eğer lig Yerel Amatör ise (BAL değilse), kesinlikle Detaylı Rapor ŞARTI ara
+      if (anaKat === 'amator' && !isBAL) {
+          const detay = parseDetay(mac.tff_rapor_detaylari);
+          if (!detay.detayli_kaydedildi) return false;
+      }
+      return true; // Profesyonel, BAL veya raporu tam Amatör ise onay ver
+  };
 
   const tumAylarSet = new Set<string>();
   sezonlukMaclar.forEach(m => {
       if (m.mac_durumu === 'iptal_edildi' || !isBordroKategori(m.kategori_adi) || !m.komiser_id) return;
+      if (!isHakedisTamam(m)) return; // ⛔ ÇELİK KASA FİLTRESİ
       const ay = getAyYil(m.tarih);
       if (ay) tumAylarSet.add(ay);
   });
@@ -567,6 +586,7 @@ export default function AdminPage() {
       const ozet: Record<string, any> = {};
       sezonlukMaclar.forEach(mac => {
           if (mac.mac_durumu === 'iptal_edildi' || !isBordroKategori(mac.kategori_adi) || !mac.komiser_id || mac.komiser_id === 'null' || mac.komiser_id === '') return;
+          if (!isHakedisTamam(mac)) return; // ⛔ ÇELİK KASA FİLTRESİ
           const ayYil = getAyYil(mac.tarih);
           if (ayYil === seciliBordroAy) {
               if (!ozet[mac.komiser_id]) {
@@ -994,8 +1014,6 @@ export default function AdminPage() {
               yabanci_oyuncu: statuForm.yabanci_oyuncu,
               gozlemci: statuForm.gozlemci
           };
-          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '', gozlemci: '' });
-          
           
           if (statuForm.id) {
               const { error } = await supabase.from('lig_statuleri').update(payload).eq('id', statuForm.id);
@@ -1010,7 +1028,7 @@ export default function AdminPage() {
                   alert("✅ Statü başarıyla EKLENDİ.");
               }
           }
-          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '' });
+          setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '', gozlemci: '' });
           veriGetir(true);
       } catch (err: any) { alert("Hata: " + err.message); }
       setStatuKaydediliyor(false);
@@ -1121,7 +1139,7 @@ export default function AdminPage() {
       setYukleniyor(false);
   }
 
-const processExcelFile = (file: File) => {
+  const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
           try {
@@ -1381,8 +1399,7 @@ const processExcelFile = (file: File) => {
           alert("PDF/Yazdır ekranı hazırlanırken bir sorun oluştu.");
       }
   }
-
-const renderTffRaporu = (mac: any, prefix: string) => {
+  const renderTffRaporu = (mac: any, prefix: string) => {
       let safeRaporDetay = mac.tff_rapor_detaylari || {};
       if (typeof safeRaporDetay === 'string') { try { safeRaporDetay = JSON.parse(safeRaporDetay); } catch(e) { safeRaporDetay = {}; } }
       
@@ -1866,6 +1883,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
           </div>
       );
   }
+  
   const RaporDurumKarti = ({ mac, tip, isArsiv = false }: { mac: any, tip: 'emniyet' | 'teknik' | 'olaysiz' | 'bekleyen' | 'iptal', isArsiv?: boolean }) => {
     let renkSiniflari = { bg: "bg-slate-800", border: "border-slate-700", text: "text-slate-300", badge: "bg-slate-700 text-slate-300" };
     if (tip === 'emniyet') { renkSiniflari = { bg: "bg-red-950/20", border: "border-red-600", text: "text-red-500", badge: "bg-red-600 text-white" }; } 
@@ -1920,6 +1938,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                  </div>
              )}
              <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
+             
              {tip !== 'bekleyen' && (
                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4">
                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-800 pb-2">Komiserin Hızlı Olay Notu</h4>
@@ -1948,6 +1967,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                      </div>
                  </div>
              )}
+             
              {detayliRaporGosterilirMi(mac.kategori_adi) && (tip === 'emniyet' || tip === 'teknik' || tip === 'olaysiz') && (
                  <div className="mt-4">
                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_kaydedildi ? (
@@ -2068,7 +2088,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700">
           <div className="text-center mb-8"><span className="text-5xl block mb-4">🛡️</span><h1 className="text-2xl font-black text-white tracking-widest uppercase">YÖNETİM GİRİŞİ</h1></div>
           <form onSubmit={girisKontrol} className="space-y-6">
-            <div><input type="password" value={sifre} onChange={(e: any) => setSifre(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 text-center tracking-[0.5em] font-mono text-xl focus:outline-none focus:border-red-500 transition-colors" placeholder="••••" /></div>
+            <div><input type="password" value={sifre} onChange={(e: any) => setSifre(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 text-center tracking-[0.5em] font-mono text-xl focus:outline-none focus:border-red-500 transition-colors" placeholder="••••••••" /></div>
             {hata && <p className="text-red-500 text-sm font-bold text-center">{hata}</p>}
             <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors tracking-widest">GİRİŞ YAP</button>
           </form>
@@ -2476,7 +2496,7 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                         <h3 className="text-emerald-400 font-bold mb-1">Müsabaka Statü ve Kural Zekası</h3>
                                         <p className="text-slate-300 text-xs">Saha komiserlerinin mobil cihazlarında göreceği statüleri buradan yönetebilirsiniz.</p>
                                     </div>
-                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-500 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
+                                    <button onClick={() => setStatuForm({ id: null, kategori_anahtar: '', baslik: '', yas_siniri: '', sure: '', devre_arasi: '', top: '', degisiklik: '', beraberlik: '', hakem: '', oyuncu_sayisi: '', yedek_oyuncu_sayisi: '', degisiklik_uygulamasi: '', saha_olcusu: '', en_az_oyuncu_sahaya_cikis: '', en_az_oyuncu_tatil: '', yabanci_oyuncu: '', gozlemci: '' })} className="bg-emerald-600 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-bold hover:bg-emerald-50 transition-colors shadow-md">+ YENİ STATÜ GİR</button>
                                 </div>
                                 
                                 <form onSubmit={statuKaydetSubmit} className="bg-slate-900 border border-indigo-500/50 p-5 rounded-xl space-y-6 shadow-lg relative overflow-hidden">
@@ -2526,8 +2546,6 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Uzatma Süresi / Penaltı</label><input type="text" value={statuForm.beraberlik} onChange={e => setStatuForm({...statuForm, beraberlik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: UZATMA YOK DİREK PENALTI" /></div>
                                         </div>
                                     </div>
-
-                                    <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 ŞABLONU GÜNCELLE' : '✅ YENİ LİG ŞABLONUNU SİSTEME EKLE')}</button></div>
 
                                     <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 ŞABLONU GÜNCELLE' : '✅ YENİ LİG ŞABLONUNU SİSTEME EKLE')}</button></div>
                                 </form>
