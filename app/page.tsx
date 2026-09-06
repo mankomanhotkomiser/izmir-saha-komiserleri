@@ -345,6 +345,44 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const [eskiSifre, setEskiSifre] = useState('')
   const [yeniSifre, setYeniSifre] = useState('')
   const [sifremiUnuttumAcik, setSifremiUnuttumAcik] = useState(false)
+  const [unuttumSicil, setUnuttumSicil] = useState('');
+  const [talepGonderiliyor, setTalepGonderiliyor] = useState(false);
+
+  const sifreTalebiGonder = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setTalepGonderiliyor(true);
+      try {
+          let girilenSicil = unuttumSicil.trim();
+          if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { girilenSicil = '35' + girilenSicil; }
+
+          // 1. Sicil numarası sistemde var mı kontrol et
+          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
+          
+          if (error || !data) {
+              alert("Bu sicil numarasına ait bir kayıt bulunamadı!");
+              setTalepGonderiliyor(false);
+              return;
+          }
+
+          // 2. Yönetime haber uçurmak için 'sifre_talepleri' tablosuna kayıt at
+          const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
+              komiser_id: girilenSicil,
+              ad_soyad: data.ad_soyad,
+              durum: 'bekliyor'
+          }]);
+
+          if (!insertError) {
+              alert("✅ Şifre sıfırlama talebiniz İzmir Şube Yönetimine iletildi. Lütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.");
+              setSifremiUnuttumAcik(false);
+              setUnuttumSicil('');
+          } else {
+              alert("Talebiniz iletilemedi: " + insertError.message);
+          }
+      } catch (err) {
+          alert("Bağlantı hatası oluştu, lütfen tekrar deneyin.");
+      }
+      setTalepGonderiliyor(false);
+  };
   const [zorunluMazeret, setZorunluMazeret] = useState(false)
   
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
