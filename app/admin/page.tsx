@@ -293,7 +293,10 @@ const EvetHayirBox = ({ val }: { val: any }) => (
         </div>
     </div>
 );
-
+const detayliRaporGosterilirMi = (kategori: any) => {
+  const tur = raporTurunuBelirle(kategori);
+  return tur !== 'yok'; 
+}
 export default function AdminPage() {
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
@@ -317,6 +320,7 @@ export default function AdminPage() {
   const [kategoriDisiplinAcik, setKategoriDisiplinAcik] = useState(true)
   const [kategoriOlaysizAcik, setKategoriOlaysizAcik] = useState(true)
   const [kategoriIptalAcik, setKategoriIptalAcik] = useState(false)
+  const [kategoriBekleyenAcik, setKategoriBekleyenAcik] = useState(true);
   const [kategoriMazeretAcik, setKategoriMazeretAcik] = useState(false) 
   const [kategoriSicilAcik, setKategoriSicilAcik] = useState(false) 
   const [seciliSicilKomiserId, setSeciliSicilKomiserId] = useState<string>('') 
