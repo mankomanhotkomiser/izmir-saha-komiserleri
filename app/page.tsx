@@ -356,11 +356,12 @@ export default function Home() {
     const fotografYukle = async (secilenDosya: File) => {
     try {
       const ayarlar = {
-        maxSizeMB: 0.3, 
-        maxWidthOrHeight: 1920, 
-        useWebWorker: true, 
+        maxSizeMB: 0.25,             
+        maxWidthOrHeight: 1600,      
+        useWebWorker: true,
+        fileType: 'image/webp',      
+        initialQuality: 0.8          
       };
-
       const sikistirilmisDosya = await imageCompression(secilenDosya, ayarlar);
       const benzersizIsim = `${Date.now()}-${sikistirilmisDosya.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
       
