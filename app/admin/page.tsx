@@ -2489,7 +2489,6 @@ const renderTffRaporu = (mac: any, prefix: string) => {
 
                                     <div className="bg-slate-800/50 p-3 rounded border border-slate-700/50">
                                         <h4 className="text-blue-400 font-black text-sm uppercase mb-3 border-b border-slate-700/50 pb-2">4. MAÇ BİLGİLERİ (SAHA, SÜRE, HAKEM)</h4>
-                                        
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Müsabaka Süresi</label><input type="text" value={statuForm.sure} onChange={e => setStatuForm({...statuForm, sure: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 2 x 45 Dk." /></div>
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Devre Süresi</label><input type="text" value={statuForm.devre_arasi} onChange={e => setStatuForm({...statuForm, devre_arasi: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: 15 Dk." /></div>
@@ -2501,6 +2500,9 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Saha Ölçüsü</label><input type="text" value={statuForm.saha_olcusu} onChange={e => setStatuForm({...statuForm, saha_olcusu: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: NORMAL veya YARIM SAHA 1/2" /></div>
                                             <div><label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Uzatma Süresi / Penaltı</label><input type="text" value={statuForm.beraberlik} onChange={e => setStatuForm({...statuForm, beraberlik: e.target.value})} className="w-full bg-slate-950 border border-slate-700 text-white text-sm px-3 py-2 rounded focus:border-indigo-500" placeholder="Örn: UZATMA YOK DİREK PENALTI" /></div>
                                         </div>
+                                    </div>
+
+                                    <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 ŞABLONU GÜNCELLE' : '✅ YENİ LİG ŞABLONUNU SİSTEME EKLE')}</button></div>
 
                                     <div className="pt-2"><button type="submit" disabled={statuKaydediliyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2 transition-colors shadow-lg">{statuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (statuForm.id ? '💾 ŞABLONU GÜNCELLE' : '✅ YENİ LİG ŞABLONUNU SİSTEME EKLE')}</button></div>
                                 </form>
