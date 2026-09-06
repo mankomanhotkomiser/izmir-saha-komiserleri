@@ -1308,6 +1308,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
     const mevcutDetay = parseDetay(islemYapilanMac.tff_rapor_detaylari);
     kaydedilecekDetay.islem_saati = mevcutDetay.islem_saati || Date.now();
 
+    // 🔥 YENİ: ZAMAN DAMGALARI (HIZLI VE DETAYLI) 🔥
+    if (kayitTuru === 'hizli') {
+        kaydedilecekDetay.hizli_skor_saati = Date.now();
+        kaydedilecekDetay.detayli_rapor_saati = mevcutDetay.detayli_rapor_saati || null;
+    } else {
+        kaydedilecekDetay.detayli_rapor_saati = Date.now();
+        kaydedilecekDetay.hizli_skor_saati = mevcutDetay.hizli_skor_saati || mevcutDetay.islem_saati || Date.now();
+    }
+
     if (kayitTuru === 'detayli') { 
         kaydedilecekDetay.detayli_kaydedildi = true; 
         

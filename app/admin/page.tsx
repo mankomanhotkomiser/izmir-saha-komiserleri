@@ -1921,7 +1921,32 @@ const renderTffRaporu = (mac: any, prefix: string) => {
              )}
              <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
              {tip !== 'bekleyen' && (
-                 <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4"><h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-800 pb-2">Komiserin Hızlı Olay Notu</h4><p className={`text-sm font-serif leading-relaxed ${tip === 'iptal' ? 'text-red-400 font-bold' : 'text-slate-300'}`}>{mac.rapor_notu || <span className="italic text-slate-600">Not düşülmemiş.</span>}</p></div>
+                 <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4">
+                     <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-800 pb-2">Komiserin Hızlı Olay Notu</h4>
+                     <p className={`text-sm font-serif leading-relaxed ${tip === 'iptal' ? 'text-red-400 font-bold' : 'text-slate-300'}`}>{mac.rapor_notu || <span className="italic text-slate-600">Not düşülmemiş.</span>}</p>
+                     
+                     {/* 🔥 YENİ: OPERASYON ZAMAN ÇİZELGESİ (RÖNTGEN) 🔥 */}
+                     <div className="mt-4 pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                         <div className="bg-slate-900 border border-slate-700 p-2 rounded flex flex-col shadow-inner">
+                             <span className="text-[10px] text-emerald-500 font-bold tracking-widest uppercase mb-1">⚡ HIZLI SKOR ZAMANI</span>
+                             <span className="text-xs font-mono text-slate-300">
+                                 {parseDetay(mac.tff_rapor_detaylari)?.hizli_skor_saati 
+                                     ? new Date(parseDetay(mac.tff_rapor_detaylari).hizli_skor_saati).toLocaleString('tr-TR') 
+                                     : (parseDetay(mac.tff_rapor_detaylari)?.islem_saati ? new Date(parseDetay(mac.tff_rapor_detaylari).islem_saati).toLocaleString('tr-TR') : 'Bilinmiyor')}
+                             </span>
+                         </div>
+                         {detayliRaporGosterilirMi(mac.kategori_adi) && (
+                             <div className="bg-slate-900 border border-slate-700 p-2 rounded flex flex-col shadow-inner">
+                                 <span className="text-[10px] text-blue-400 font-bold tracking-widest uppercase mb-1">📄 DETAYLI RAPOR ZAMANI</span>
+                                 <span className="text-xs font-mono text-slate-300">
+                                     {parseDetay(mac.tff_rapor_detaylari)?.detayli_rapor_saati 
+                                         ? new Date(parseDetay(mac.tff_rapor_detaylari).detayli_rapor_saati).toLocaleString('tr-TR') 
+                                         : <span className="text-red-500 opacity-70 font-bold font-sans">Henüz Gönderilmedi</span>}
+                                 </span>
+                             </div>
+                         )}
+                     </div>
+                 </div>
              )}
              {detayliRaporGosterilirMi(mac.kategori_adi) && (tip === 'emniyet' || tip === 'teknik' || tip === 'olaysiz') && (
                  <div className="mt-4">
