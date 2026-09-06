@@ -821,7 +821,53 @@ const sifreTalebiniOnayla = async (talepId: number, komiserId: string) => {
       link.click();
       document.body.removeChild(link);
   }
+const komiserListesiniExceleIndir = () => {
+      if (!tumKomiserler || tumKomiserler.length === 0) {
+          alert("Sistemde kayıtlı komiser bulunmuyor!");
+          return;
+      }
 
+      let tableHtml = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head><meta charset="UTF-8"></head>
+          <body>
+              <table border="1" style="border-collapse: collapse; font-family: Arial, sans-serif; text-align: center;">
+                  <thead>
+                      <tr><th colspan="3" style="font-size: 16px; background-color: #0f172a; color: white; padding: 10px; font-weight: bold;">İZMİR ŞUBESİ TÜM SAHA KOMİSERLERİ LİSTESİ</th></tr>
+                      <tr style="background-color: #1e293b; color: white; font-weight: bold; font-size: 14px;">
+                          <th style="padding: 10px; width: 50px;">SIRA</th>
+                          <th style="padding: 10px; width: 120px;">SİCİL NUMARASI</th>
+                          <th style="padding: 10px; width: 300px;">ADI SOYADI</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+      `;
+
+      // Komiserleri harf sırasına göre diz
+      const siraliKomiserler = [...tumKomiserler].sort((a, b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR'));
+
+      siraliKomiserler.forEach((k, idx) => {
+          tableHtml += `
+              <tr>
+                  <td style="padding: 8px;">${idx + 1}</td>
+                  <td style="padding: 8px; mso-number-format:'\\@'; font-weight: bold; color: #b91c1c;">${k.komiser_id}</td>
+                  <td style="padding: 8px; text-align: left; font-weight: bold;">${turkceBuyukHarf(k.ad_soyad)}</td>
+              </tr>
+          `;
+      });
+
+      tableHtml += `</tbody></table></body></html>`;
+
+      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `TFF_Izmir_Tum_Komiser_Listesi.xls`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+  };
   const mazeretleriExceleIndir = async (hedefHaftaNo: number) => {
       try {
           const { data: mazeretler, error: errMazeret } = await supabase
@@ -2852,6 +2898,11 @@ const renderTffRaporu = (mac: any, prefix: string) => {
                         </button>
                         {kategoriSicilAcik && (
                             <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl animate-fade-in-down mb-3">
+                                <div className="flex justify-end mb-4 border-b border-slate-700 pb-4">
+                                    <button onClick={komiserListesiniExceleIndir} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-blue-500">
+                                        <span className="text-lg">📥</span> TÜM LİSTEYİ EXCEL OLARAK İNDİR
+                                    </button>
+                                </div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Saha Komiseri Seçin</label>
                                 <select value={seciliSicilKomiserId} onChange={(e) => setSeciliSicilKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none mb-4 font-bold cursor-pointer"><option value="">-- Komiser Seçiniz --</option>{tumKomiserler.sort((a,b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map(k => (<option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>))}</select>
                                 {seciliSicilKomiserId && (
