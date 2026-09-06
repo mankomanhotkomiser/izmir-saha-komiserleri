@@ -284,6 +284,44 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
+    const hizliSifreTalebi = async () => {
+      const sicil = window.prompt("Şifre sıfırlama talebi için lütfen SİCİL NUMARANIZI giriniz:");
+      if (!sicil) return; // Kullanıcı iptal'e basarsa işlemi durdur
+
+      let girilenSicil = sicil.trim();
+      if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { 
+          girilenSicil = '35' + girilenSicil; 
+      }
+
+      const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için İzmir Şube Yönetimine 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
+      
+      if (!onay) return;
+
+      try {
+          // 1. Sicil numarası sistemde var mı kontrol et
+          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
+          
+          if (error || !data) {
+              alert("❌ HATA: Bu sicil numarasına ait bir kayıt bulunamadı!");
+              return;
+          }
+
+          // 2. Yönetime haber uçurmak için tabloya yaz
+          const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
+              komiser_id: girilenSicil,
+              ad_soyad: data.ad_soyad,
+              durum: 'bekliyor'
+          }]);
+
+          if (!insertError) {
+              alert("✅ BAŞARILI: Şifre sıfırlama talebiniz İzmir Şube Yönetimine iletildi!\n\nLütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.");
+          } else {
+              alert("❌ HATA: Talebiniz iletilemedi: " + insertError.message);
+          }
+      } catch (err) {
+          alert("❌ BAĞLANTI HATASI: Lütfen internetinizi kontrol edip tekrar deneyin.");
+      }
+  };
     const fotografYukle = async (secilenDosya: File) => {
     try {
       const ayarlar = {
@@ -2172,7 +2210,10 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
               <div><input type="password" placeholder="4 Haneli Şifreniz" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={4} inputMode="numeric" pattern="\d{4}" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
               {girisHatasi && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100">{girisHatasi}</p>}
               <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2">{girisYukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}</button>
-              <div className="pt-2"><button type="button" onClick={() => setSifremiUnuttumAcik(true)} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button></div>
+             <div className="pt-2"><button type="button" onClick={hizliSifreTalebi} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button></div>
+
+
+
             </form>
           </div>
           <div className="absolute bottom-6 text-[10px] text-slate-400 font-medium tracking-widest text-center w-full z-10">SAHAKOM-OS TÜRKİYE © 2026<br/>TÜM HAKLARI SAKLIDIR</div>
@@ -2630,7 +2671,25 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
   return (
       <Fragment>
           {ekranIcerigi}
-
+{sifremiUnuttumAcik && (
+              <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6 relative">
+                      <button onClick={() => setSifremiUnuttumAcik(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 text-xl font-black transition-colors">✕</button>
+                      <h2 className="text-lg font-black text-slate-800 tracking-widest mb-2 border-b border-slate-200 pb-2 flex items-center gap-2"><span className="text-2xl">📩</span> ŞİFRE TALEBİ</h2>
+                      <p className="text-[10px] text-slate-500 font-bold mb-4 leading-relaxed">Şifrenizi unuttuysanız aşağıdaki alana sicil numaranızı girerek yönetime talep gönderebilirsiniz. Yeni şifreniz yönetici tarafından belirlenecektir.</p>
+                      
+                      <form onSubmit={sifreTalebiGonder} className="space-y-4">
+                          <div>
+                              <label className="block text-xs font-bold text-slate-500 mb-1">Sicil Numaranız</label>
+                              <input type="text" value={unuttumSicil} onChange={(e: any) => setUnuttumSicil(e.target.value)} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-lg font-black tracking-widest focus:border-red-500 focus:outline-none" required placeholder="Örn: 35..." />
+                          </div>
+                          <button type="submit" disabled={talepGonderiliyor} className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-black py-3 rounded-lg transition-colors text-sm shadow-md mt-2 flex justify-center items-center gap-2">
+                              {talepGonderiliyor ? 'İLETİLİYOR...' : 'YÖNETİME TALEP GÖNDER'}
+                          </button>
+                      </form>
+                  </div>
+              </div>
+          )}
           {sifreDegistirAcik && (
               <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
                   <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 p-6">
