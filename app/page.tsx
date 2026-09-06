@@ -1,4 +1,5 @@
 "use client"
+import imageCompression from 'browser-image-compression';
 import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
@@ -283,6 +284,35 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
+    const fotografYukle = async (secilenDosya: File) => {
+    try {
+      const ayarlar = {
+        maxSizeMB: 0.3, 
+        maxWidthOrHeight: 1920, 
+        useWebWorker: true, 
+      };
+
+      console.log(`Orijinal Boyut: ${(secilenDosya.size / 1024 / 1024).toFixed(2)} MB`);
+
+      const sikistirilmisDosya = await imageCompression(secilenDosya, ayarlar);
+      console.log(`Sıkıştırılmış Boyut: ${(sikistirilmisDosya.size / 1024 / 1024).toFixed(2)} MB`);
+
+      const benzersizIsim = `${Date.now()}-${sikistirilmisDosya.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
+      
+      const { data, error } = await supabase.storage
+        .from('raporlar') // Supabase bucket adının 'raporlar' olduğunu varsayıyoruz
+        .upload(`fotograflar/${benzersizIsim}`, sikistirilmisDosya);
+
+      if (error) throw error;
+
+      return data.path; 
+
+    } catch (hata) {
+      console.error("Fotoğraf yükleme operasyonu başarısız:", hata);
+      alert("Fotoğraf yüklenirken bir hata oluştu!");
+      return null;
+    }
+  };
 
 const [kucukHeader, setKucukHeader] = useState(false);
 
