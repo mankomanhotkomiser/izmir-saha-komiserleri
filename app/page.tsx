@@ -60,8 +60,6 @@ const getAnaKategori = (kategori: any) => {
       return 'amator'; 
   }
 
-
-
 const detayliRaporGosterilirMi = (kategori: any) => raporTurunuBelirle(kategori) !== 'yok'; 
 
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
@@ -321,7 +319,7 @@ const temizHakem = (isim: any) => {
 export default function Home() {
     const hizliSifreTalebi = async () => {
       const sicil = window.prompt("Şifre sıfırlama talebi için lütfen SİCİL NUMARANIZI giriniz:");
-      if (!sicil) return; // Kullanıcı iptal'e basarsa işlemi durdur
+      if (!sicil) return; 
 
       let girilenSicil = sicil.trim();
       if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { 
@@ -333,7 +331,6 @@ export default function Home() {
       if (!onay) return;
 
       try {
-          // 1. Sicil numarası sistemde var mı kontrol et
           const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
           
           if (error || !data) {
@@ -341,7 +338,6 @@ export default function Home() {
               return;
           }
 
-          // 2. Yönetime haber uçurmak için tabloya yaz
           const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
               komiser_id: girilenSicil,
               ad_soyad: data.ad_soyad,
@@ -365,23 +361,17 @@ export default function Home() {
         useWebWorker: true, 
       };
 
-      console.log(`Orijinal Boyut: ${(secilenDosya.size / 1024 / 1024).toFixed(2)} MB`);
-
       const sikistirilmisDosya = await imageCompression(secilenDosya, ayarlar);
-      console.log(`Sıkıştırılmış Boyut: ${(sikistirilmisDosya.size / 1024 / 1024).toFixed(2)} MB`);
-
       const benzersizIsim = `${Date.now()}-${sikistirilmisDosya.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
       
       const { data, error } = await supabase.storage
-        .from('raporlar') // Supabase bucket adının 'raporlar' olduğunu varsayıyoruz
+        .from('raporlar')
         .upload(`fotograflar/${benzersizIsim}`, sikistirilmisDosya);
 
       if (error) throw error;
-
       return data.path; 
 
     } catch (hata) {
-      console.error("Fotoğraf yükleme operasyonu başarısız:", hata);
       alert("Fotoğraf yüklenirken bir hata oluştu!");
       return null;
     }
@@ -400,7 +390,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
       window.addEventListener('scroll', handleScroll);
       return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
 
   const [aktifEkran, setAktifEkran] = useState<EkranTuru>('giris')
   const [kullaniciIdInput, setKullaniciIdInput] = useState('')
@@ -428,7 +417,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
           let girilenSicil = unuttumSicil.trim();
           if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { girilenSicil = '35' + girilenSicil; }
 
-          // 1. Sicil numarası sistemde var mı kontrol et
           const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
           
           if (error || !data) {
@@ -437,7 +425,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
               return;
           }
 
-          // 2. Yönetime haber uçurmak için 'sifre_talepleri' tablosuna kayıt at
           const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
               komiser_id: girilenSicil,
               ad_soyad: data.ad_soyad,
@@ -1224,8 +1211,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
           } catch (err) { console.error("Gözlemci kaydetme hatası:", err); }
       }
   }
-
-  // 🔥 SİSTEMİN KALBİ (VE YENİ KIRMIZI ÇİZGİLER) 🔥
+  // 🔥 SİSTEMİN KALBİ (VE YENİ KIRMIZI ÇİZGİLER - GÜVENLİK DUVARI) 🔥
   const skorRaporunuGonder = async (macId: number, kayitTuru: 'hizli' | 'detayli') => {
     const islemYapilanMac = gecerliAktifMaclar.find((m: any) => m.id === macId);
     if (!islemYapilanMac) return;
@@ -1249,25 +1235,39 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (kayitTuru === 'detayli') {
         const hakemModu = getHakemGosterimModu(islemYapilanMac.kategori_adi);
         
-        // 1. ZORUNLU HAKEM VE GÖZLEMCİ KONTROLLERİ
-        if (!raporDetay.hakem || raporDetay.hakem.trim() === '' || raporDetay.hakem.includes('TIKLA VE') || raporDetay.hakem.includes('YAZ')) { 
-            alert("⚠️ Lütfen Orta Hakem bilgisini giriniz!"); return; 
+        // 🔥 EKSİK VERİ GÜVENLİK DUVARI 🔥
+        const eksikler = [];
+
+        // 1. HAKEM KONTROLLERİ
+        if (!raporDetay.hakem || raporDetay.hakem.trim() === '' || raporDetay.hakem.includes('TIKLA') || raporDetay.hakem.includes('YAZ')) {
+            eksikler.push("Orta Hakem Adı");
         }
         
         if (hakemModu === 'uc_hakem' || hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') {
-            if (!raporDetay.y_hakem_1 || raporDetay.y_hakem_1.trim() === '' || raporDetay.y_hakem_1.includes('TIKLA')) { alert("⚠️ Lütfen 1. Yardımcı Hakem bilgisini giriniz!"); return; }
-            if (!raporDetay.y_hakem_2 || raporDetay.y_hakem_2.trim() === '' || raporDetay.y_hakem_2.includes('TIKLA')) { alert("⚠️ Lütfen 2. Yardımcı Hakem bilgisini giriniz!"); return; }
+            if (!raporDetay.y_hakem_1 || raporDetay.y_hakem_1.trim() === '' || raporDetay.y_hakem_1.includes('TIKLA')) eksikler.push("1. Yardımcı Hakem Adı");
+            if (!raporDetay.y_hakem_2 || raporDetay.y_hakem_2.trim() === '' || raporDetay.y_hakem_2.includes('TIKLA')) eksikler.push("2. Yardımcı Hakem Adı");
         }
         
         if (hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') {
-             if (!raporDetay.hakem_4 || raporDetay.hakem_4.trim() === '' || raporDetay.hakem_4.includes('TIKLA')) { alert("⚠️ Lütfen 4. Hakem bilgisini giriniz!"); return; }
+             if (!raporDetay.hakem_4 || raporDetay.hakem_4.trim() === '' || raporDetay.hakem_4.includes('TIKLA')) eksikler.push("4. Hakem Adı");
         }
 
+        // 2. GÖZLEMCİ KONTROLÜ
         if (hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') {
-             if (!raporDetay.gozlemci || raporDetay.gozlemci.trim() === '' || raporDetay.gozlemci.includes('TIKLA')) { alert("⚠️ Lütfen Müsabaka Gözlemcisi bilgisini giriniz!"); return; }
+             if (!raporDetay.gozlemci || raporDetay.gozlemci.trim() === '' || raporDetay.gozlemci.includes('TIKLA')) eksikler.push("Müsabaka Gözlemcisi Adı");
         }
 
-        // 2. GELİŞİM LİGİ ÖZEL KESİN ZORUNLULUKLAR
+        // 3. EMNİYET VE SAĞLIK KONTROLLERİ
+        if (!raporDetay.guvenlik || raporDetay.guvenlik === '') eksikler.push("Güvenlik (Emniyet) Durumu (VAR / YOK)");
+        if (!raporDetay.saglik || raporDetay.saglik === '') eksikler.push("Sağlık Memuru Durumu (VAR / YOK)");
+
+        // EĞER EKSİK VARSA İŞLEMİ DURDUR VE KOMİSERİ UYAR
+        if (eksikler.length > 0) {
+            alert("⛔ DİKKAT! RAPOR GÖNDERİLEMEZ.\n\nAşağıdaki alanları doldurmanız veya seçmeniz zorunludur:\n\n" + eksikler.map(e => "❌ " + e).join("\n"));
+            return; // İşlemi kes, veritabanına eksik kayıt gitmesin!
+        }
+
+        // 4. GELİŞİM LİGİ ÖZEL KESİN ZORUNLULUKLAR
         if (raporTurunuBelirle(islemYapilanMac.kategori_adi) === 'gelisim') {
             const gs = raporDetay.gelisim_sorular || {};
             const zorunluSorular = [
@@ -1720,7 +1720,6 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
               </div>
           </div>
       );
-
       return (
           <div id={`${prefix}-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
               <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
@@ -2147,54 +2146,6 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                           </div>
                       )}
                   </>
-              )}
-
-              {/* 🔥 YENİ GELİŞİM LİGİ FOTOĞRAF YÜKLEME ALANI (SADECE KOMİSER VERİ GİRİŞ EKRANI İÇİN) 🔥 */}
-              {prefix === 'aktif' && raporTuru === 'gelisim' && (
-                  <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 tff-no-print">
-                      <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
-                          <span className="text-3xl">📸</span>
-                          <div>
-                              <h3 className="font-black text-lg tracking-widest text-slate-800">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
-                              <p className="text-xs text-red-600 font-bold">Lütfen takım esamelerini ve teknik kadro listelerini okunaklı şekilde yükleyiniz. (Zorunludur)</p>
-                          </div>
-                      </div>
-
-                      <div className="space-y-8">
-                          {/* EV SAHİBİ */}
-                          <div>
-                              <h4 className="font-black text-sm bg-blue-100 text-blue-800 p-2 rounded border border-blue-200 mb-3 tracking-widest uppercase">🏠 EV SAHİBİ TAKIM: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                  <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_ev_esame" />
-                                  <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_ev_teknik" />
-                                  <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_ev_foto" />
-                                  <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_ev_yayin" />
-                              </div>
-                          </div>
-
-                          {/* MİSAFİR */}
-                          <div>
-                              <h4 className="font-black text-sm bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-3 tracking-widest uppercase">🚌 MİSAFİR TAKIM: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                  <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_mis_esame" />
-                                  <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_mis_teknik" />
-                                  <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_mis_foto" />
-                                  <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_mis_yayin" />
-                              </div>
-                          </div>
-
-                          {/* SAĞLIK VE SAHA */}
-                          <div>
-                              <h4 className="font-black text-sm bg-emerald-100 text-emerald-800 p-2 rounded border border-emerald-200 mb-3 tracking-widest uppercase">🏥 SAĞLIK VE SAHA GÖREVLİLERİ (Opsiyonel)</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                  <RenderGelisimUpload title="Doktor / Sağlıkçı (ATT) Kartı" imgKey="gelisim_saglik" />
-                                  <RenderGelisimUpload title="1. Sedyeci Kartı" imgKey="gelisim_sedyeci1" />
-                                  <RenderGelisimUpload title="2. Sedyeci Kartı" imgKey="gelisim_sedyeci2" />
-                                  <RenderGelisimUpload title="Saha Tanzim Görevlisi" imgKey="gelisim_saha_gor" />
-                              </div>
-                          </div>
-                      </div>
-                  </div>
               )}
 
           </div>
@@ -2792,8 +2743,8 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                               <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
                                                   {/* AKORDİYON BAŞLIĞI */}
                                                   <button 
-                                                    onClick={() => setAcikStatuAkordiyon(isAcik ? null : st.id)} 
-                                                    className={`w-full px-4 py-4 flex justify-between items-center transition-colors focus:outline-none ${isAcik ? 'bg-slate-900' : 'bg-slate-800 hover:bg-slate-700'}`}
+                                                      onClick={() => setAcikStatuAkordiyon(isAcik ? null : st.id)} 
+                                                      className={`w-full px-4 py-4 flex justify-between items-center transition-colors focus:outline-none ${isAcik ? 'bg-slate-900' : 'bg-slate-800 hover:bg-slate-700'}`}
                                                   >
                                                       <h3 className="text-white font-black uppercase tracking-wider text-sm text-left">{st.baslik || st.kategori_anahtar}</h3>
                                                       <span className={`text-emerald-400 font-black text-xl transform transition-transform duration-300 ${isAcik ? 'rotate-180' : ''}`}>▼</span>
@@ -3069,12 +3020,12 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                     </tbody>
                                 </table>
                           </div>
-                              </div>
-                          </div>
                       </div>
-                  )}
+                  </div>
+              </div>
+          )}
 
-                  <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-              </Fragment>
-          );
-        }
+          <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
+      </Fragment>
+  );
+}
