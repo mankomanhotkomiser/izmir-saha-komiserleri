@@ -2824,49 +2824,84 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
               </div>
           )}
 
-         {acikStatu && (
-              <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
-                  <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-slate-300 flex flex-col max-h-[90vh]">
-                      <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700 shrink-0">
-                          <h2 className="text-white font-black tracking-widest text-sm flex items-center gap-2"><span className="text-xl">ℹ️</span> {turkceBuyukHarf(acikStatu.baslik)}</h2>
-                          <button onClick={() => setAcikStatu(null)} className="text-slate-300 hover:text-white font-bold text-xl leading-none transition-colors">✕</button>
-                      </div>
-                      <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
-                          <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">🏃 YAŞ SINIRI</h4>
-                              <p className="text-sm font-bold text-slate-800 leading-snug">{acikStatu.yas_siniri || '-'}</p>
-                          </div>
-                          <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⏱️ MÜSABAKA SÜRESİ</h4><p className="text-sm font-black text-blue-700">{acikStatu.sure || '-'}</p></div>
-                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">☕ DEVRE ARASI</h4><p className="text-sm font-black text-slate-800">{acikStatu.devre_arasi || '-'}</p></div>
-                          </div>
-                          <div className="flex gap-4 border-b border-slate-200 pb-3">
-                              <div className="flex-1"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚽ TOP NUMARASI</h4><p className="text-sm font-black text-amber-600">{acikStatu.top || '-'}</p></div>
-                              <div className="flex-1 border-l border-slate-200 pl-4"><h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚖️ HAKEM SAYISI</h4><p className="text-sm font-black text-slate-800">{acikStatu.hakem || '-'}</p></div>
-                          </div>
-                          <div className="border-b border-slate-200 pb-3">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">🔄 OYUNCU DEĞİŞİKLİĞİ</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.degisiklik || '-'}</p>
-                          </div>
-                          <div className="pb-2">
-                              <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase">⚔️ BERABERLİK DURUMU</h4>
-                              <p className="text-sm font-semibold text-slate-700 leading-snug">{acikStatu.beraberlik || '-'}</p>
-                          </div>
-                          
-                          {/* İLERİDE EKLENECEK "EKSTRA BİLGİ/ÖZEL NOT" İÇİN GİZLİ ALTYAPI */}
-                          {acikStatu.ekstra_bilgi && (
-                              <div className="pt-3 border-t border-slate-200 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                                  <h4 className="text-[10px] font-bold text-amber-700 mb-1 uppercase">📌 ÖZEL NOT / EKSTRA BİLGİ</h4>
-                                  <p className="text-sm font-semibold text-amber-900 leading-snug">{acikStatu.ekstra_bilgi}</p>
-                              </div>
-                          )}
-                      </div>
-                      <div className="bg-slate-50 p-3 text-center border-t border-slate-200 shrink-0">
-                          <button onClick={() => setAcikStatu(null)} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg text-xs tracking-widest transition-colors w-full shadow-sm">ANLADIM, KAPAT</button>
-                      </div>
-                  </div>
-              </div>
-          )}
+         {/* 🔥 YENİ STATÜ VE ANAYASA PENCERESİ (KOMİSER EKRANI) 🔥 */}
+        {acikStatu && (
+            <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up">
+                <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                    
+                    {/* BAŞLIK */}
+                    <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
+                        <h2 className="text-base md:text-xl font-black text-indigo-400 tracking-widest uppercase flex items-center gap-2">
+                            <span className="text-2xl">📜</span> {acikStatu.baslik || acikStatu.kategori_anahtar}
+                        </h2>
+                        <button onClick={() => setAcikStatu(null)} className="text-slate-400 hover:text-white font-bold text-3xl leading-none transition-colors">✕</button>
+                    </div>
+
+                    {/* İÇERİK (4 BÖLÜMLÜ PROFESYONEL TASARIM) */}
+                    <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar space-y-6 bg-[#0f172a]">
+                        
+                        {/* 1. KADRO VE OYUNCU SAYILARI */}
+                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-md">
+                            <h3 className="bg-emerald-900/30 text-emerald-400 font-black text-xs uppercase tracking-widest p-3 border-b border-slate-700/50 flex items-center gap-2">
+                                <span className="text-lg">👥</span> 1. KADRO VE OYUNCU KURALLARI
+                            </h3>
+                            <div className="p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="bg-slate-900 p-2 rounded-lg border border-slate-700 text-center"><div className="text-[9px] text-slate-400 font-bold mb-1">OYUNCU SAYISI</div><div className="font-black text-white text-lg">{acikStatu.oyuncu_sayisi || '-'}</div></div>
+                                <div className="bg-slate-900 p-2 rounded-lg border border-slate-700 text-center"><div className="text-[9px] text-slate-400 font-bold mb-1">YEDEK OYUNCU</div><div className="font-black text-white text-lg">{acikStatu.yedek_oyuncu_sayisi || '-'}</div></div>
+                                <div className="bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 text-center"><div className="text-[9px] text-emerald-500 font-bold mb-1">EN AZ ÇIKIŞ (BAŞLAMA)</div><div className="font-black text-emerald-400 text-lg">{acikStatu.en_az_oyuncu_sahaya_cikis || '-'}</div></div>
+                                <div className="bg-red-950/30 p-2 rounded-lg border border-red-900/50 text-center"><div className="text-[9px] text-red-500 font-bold mb-1">TATİL OLMA SINIRI</div><div className="font-black text-red-500 text-lg">{acikStatu.en_az_oyuncu_tatil || '-'}</div></div>
+                            </div>
+                        </div>
+
+                        {/* 2. MAÇ BİLGİLERİ */}
+                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-md">
+                            <h3 className="bg-blue-900/30 text-blue-400 font-black text-xs uppercase tracking-widest p-3 border-b border-slate-700/50 flex items-center gap-2">
+                                <span className="text-lg">⏱️</span> 2. MÜSABAKA BİLGİLERİ
+                            </h3>
+                            <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2"><span className="text-[10px] text-slate-400 font-bold">MÜSABAKA SÜRESİ</span><span className="font-black text-white text-sm">{acikStatu.sure || '-'}</span></div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2"><span className="text-[10px] text-slate-400 font-bold">DEVRE ARASI</span><span className="font-black text-white text-sm">{acikStatu.devre_arasi || '-'}</span></div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2"><span className="text-[10px] text-slate-400 font-bold">HAKEM SAYISI</span><span className="font-black text-white text-sm">{acikStatu.hakem || '-'}</span></div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2"><span className="text-[10px] text-slate-400 font-bold">TOP NO</span><span className="font-black text-white text-sm">{acikStatu.top || '-'}</span></div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2 col-span-2"><span className="text-[10px] text-slate-400 font-bold">SAHA ÖLÇÜSÜ</span><span className="font-black text-white text-sm">{acikStatu.saha_olcusu || '-'}</span></div>
+                                <div className="flex justify-between items-center col-span-2"><span className="text-[10px] text-amber-500 font-bold">UZATMA / PENALTI DURUMU</span><span className="font-black text-amber-400 text-sm text-right">{acikStatu.beraberlik || '-'}</span></div>
+                            </div>
+                        </div>
+
+                        {/* 3. DEĞİŞİKLİK */}
+                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-md">
+                            <h3 className="bg-amber-900/30 text-amber-500 font-black text-xs uppercase tracking-widest p-3 border-b border-slate-700/50 flex items-center gap-2">
+                                <span className="text-lg">🔄</span> 3. OYUNCU DEĞİŞİKLİĞİ
+                            </h3>
+                            <div className="p-3 space-y-3">
+                                <div><span className="block text-[10px] text-slate-400 font-bold mb-1">DEĞİŞİKLİK UYGULAMASI</span><div className="bg-slate-900 p-3 rounded-lg border border-slate-700 text-white text-sm font-medium">{acikStatu.degisiklik_uygulamasi || '-'}</div></div>
+                                <div><span className="block text-[10px] text-slate-400 font-bold mb-1">OYUNCU DEĞİŞİKLİK SAYISI</span><div className="bg-slate-900 p-3 rounded-lg border border-slate-700 text-white text-sm font-medium">{acikStatu.degisiklik || '-'}</div></div>
+                            </div>
+                        </div>
+
+                        {/* 4. YAŞ VE YABANCI */}
+                        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden shadow-md">
+                            <h3 className="bg-purple-900/30 text-purple-400 font-black text-xs uppercase tracking-widest p-3 border-b border-slate-700/50 flex items-center gap-2">
+                                <span className="text-lg">⚠️</span> 4. YAŞ SINIRI VE YABANCI KURALI
+                            </h3>
+                            <div className="p-3 space-y-3">
+                                <div><span className="block text-[10px] text-slate-400 font-bold mb-1">YABANCI OYUNCU DURUMU</span><div className="bg-slate-900 p-3 rounded-lg border border-slate-700 text-white font-black">{acikStatu.yabanci_oyuncu || '-'}</div></div>
+                                <div><span className="block text-[10px] text-slate-400 font-bold mb-1">OYUNCU YAŞ ARALIĞI DETAYI</span><div className="bg-slate-900 p-4 rounded-lg border border-slate-700 text-white text-sm font-serif leading-relaxed whitespace-pre-wrap">{acikStatu.yas_siniri || '-'}</div></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* ALT BUTON */}
+                    <div className="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+                        <button onClick={() => setAcikStatu(null)} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl uppercase tracking-widest transition-colors shadow-lg flex items-center justify-center gap-2">
+                            <span>✅</span> ANLADIM, KAPAT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
           {arsivTamEkranMac && (
               <div className="fixed inset-0 bg-black/90 z-[120] flex flex-col backdrop-blur-sm">
