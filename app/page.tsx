@@ -1045,17 +1045,40 @@ const [kucukHeader, setKucukHeader] = useState(false);
       setEkRaporDosyalar(yeniDosyalar);
   }
   
-  const handleFotoYukle = (id: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoYukle = async (id: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
+      if (!file) return;
+
+      try {
+          // 🔥 ALTIN SIKIŞTIRMA MOTORU (WebP ve 250KB Limiti) 🔥
+          const ayarlar = {
+              maxSizeMB: 0.25,
+              maxWidthOrHeight: 1600,
+              useWebWorker: true,
+              fileType: 'image/webp',
+              initialQuality: 0.8
+          };
+
+          // Orijinal devasa dosyayı sıkıştırılmış WebP formatına çeviriyoruz
+          const sikistirilmisDosya = await imageCompression(file, ayarlar);
+
           const reader = new FileReader();
           reader.onload = (event) => { 
               if(event.target?.result) { 
+                  // Ekranda önizleme göstermek için
                   setEkRaporFotolar((prev: any) => ({ ...prev, [id]: event.target!.result as string })); 
-                  setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: file }));
+                  
+                  // 🔥 Supabase'e gidecek olan asıl SIKIŞTIRILMIŞ dosyayı bekleme odasına alıyoruz 🔥
+                  setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: sikistirilmisDosya }));
               } 
           };
-          reader.readAsDataURL(file);
+          
+          // Önizlemeyi de o küçücük sıkıştırılmış dosyadan oluşturuyoruz ki telefon kasmasın
+          reader.readAsDataURL(sikistirilmisDosya);
+
+      } catch (error) {
+          console.error("Sıkıştırma hatası:", error);
+          alert("Fotoğraf işlenirken bir sorun oluştu. Lütfen tekrar seçin.");
       }
   }
 
