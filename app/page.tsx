@@ -2646,7 +2646,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                               type="text" 
                               value={istatistikHakemArama} 
                               onChange={(e) => setIstatistikHakemArama(e.target.value)} 
-                              placeholder="Kiminle maça çıktım? (Hakem veya Gözlemci Adı Yazın...)" 
+                              placeholder="müsabaka ara)" 
                               className="w-full bg-slate-900 border-2 border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                           />
                           {istatistikHakemArama && (
