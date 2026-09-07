@@ -152,14 +152,37 @@ const getAyYil = (tarihMetni: any) => {
     } catch (e) { return null; }
 }
 
-const isBordroKategori = (kategori: any) => {
-    if (!kategori) return true; 
-    const kat = turkceBuyukHarf(kategori);
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KADIN') || kat.includes('KIZ')) {
-        return false; 
-    }
-    return true;
-}
+// 🔥 BORDRO (FİNANS) FİLTRESİ: KİMLER HAKEDİŞ ALACAK? 🔥
+  const isBordroKategori = (kategoriAdi: string) => {
+      if (!kategoriAdi) return false;
+      const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
+
+      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Bodrum'a Tatile Gidenler 🏖️)
+      const yasakliKelimeler = [
+          'U19', 'U18', 'U17', 'U16', 'U15', 'U14', 'U13', 'U12', 'U11', 'U10', 'U-', 
+          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'
+      ];
+      
+      for (let i = 0; i < yasakliKelimeler.length; i++) {
+          if (kat.includes(yasakliKelimeler[i])) return false; // Yasaklı kelime varsa anında reddet
+      }
+
+      // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR
+      if (
+          kat.includes('SÜPER LİG') || 
+          kat.includes('1. LİG') || kat.includes('1.LİG') ||
+          kat.includes('2. LİG') || kat.includes('2.LİG') ||
+          kat.includes('3. LİG') || kat.includes('3.LİG') ||
+          kat.includes('BAL') || kat.includes('BÖLGESEL') ||
+          kat.includes('AMATÖR') || kat.includes('İZMİR') || 
+          kat.includes('KUPA') // Ziraat Türkiye Kupası vs. ihtimaline karşı
+      ) {
+          return true;
+      }
+
+      // Eğer ne yasaklılarda ne de izinlilerde yoksa, işi şansa bırakma ve reddet!
+      return false; 
+  };
 
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
