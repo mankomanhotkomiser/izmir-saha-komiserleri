@@ -2760,10 +2760,20 @@ export default function AdminPage() {
                                 {aramaSonuclari.map((mac, i) => (
                                     <div 
                                         key={`arama-${i}`} 
-                                        // 🔥 SÜPER ZEKA: Tıklama motoru ve fare efekti eklendi 🔥
+                                        // 🔥 SÜPER ZEKA: Gerçek komutlarla tıklama motoru 🔥
                                         onClick={() => {
-                                            setRaporDetayMac(mac); // Detay penceresini açan fonksiyon
-                                            setAramaKelimesi(''); // (Opsiyonel) Tıkladıktan sonra arama kutusunu temizler
+                                            // 1. Tüm kategorileri açık hale getir (maç gizli kalmasın)
+                                            setKategoriKirmiziAcik(true);
+                                            setKategoriDisiplinAcik(true);
+                                            setKategoriOlaysizAcik(true);
+                                            setKategoriBekleyenAcik(true);
+                                            setKategoriIptalAcik(true);
+                                            
+                                            // 2. Seçilen maçın detay penceresini aç
+                                            setAcikMacId(mac.id);
+                                            
+                                            // 3. Arama kutusunu temizle ve ana ekrana dön
+                                            setGenelArama(''); 
                                         }}
                                         className="bg-slate-800 border border-slate-600 rounded-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-slate-700 transition-colors gap-3 cursor-pointer hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                                     >
