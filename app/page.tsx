@@ -2158,6 +2158,54 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                   </>
               )}
 
+              {/* 🔥 YENİ GELİŞİM LİGİ FOTOĞRAF YÜKLEME ALANI (SADECE KOMİSER VERİ GİRİŞ EKRANI İÇİN) 🔥 */}
+              {prefix === 'aktif' && raporTuru === 'gelisim' && (
+                  <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 tff-no-print">
+                      <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
+                          <span className="text-3xl">📸</span>
+                          <div>
+                              <h3 className="font-black text-lg tracking-widest text-slate-800">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
+                              <p className="text-xs text-red-600 font-bold">Lütfen takım esamelerini ve teknik kadro listelerini okunaklı şekilde yükleyiniz. (Zorunludur)</p>
+                          </div>
+                      </div>
+
+                      <div className="space-y-8">
+                          {/* EV SAHİBİ */}
+                          <div>
+                              <h4 className="font-black text-sm bg-blue-100 text-blue-800 p-2 rounded border border-blue-200 mb-3 tracking-widest uppercase">🏠 EV SAHİBİ TAKIM: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                  <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_ev_esame" />
+                                  <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_ev_teknik" />
+                                  <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_ev_foto" />
+                                  <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_ev_yayin" />
+                              </div>
+                          </div>
+
+                          {/* MİSAFİR */}
+                          <div>
+                              <h4 className="font-black text-sm bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-3 tracking-widest uppercase">🚌 MİSAFİR TAKIM: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                  <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_mis_esame" />
+                                  <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_mis_teknik" />
+                                  <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_mis_foto" />
+                                  <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_mis_yayin" />
+                              </div>
+                          </div>
+
+                          {/* SAĞLIK VE SAHA */}
+                          <div>
+                              <h4 className="font-black text-sm bg-emerald-100 text-emerald-800 p-2 rounded border border-emerald-200 mb-3 tracking-widest uppercase">🏥 SAĞLIK VE SAHA GÖREVLİLERİ (Opsiyonel)</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                  <RenderGelisimUpload title="Doktor / Sağlıkçı (ATT) Kartı" imgKey="gelisim_saglik" />
+                                  <RenderGelisimUpload title="1. Sedyeci Kartı" imgKey="gelisim_sedyeci1" />
+                                  <RenderGelisimUpload title="2. Sedyeci Kartı" imgKey="gelisim_sedyeci2" />
+                                  <RenderGelisimUpload title="Saha Tanzim Görevlisi" imgKey="gelisim_saha_gor" />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
           </div>
       );
   }
