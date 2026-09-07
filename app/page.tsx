@@ -192,14 +192,39 @@ const getAyYil = (tarihMetni: any) => {
     } catch (e) { return null; }
 }
 
-const isBordroKategori = (kategori: any) => {
-    if (!kategori) return true; 
-    const kat = turkceBuyukHarf(kategori);
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('KADIN') || kat.includes('KIZ')) {
-        return false; 
-    }
-    return true;
-}
+const isBordroKategori = (kategoriAdi: string) => {
+      if (!kategoriAdi) return false;
+      
+      // SÜPER ZEKA DOKUNUŞU: Kategori adındaki TÜM BOŞLUKLARI siliyoruz. 
+      const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
+
+      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR
+      const yasakliKelimeler = [
+          'U19', 'U18', 'U17', 'U16', 'U15', 'U14', 'U13', 'U12', 'U11', 'U10', 'U-', 
+          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'
+      ];
+      
+      for (let i = 0; i < yasakliKelimeler.length; i++) {
+          if (kat.includes(yasakliKelimeler[i])) return false;
+      }
+
+      // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR
+      if (
+          kat.includes('SÜPERLİG') || 
+          kat.includes('1.LİG') || 
+          kat.includes('2.LİG') || 
+          kat.includes('3.LİG') || 
+          kat.includes('BAL') || 
+          kat.includes('BÖLGESEL') || 
+          kat.includes('AMATÖR') || 
+          kat.includes('İZMİR') || 
+          kat.includes('KUPA') 
+      ) {
+          return true;
+      }
+
+      return false; 
+  };
 
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
