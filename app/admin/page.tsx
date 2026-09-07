@@ -2758,7 +2758,15 @@ export default function AdminPage() {
                                     Toplam {aramaSonuclari.length} sonuç bulundu
                                 </div>
                                 {aramaSonuclari.map((mac, i) => (
-                                    <div key={`arama-${i}`} className="bg-slate-800 border border-slate-600 rounded-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-slate-700 transition-colors gap-3">
+                                    <div 
+                                        key={`arama-${i}`} 
+                                        // 🔥 SÜPER ZEKA: Tıklama motoru ve fare efekti eklendi 🔥
+                                        onClick={() => {
+                                            setRaporDetayMac(mac); // Detay penceresini açan fonksiyon
+                                            setAramaKelimesi(''); // (Opsiyonel) Tıkladıktan sonra arama kutusunu temizler
+                                        }}
+                                        className="bg-slate-800 border border-slate-600 rounded-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-slate-700 transition-colors gap-3 cursor-pointer hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                                    >
                                         <div>
                                             <div className="flex flex-wrap items-center gap-2 mb-1">
                                                 <span className="bg-blue-900 text-blue-300 text-[10px] font-black px-2 py-0.5 rounded shadow">KOD: {mac.mac_kodu}</span>
