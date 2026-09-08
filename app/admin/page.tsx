@@ -2936,6 +2936,34 @@ export default function AdminPage() {
             const tBekleyen = gosterilenMaclar.filter((m:any) => !m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null');
             const sBekleyen = gosterilenMaclar.filter((m:any) => m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null');
 
+            // 1. ONAY BEKLEYENLERİ KOMİSERE GÖRE GRUPLA
+            const onayBekleyenKomiserlerMap = new Map();
+            tBekleyen.forEach((mac: any) => {
+                if (!onayBekleyenKomiserlerMap.has(mac.komiser_id)) {
+                    onayBekleyenKomiserlerMap.set(mac.komiser_id, {
+                        komiser_id: mac.komiser_id,
+                        isim: komiserIsmiBul(mac.komiser_id),
+                        maclar: []
+                    });
+                }
+                onayBekleyenKomiserlerMap.get(mac.komiser_id).maclar.push(mac);
+            });
+            const onayBekleyenKomiserler = Array.from(onayBekleyenKomiserlerMap.values()).sort((a:any,b:any) => a.isim.localeCompare(b.isim, 'tr-TR'));
+
+            // 2. SKOR BEKLEYENLERİ KOMİSERE GÖRE GRUPLA
+            const skorBekleyenKomiserlerMap = new Map();
+            sBekleyen.forEach((mac: any) => {
+                if (!skorBekleyenKomiserlerMap.has(mac.komiser_id)) {
+                    skorBekleyenKomiserlerMap.set(mac.komiser_id, {
+                        komiser_id: mac.komiser_id,
+                        isim: komiserIsmiBul(mac.komiser_id),
+                        maclar: []
+                    });
+                }
+                skorBekleyenKomiserlerMap.get(mac.komiser_id).maclar.push(mac);
+            });
+            const skorBekleyenKomiserler = Array.from(skorBekleyenKomiserlerMap.values()).sort((a:any,b:any) => a.isim.localeCompare(b.isim, 'tr-TR'));
+
             return (
                 <>
                     {/* 1. GÖREVİ ONAYLAMAYANLAR */}
@@ -2945,47 +2973,53 @@ export default function AdminPage() {
                                 <span className="text-xl">📢</span> GÖREVİ ONAYLAMAYANLAR
                             </h3>
                             <div className="flex items-center gap-3">
-                                <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">{tBekleyen.length} KİŞİ</span>
+                                <span className="bg-purple-600 text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full shadow">{onayBekleyenKomiserler.length} KİŞİ / {tBekleyen.length} MAÇ</span>
                                 <span className="text-purple-400 group-open:rotate-180 transition-transform text-lg">▼</span>
                             </div>
                         </summary>
                         <div className="p-4 space-y-4 bg-slate-900/50 cursor-default">
-                            {tBekleyen.map((mac: any) => {
-                                const komiserIsim = komiserIsmiBul(mac.komiser_id);
-                                return (
-                                    <div key={mac.id} className="bg-slate-800 border border-purple-800/50 p-4 rounded-lg shadow-md">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <span className="bg-purple-900/50 text-purple-300 text-[10px] font-black px-2 py-0.5 rounded tracking-widest border border-purple-700 shadow-sm">KOD: {mac.mac_kodu}</span>
-                                                <h4 className="text-white font-black text-sm mt-1 uppercase">{mac.ev_sahibi} - {mac.misafir_takim}</h4>
-                                                <p className="text-slate-400 text-xs font-bold mt-1">📍 {mac.saha} | {mac.kategori_adi}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] text-slate-500 font-bold mb-1">KOMİSER</div>
-                                                <div className="text-white font-black text-xs bg-slate-900 px-2 py-1 rounded border border-slate-700">{komiserIsim}</div>
-                                            </div>
+                            {onayBekleyenKomiserler.map((komiserObj: any, idx: number) => (
+                                <details key={`ok-${idx}`} className="bg-slate-800 border border-purple-800/50 rounded-lg shadow-md overflow-hidden group/komiser">
+                                    <summary className="p-3 bg-purple-900/30 hover:bg-purple-800/40 border-b border-purple-800/30 flex justify-between items-center cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                        <div className="font-black text-white text-xs sm:text-sm uppercase flex items-center gap-2">
+                                            <span className="text-purple-400">👤</span> {komiserObj.isim}
                                         </div>
-                                        
-                                        {!mac.skor_girildi && (
-                                            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-700">
-                                                <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
-                                                <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-purple-300 text-[10px] font-bold bg-purple-950 px-2 py-1 rounded shadow-inner">{komiserObj.maclar.length} Görev Bekliyor</span>
+                                            <span className="text-purple-500 group-open/komiser:rotate-180 transition-transform">▼</span>
+                                        </div>
+                                    </summary>
+                                    <div className="p-3 space-y-3 bg-slate-800/50">
+                                        {komiserObj.maclar.map((mac: any) => (
+                                            <div key={mac.id} className="bg-slate-900 border border-slate-700 p-3 rounded shadow-sm">
+                                                <div className="flex flex-col mb-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="bg-purple-900/50 text-purple-300 text-[9px] font-black px-2 py-0.5 rounded tracking-widest border border-purple-700 shadow-sm">KOD: {mac.mac_kodu}</span>
+                                                        <span className="text-slate-400 text-[10px] font-bold">📍 {mac.saha} | {mac.kategori_adi}</span>
+                                                    </div>
+                                                    <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
+                                                </div>
+                                                
+                                                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
+                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
+                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                </div>
 
-                                        {degisimAcikMacId === mac.id && !mac.skor_girildi && (
-                                            <div className="mt-2 p-2 bg-slate-950 rounded border border-blue-900/50 flex flex-col gap-2 animate-fade-in-down">
-                                                <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
-                                                    <option value="">-- Yeni Komiser Seç --</option>
-                                                    {tumKomiserler.sort((a:any,b:any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k:any) => <option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>)}
-                                                </select>
-                                                <button onClick={() => islemYapDevir(mac.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded mt-1 shadow-md">ONAYLA</button>
+                                                {degisimAcikMacId === mac.id && (
+                                                    <div className="mt-2 p-2 bg-slate-950 rounded border border-blue-900/50 flex flex-col gap-2 animate-fade-in-down">
+                                                        <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
+                                                            <option value="">-- Yeni Komiser Seç --</option>
+                                                            {tumKomiserler.sort((a:any,b:any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k:any) => <option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>)}
+                                                        </select>
+                                                        <button onClick={() => islemYapDevir(mac.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded mt-1 shadow-md">ONAYLA</button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
-                                )
-                            })}
-                            {tBekleyen.length === 0 && <div className="text-center text-slate-500 text-xs font-bold py-4">Bekleyen maç yok.</div>}
+                                </details>
+                            ))}
+                            {onayBekleyenKomiserler.length === 0 && <div className="text-center text-slate-500 text-xs font-bold py-4">Bekleyen komiser yok.</div>}
                         </div>
                     </details>
 
@@ -2996,47 +3030,53 @@ export default function AdminPage() {
                                 <span className="text-xl">⏳</span> SKOR BEKLENEN MAÇLAR
                             </h3>
                             <div className="flex items-center gap-3">
-                                <span className="bg-slate-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">{sBekleyen.length} MAÇ</span>
+                                <span className="bg-slate-600 text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full shadow">{skorBekleyenKomiserler.length} KİŞİ / {sBekleyen.length} MAÇ</span>
                                 <span className="text-slate-400 group-open:rotate-180 transition-transform text-lg">▼</span>
                             </div>
                         </summary>
                         <div className="p-4 space-y-4 bg-slate-900/50 cursor-default">
-                            {sBekleyen.map((mac: any) => {
-                                const komiserIsim = komiserIsmiBul(mac.komiser_id);
-                                return (
-                                    <div key={mac.id} className="bg-slate-800 border border-slate-700 p-4 rounded-lg shadow-md">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <span className="bg-slate-700 text-slate-300 text-[10px] font-black px-2 py-0.5 rounded tracking-widest border border-slate-600 shadow-sm">KOD: {mac.mac_kodu}</span>
-                                                <h4 className="text-white font-black text-sm mt-1 uppercase">{mac.ev_sahibi} - {mac.misafir_takim}</h4>
-                                                <p className="text-slate-400 text-xs font-bold mt-1">📍 {mac.saha} | {mac.kategori_adi}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] text-slate-500 font-bold mb-1">KOMİSER</div>
-                                                <div className="text-white font-black text-xs bg-slate-900 px-2 py-1 rounded border border-slate-700">{komiserIsim}</div>
-                                            </div>
+                            {skorBekleyenKomiserler.map((komiserObj: any, idx: number) => (
+                                <details key={`sk-${idx}`} className="bg-slate-800 border border-slate-700 rounded-lg shadow-md overflow-hidden group/skor">
+                                    <summary className="p-3 bg-slate-700/30 hover:bg-slate-700/50 border-b border-slate-600/30 flex justify-between items-center cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                        <div className="font-black text-white text-xs sm:text-sm uppercase flex items-center gap-2">
+                                            <span className="text-slate-400">👤</span> {komiserObj.isim}
                                         </div>
-                                        
-                                        {!mac.skor_girildi && (
-                                            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-700">
-                                                <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
-                                                <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-slate-300 text-[10px] font-bold bg-slate-900 px-2 py-1 rounded shadow-inner">{komiserObj.maclar.length} Skor Bekliyor</span>
+                                            <span className="text-slate-500 group-open/skor:rotate-180 transition-transform">▼</span>
+                                        </div>
+                                    </summary>
+                                    <div className="p-3 space-y-3 bg-slate-800/50">
+                                        {komiserObj.maclar.map((mac: any) => (
+                                            <div key={mac.id} className="bg-slate-900 border border-slate-700 p-3 rounded shadow-sm">
+                                                <div className="flex flex-col mb-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="bg-slate-700 text-slate-300 text-[9px] font-black px-2 py-0.5 rounded tracking-widest border border-slate-600 shadow-sm">KOD: {mac.mac_kodu}</span>
+                                                        <span className="text-slate-400 text-[10px] font-bold">📍 {mac.saha} | {mac.kategori_adi}</span>
+                                                    </div>
+                                                    <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
+                                                </div>
+                                                
+                                                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
+                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
+                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                </div>
 
-                                        {degisimAcikMacId === mac.id && !mac.skor_girildi && (
-                                            <div className="mt-2 p-2 bg-slate-950 rounded border border-blue-900/50 flex flex-col gap-2 animate-fade-in-down">
-                                                <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
-                                                    <option value="">-- Yeni Komiser Seç --</option>
-                                                    {tumKomiserler.sort((a:any,b:any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k:any) => <option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>)}
-                                                </select>
-                                                <button onClick={() => islemYapDevir(mac.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded mt-1 shadow-md">ONAYLA</button>
+                                                {degisimAcikMacId === mac.id && (
+                                                    <div className="mt-2 p-2 bg-slate-950 rounded border border-blue-900/50 flex flex-col gap-2 animate-fade-in-down">
+                                                        <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
+                                                            <option value="">-- Yeni Komiser Seç --</option>
+                                                            {tumKomiserler.sort((a:any,b:any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k:any) => <option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>)}
+                                                        </select>
+                                                        <button onClick={() => islemYapDevir(mac.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded mt-1 shadow-md">ONAYLA</button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
-                                )
-                            })}
-                            {sBekleyen.length === 0 && <div className="text-center text-slate-500 text-xs font-bold py-4">Skor beklenen maç yok.</div>}
+                                </details>
+                            ))}
+                            {skorBekleyenKomiserler.length === 0 && <div className="text-center text-slate-500 text-xs font-bold py-4">Skor beklenen maç yok.</div>}
                         </div>
                     </details>
                 </>
