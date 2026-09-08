@@ -2131,22 +2131,35 @@ export default function AdminPage() {
       `}} />
 
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-xl tff-no-print">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl hidden md:block">🇹🇷</span>
-            <div>
-              <h1 className="font-black text-lg md:text-xl text-white tracking-widest uppercase">İZMİR SAHA KOMİSERLERİ OPERASYON MERKEZİ</h1>
-              <p className="text-slate-400 text-xs font-mono">TFF İZMİR SAHA KOMİSERLERİ ({globalAktifHaftaNo}. HAFTA YÖNETİMİ)</p>
+        <div className="max-w-7xl mx-auto px-3 py-2 md:px-4 md:py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
+          
+          {/* MOBİL VE MASAÜSTÜ ÜST SATIR */}
+          <div className="flex items-center justify-between w-full md:w-auto">
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="text-2xl md:text-3xl hidden md:block">🇹🇷</span>
+              <div>
+                <h1 className="font-black text-sm md:text-xl text-white tracking-widest uppercase leading-none">İZMİR SAHAKOM <span className="hidden md:inline">OPERASYON MERKEZİ</span></h1>
+                <p className="text-slate-400 text-[10px] md:text-xs font-mono mt-0.5">TFF YÖNETİM ({globalAktifHaftaNo}. HAFTA)</p>
+              </div>
+            </div>
+            {/* MOBİL İÇİN HIZLI ÇIKIŞ/YENİLE (Sağ üste sıkıştırılmış) */}
+            <div className="flex items-center gap-1 md:hidden">
+                <button onClick={() => veriGetir(false)} className="bg-slate-800 text-slate-300 border border-slate-700 px-2 py-1.5 rounded text-[10px] font-bold">🔄</button>
+                <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 text-red-400 border border-red-900/50 px-2 py-1.5 rounded text-[10px] font-bold">ÇIKIŞ</button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-             <button onClick={() => setFinansModalAcik(true)} className="bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">💰 FİNANS MERKEZİ</button>
-             <button onClick={() => setBultenModalAcik(true)} className="bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">📋 HAFTALIK BÜLTEN</button>
-             <button onClick={() => setExcelModalAcik(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">📥 EXCEL BÜLTEN YÜKLE</button>
-             <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM YÖNETİMİ</button>
-             <button onClick={mukerrerleriTemizle} className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 MÜKERRER TEMİZLE</button>
-             <button onClick={() => veriGetir(false)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">🔄 YENİLE</button>
-             <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors">ÇIKIŞ YAP</button>
+
+          {/* BUTONLAR (Mobilde yatay kaydırılabilir, Masaüstünde wrap) */}
+          <div className="flex overflow-x-auto md:flex-wrap items-center gap-2 w-full md:w-auto pb-1 md:pb-0 custom-scrollbar flex-nowrap md:justify-end">
+             <button onClick={() => setFinansModalAcik(true)} className="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">💰 FİNANS</button>
+             <button onClick={() => setBultenModalAcik(true)} className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">📋 BÜLTEN</button>
+             <button onClick={() => setExcelModalAcik(true)} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">📥 EXCEL</button>
+             <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM</button>
+             <button onClick={mukerrerleriTemizle} className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 TEMİZLE</button>
+             
+             {/* MASAÜSTÜ İÇİN YENİLE VE ÇIKIŞ */}
+             <button onClick={() => veriGetir(false)} className="shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors hidden md:block">🔄 YENİLE</button>
+             <button onClick={() => setGirisYapildi(false)} className="shrink-0 bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors hidden md:block">ÇIKIŞ YAP</button>
           </div>
         </div>
       </header>
