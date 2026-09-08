@@ -2878,20 +2878,47 @@ export default function AdminPage() {
                 </div>
             )}
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-blue-500 shadow-lg relative overflow-hidden group">
-                  <h3 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">TOPLAM MAÇ</h3><div className="text-3xl md:text-4xl font-black text-white">{gosterilenMaclar.filter(m => m.mac_durumu !== 'iptal_edildi').length}</div>
-              </div>
-              <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-red-500 shadow-lg relative overflow-hidden group">
-                  <h3 className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-1">EMNİYETLİK OLAYLI</h3><div className="text-3xl md:text-4xl font-black text-red-500">{emniyetlikMaclar.length}</div>
-              </div>
-              <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-amber-500 shadow-lg relative overflow-hidden group">
-                  <h3 className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-1">TEKNİK DİSİPLİN</h3><div className="text-3xl md:text-4xl font-black text-amber-500">{teknikMaclar.length}</div>
-              </div>
-              <div className="bg-slate-800 rounded-xl p-4 md:p-6 border-l-4 border-purple-500 shadow-lg relative overflow-hidden group">
-                  <h3 className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-1">TEBELLÜĞ BEKLEYEN</h3><div className="text-3xl md:text-4xl font-black text-purple-400">{bekleyenMaclar.length}</div>
-              </div>
-            </div>
+            {/* 🔥 YENİ 6'LI OPERASYON RADAR PANELİ 🔥 */}
+            {(() => {
+                const onayBekleyenKomiserSayisi = new Set(gosterilenMaclar.filter((m:any) => !m.tebellug_edildi && !m.skor_girildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null').map((m:any) => m.komiser_id)).size;
+                const akibetiBeklenenMacSayisi = gosterilenMaclar.filter((m:any) => !m.skor_girildi && m.mac_durumu !== 'iptal_edildi' && m.komiser_id && m.komiser_id !== 'null').length;
+                const toplamMacSayisi = gosterilenMaclar.filter((m:any) => m.mac_durumu !== 'iptal_edildi').length;
+                
+                return (
+                    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-4 mb-6">
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-blue-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">TOPLAM</h3>
+                            <div className="text-2xl md:text-3xl font-black text-white">{toplamMacSayisi}</div>
+                            <div className="text-[9px] text-blue-400 font-bold mt-1 tracking-widest uppercase">MÜSABAKA</div>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-red-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">EMNİYETLİK</h3>
+                            <div className="text-2xl md:text-3xl font-black text-red-500">{emniyetlikMaclar.length}</div>
+                            <div className="text-[9px] text-red-400 font-bold mt-1 tracking-widest uppercase">MÜSABAKA</div>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-amber-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">TEKNİK DİS.</h3>
+                            <div className="text-2xl md:text-3xl font-black text-amber-500">{teknikMaclar.length}</div>
+                            <div className="text-[9px] text-amber-400 font-bold mt-1 tracking-widest uppercase">MÜSABAKA</div>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-purple-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">UYARI BEKLEYEN</h3>
+                            <div className="text-2xl md:text-3xl font-black text-purple-400">{onayBekleyenKomiserSayisi}</div>
+                            <div className="text-[9px] text-purple-400 font-bold mt-1 tracking-widest uppercase">SAHA KOMİSERİ</div>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-emerald-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">AKIBETİ BEK.</h3>
+                            <div className="text-2xl md:text-3xl font-black text-emerald-400">{akibetiBeklenenMacSayisi}</div>
+                            <div className="text-[9px] text-emerald-500 font-bold mt-1 tracking-widest uppercase">MÜSABAKA</div>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-4 border-b-4 border-slate-500 shadow-lg flex flex-col justify-between hover:bg-slate-700 transition-colors">
+                            <h3 className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mb-1 truncate">ATANMAYAN</h3>
+                            <div className="text-2xl md:text-3xl font-black text-slate-400">{atanmayanMaclar.length}</div>
+                            <div className="text-[9px] text-slate-500 font-bold mt-1 tracking-widest uppercase">BOŞ GÖREV</div>
+                        </div>
+                    </div>
+                )
+            })()}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
