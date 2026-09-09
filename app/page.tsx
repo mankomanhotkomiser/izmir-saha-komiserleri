@@ -48,7 +48,7 @@ const getAnaKategori = (kategori: any) => {
       
       if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
       
-      if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
+      if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
       
       return 'amator';
   }
@@ -86,8 +86,8 @@ const getHakemGosterimModu = (kategori: any) => {
         return 'uc_hakem';
     }
     
-    // 4. PGL ve PAF LİGLERİ
-    if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('PAF')) {
+    // 4. PAF LİGLERİ
+    if (kat.includes('PAF')) {
         return 'dort_ve_gozlemci';
     }
     
@@ -1765,12 +1765,25 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
           let sagLogo = "/gelisim-logo.png"; 
 
           if (katAdi.includes('KADIN') || katAdi.includes('KIZ')) {
-              ustBaslik = "KADIN LİGLERİ";
-              sagLogo = "/kadin-logo.png";
-          } else if (katAdi.includes('PGL') || katAdi.includes('PROFESYONELLİĞE GEÇİŞ')) {
-              ustBaslik = "PROFESYONELLİĞE GEÇİŞ LİGİ";
-              sagLogo = "/pgl-logo.png";
-          }
+              // Kadınlar Ligi Akıllı Logo ve Başlık Seçici
+              if (katAdi.includes('SÜPER')) {
+                  ustBaslik = "KADINLAR SÜPER LİGİ";
+                  sagLogo = "/kadin-super.png";
+              } else if (katAdi.includes('1. LİG') || katAdi.includes('1.LİG') || katAdi.includes('BİRİNCİ')) {
+                  ustBaslik = "KADINLAR 1. LİGİ";
+                  sagLogo = "/kadin-1.png";
+              } else if (katAdi.includes('2. LİG') || katAdi.includes('2.LİG') || katAdi.includes('İKİNCİ')) {
+                  ustBaslik = "KADINLAR 2. LİGİ";
+                  sagLogo = "/kadin-2.png";
+              } else if (katAdi.includes('3. LİG') || katAdi.includes('3.LİG') || katAdi.includes('ÜÇÜNCÜ')) {
+                  ustBaslik = "KADINLAR 3. LİGİ";
+                  sagLogo = "/kadin-3.png";
+              } else {
+                  ustBaslik = "KADIN LİGLERİ";
+                  sagLogo = "/kadin-logo.png"; // Kategori tam belli değilse genel kadın logosu
+              }
+          } 
+          // PGL tamamen sistemden sökülüp atıldı!
 
           return (
               <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
