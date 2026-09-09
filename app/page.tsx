@@ -2275,7 +2275,9 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                       <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
                           <span className="text-3xl">📸</span>
                           <div>
-                              <h3 className="font-black text-lg tracking-widest text-slate-800">GELİŞİM LİGİ RESMİ EVRAKLARI</h3>
+                              <h3 className="font-black text-lg tracking-widest text-slate-800">
+    {String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR').includes('KADIN') || String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR').includes('KIZ') ? 'KADIN FUTBOL LİGLERİ' : 'GELİŞİM LİGİ'} RESMİ EVRAKLARI
+</h3>
                               <p className="text-xs text-red-600 font-bold">Lütfen takım esamelerini ve teknik kadro listelerini okunaklı şekilde yükleyiniz. (Zorunludur)</p>
                           </div>
                       </div>

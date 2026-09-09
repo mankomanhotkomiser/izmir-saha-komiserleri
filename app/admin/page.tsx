@@ -1459,17 +1459,44 @@ export default function AdminPage() {
       const hakemModu = getHakemGosterimModu(mac.kategori_adi);
 
       // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
-      const RenderA4Header = () => (
-          <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
-              <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-              <div className="text-center flex-col items-center justify-center w-2/4">
-                  <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                  <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
-                  <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
+      const RenderA4Header = () => {
+          const katAdi = String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR');
+          let ustBaslik = "GELİŞİM LİGLERİ";
+          let sagLogo = "/gelisim-logo.png"; 
+
+          if (katAdi.includes('KADIN') || katAdi.includes('KIZ')) {
+              // Kadınlar Ligi Akıllı Logo ve Başlık Seçici (Admin)
+              if (katAdi.includes('SÜPER')) {
+                  ustBaslik = "KADINLAR SÜPER LİGİ";
+                  sagLogo = "/kadin-super.png";
+              } else if (katAdi.includes('1. LİG') || katAdi.includes('1.LİG') || katAdi.includes('BİRİNCİ')) {
+                  ustBaslik = "KADINLAR 1. LİGİ";
+                  sagLogo = "/kadin-1.png";
+              } else if (katAdi.includes('2. LİG') || katAdi.includes('2.LİG') || katAdi.includes('İKİNCİ')) {
+                  ustBaslik = "KADINLAR 2. LİGİ";
+                  sagLogo = "/kadin-2.png";
+              } else if (katAdi.includes('3. LİG') || katAdi.includes('3.LİG') || katAdi.includes('ÜÇÜNCÜ')) {
+                  ustBaslik = "KADINLAR 3. LİGİ";
+                  sagLogo = "/kadin-3.png";
+              } else {
+                  ustBaslik = "KADIN LİGLERİ";
+                  sagLogo = "/kadin-logo.png";
+              }
+          } 
+          // Admin panelinden de PGL tamamen imha edildi!
+
+          return (
+              <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
+                  <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+                  <div className="text-center flex-col items-center justify-center w-2/4">
+                      <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                      <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
+                      <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">MÜSABAKA SAHA KOMİSERİ RAPORU</h3>
+                  </div>
+                  <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
               </div>
-              <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-          </div>
-      );
+          );
+      };
 
       const RenderA4MatchInfo = () => (
           <>
