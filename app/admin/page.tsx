@@ -2135,7 +2135,24 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700">
-          <div className="text-center mb-8"><span className="text-5xl block mb-4">🛡️</span><h1 className="text-2xl font-black text-white tracking-widest uppercase">YÖNETİM GİRİŞİ</h1></div>
+          {/* 🔥 YENİ RESMİ İZMİR ŞUBE YÖNETİM LOGOSU VE BAŞLIĞI 🔥 */}
+            <div className="flex justify-center mb-6">
+                <div className="w-32 h-32 bg-white rounded-full shadow-[0_10px_40px_rgba(220,38,38,0.3)] border-4 border-[#dc2626] -mt-20 flex flex-col items-center justify-center relative overflow-hidden group">
+                    <img src="/dernek-logo.png" crossOrigin="anonymous" alt="TFSKD İzmir" className="w-[85%] h-[85%] object-contain mb-3 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute bottom-0 w-full bg-[#dc2626] text-center py-1.5 border-t border-red-800">
+                        <span className="text-[10px] text-white font-black tracking-widest uppercase shadow-sm">İZMİR</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="text-center mb-8">
+                <h1 className="text-sm md:text-base font-black tracking-widest text-white leading-snug mb-1">
+                    TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
+                </h1>
+                <h2 className="text-xs md:text-sm font-black text-red-500 tracking-widest border-b border-slate-700 pb-3">
+                    İZMİR ŞUBE YÖNETİMİ GİRİŞİ
+                </h2>
+            </div>
           <form onSubmit={girisKontrol} className="space-y-6">
             <div><input type="password" value={sifre} onChange={(e: any) => setSifre(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 text-center tracking-[0.5em] font-mono text-xl focus:outline-none focus:border-red-500 transition-colors" placeholder="••••••••" /></div>
             {hata && <p className="text-red-500 text-sm font-bold text-center">{hata}</p>}
