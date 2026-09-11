@@ -1672,22 +1672,36 @@ export default function AdminPage() {
 
                   <h3 className="font-bold text-sm mb-1 uppercase shrink-0">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-4 shrink-0">
-                      <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                      {hakemModu !== 'tek_hakem' && (
+                      {/* 1. BAŞLIK */}
+                              <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
+
+                              {/* 2. ANA HAKEM */}
+                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+
+                              {/* 3. YARDIMCI HAKEMLER */}
+                              {hakemModu !== 'tek_hakem' && (
                                   <>
                                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                                   </>
                               )}
 
-                              {hakemModu === 'dort_ve_gozlemci' && (
+                              {/* 4. 4.HAKEM */}
+                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
                                   <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               )}
 
+                              {/* 5. GÖZLEMCİ */}
                               {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
                                   <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               )}
-                      <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ''} className="w-full outline-none bg-transparent uppercase pointer-events-none" /></div></div>
+                                  <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+                              
+                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
+                                  <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+                              )}
+    <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+
                   </div>
 
                   <div className="border border-black text-xs font-bold mb-4 shrink-0 w-3/4">
