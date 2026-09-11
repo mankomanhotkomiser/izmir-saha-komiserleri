@@ -1679,7 +1679,7 @@ export default function AdminPage() {
                               <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
 
                               {/* 3. YARDIMCI HAKEMLER */}
-                              {hakemModu !== 'tek_hakem' && (
+                              {String(hakemModu) !== 'tek_hakem' && (
                                   <>
                                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_1 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                                       <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.y_hakem_2 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
@@ -1687,19 +1687,16 @@ export default function AdminPage() {
                               )}
 
                               {/* 4. 4.HAKEM */}
-                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
+                              {(String(hakemModu) === 'dort_ve_gozlemci' || String(hakemModu) === 'dort_kutu') && (
                                   <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               )}
 
                               {/* 5. GÖZLEMCİ */}
-                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
+                              {(String(hakemModu) === 'dort_ve_gozlemci' || String(hakemModu) === 'uc_ve_gozlemci') && (
                                   <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               )}
-                                  <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.hakem_4 || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+                                  <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               
-                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
-                                  <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
-                              )}
     <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
 
                   </div>
