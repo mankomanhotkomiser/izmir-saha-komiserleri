@@ -1975,7 +1975,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                           <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.hakem_4} onChange={(v) => raporDetayGuncelle('hakem_4', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.hakem_4)}</span>}</div></div>
                       )}
 
-                      {hakemModu === 'dort_ve_gozlemci' && (
+                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
                           <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="gozlemci" deger={safeRaporDetay?.gozlemci} onChange={(v) => raporDetayGuncelle('gozlemci', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.gozlemci)}</span>}</div></div>
                       )}
                   </div>
