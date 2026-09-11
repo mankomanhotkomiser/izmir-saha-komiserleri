@@ -1695,7 +1695,7 @@ export default function AdminPage() {
                               {(String(hakemModu) === 'dort_ve_gozlemci' || String(hakemModu) === 'uc_ve_gozlemci') && (
                                   <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
                               )}
-                                  <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
+                                  
                               
     <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5"><input readOnly type="text" value={safeRaporDetay?.gozlemci || ""} className="w-full outline-none bg-transparent text-slate-800 font-black block" /></div></div>
 
