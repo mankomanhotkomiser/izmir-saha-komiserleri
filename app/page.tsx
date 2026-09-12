@@ -198,8 +198,9 @@ const isBordroKategori = (kategoriAdi: string) => {
       // SÜPER ZEKA DOKUNUŞU: Kategori adındaki TÜM BOŞLUKLARI siliyoruz. 
       const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
 
-      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Gelişim, Akademi, Paf, Kadın/Kız Ligleri)
+      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR
       const yasakliKelimeler = [
+          'U19', 'U18', 'U17', 'U16', 'U15', 'U14', 'U13', 'U12', 'U11', 'U10', 'U-', 
           'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'
       ];
       
@@ -207,7 +208,7 @@ const isBordroKategori = (kategoriAdi: string) => {
           if (kat.includes(yasakliKelimeler[i])) return false;
       }
 
-      // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR (Profesyonel, Amatör, İzmir ve Yerel U Ligleri)
+      // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR
       if (
           kat.includes('SÜPERLİG') || 
           kat.includes('1.LİG') || 
@@ -217,12 +218,7 @@ const isBordroKategori = (kategoriAdi: string) => {
           kat.includes('BÖLGESEL') || 
           kat.includes('AMATÖR') || 
           kat.includes('İZMİR') || 
-          kat.includes('KUPA') ||
-          kat.includes('ZİRAAT') ||
-          kat.includes('PROFESYONEL') ||
-          kat.includes('U1') || // U19, U18, U17, ..., U10 (Yerel Ligler)
-          kat.includes('U2') || // U21 vb.
-          kat.includes('U-')
+          kat.includes('KUPA') 
       ) {
           return true;
       }
