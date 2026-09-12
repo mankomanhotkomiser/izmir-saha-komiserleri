@@ -346,6 +346,21 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
+    // --- TUSOM AKILLI ŞEHİR RADARI ---
+  const getAktifSehir = () => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname.includes('.')) {
+        const subdomain = hostname.split('.')[0];
+        if (subdomain !== 'www' && subdomain !== 'localhost' && subdomain !== '127') {
+          return subdomain.toLowerCase();
+        }
+      }
+    }
+    return 'izmir'; 
+  };
+  const aktifSehir = getAktifSehir();
+  // ---------------------------------
     const hizliSifreTalebi = async () => {
       const sicil = window.prompt("Şifre sıfırlama talebi için lütfen SİCİL NUMARANIZI giriniz:");
       if (!sicil) return; 
@@ -355,6 +370,8 @@ export default function Home() {
           girilenSicil = '35' + girilenSicil; 
       }
 
+    const aktifSehir = getAktifSehir();
+  // ---------------------------------
       const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için İzmir Şube Yönetimine 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
       
       if (!onay) return;
@@ -653,10 +670,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
             if (isMazeretWindowOpen()) {
                 const hedefHafta = globalAktifHaftaNo + 1;
                 const { data, error } = await supabase
-                    .from('mazeretler')
-                    .select('id')
-                    .eq('komiser_id', seciliKomiser.komiser_id)
-                    .eq('hafta_no', hedefHafta);
+          .from('mazeretler')
+          .select('id')
+          .eq('komiser_id', seciliKomiser.komiser_id)
+          .eq('hafta_no', hedefHafta)
+          .eq('sehir', aktifSehir);
                 
                 if (isMounted) {
                     if (!error && (!data || data.length === 0)) { setZorunluMazeret(true); } 
@@ -791,7 +809,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       try {
         let tumMaclarGecici: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
         while (veriKaldimi && aktif) {
-          const { data, error } = await supabase.from('musabakalar').select('*').range(sayfa * limit, (sayfa + 1) * limit - 1)
+          const { data, error } = await supabase.from('musabakalar').select('*').eq('sehir', aktifSehir).range(sayfa * limit, (sayfa + 1) * limit - 1)
           if (error) break;
           if (data && Array.isArray(data) && data.length > 0) {
             tumMaclarGecici = [...tumMaclarGecici, ...data]
