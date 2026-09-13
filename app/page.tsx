@@ -2008,21 +2008,21 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                   <h3 className="font-bold text-sm mb-1">GÖREVLİLER</h3>
                   <div className="border border-black text-xs font-bold mb-6">
                       <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.hakem} onChange={(v) => raporDetayGuncelle('hakem', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.hakem)}</span>}</div></div>
+                      <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}</div></div>
                       
                       {hakemModu !== 'tek_hakem' && (
                           <>
-                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.y_hakem_1} onChange={(v) => raporDetayGuncelle('y_hakem_1', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.y_hakem_1)}</span>}</div></div>
-                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.y_hakem_2} onChange={(v) => raporDetayGuncelle('y_hakem_2', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.y_hakem_2)}</span>}</div></div>
+                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div></div>
+                              <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div></div>
                           </>
                       )}
 
-                      {hakemModu === 'dort_ve_gozlemci' && (
-                          <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.hakem_4} onChange={(v) => raporDetayGuncelle('hakem_4', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.hakem_4)}</span>}</div></div>
+                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
+                          <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div></div>
                       )}
 
-                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'uc_ve_gozlemci') && (
-                          <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1.5">{prefix === 'aktif' ? <HakemSecici tip="gozlemci" deger={safeRaporDetay?.gozlemci} onChange={(v) => raporDetayGuncelle('gozlemci', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full" /> : <span className="w-full outline-none bg-transparent text-slate-800 font-black block">{temizHakem(safeRaporDetay?.gozlemci)}</span>}</div></div>
+                      {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
+                          <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div></div>
                       )}
                   </div>
 
