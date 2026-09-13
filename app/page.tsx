@@ -1763,86 +1763,62 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
       const gelisimPrintFotolar = prefix === 'aktif' 
           ? Object.keys(ekRaporFotolar).filter((k: string) => k.startsWith('gelisim_')).reduce((obj: any, key: string) => { obj[key] = ekRaporFotolar[key]; return obj; }, {})
           : (safeRaporDetay.gelisim_fotolar || {});
-// 🔥 YENİ HAKEM VE GÖZLEMCİ SEÇİCİ (TAM EKRAN SİMSİYAH MOBİL TASARIM) 🔥
+// 🔥 YENİ HAKEM VE GÖZLEMCİ SEÇİCİ (NATIVE AÇILIR KUTU VE ELLE GİRİŞ) 🔥
       const HakemSecici = ({ tip, deger, onChange, placeholder, extraClass }: { tip: 'hakem' | 'gozlemci', deger: string, onChange: (val: string) => void, placeholder: string, extraClass?: string }) => {
-          const [acik, setAcik] = useState(false);
-          const [arama, setArama] = useState(''); 
           const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
+          const [elleGirModu, setElleGirModu] = useState(false);
 
-          const gorunenDeger = deger || '';
-          const filtrelenmis = (liste || []).filter((item: string) => item.toLocaleUpperCase('tr-TR').includes(arama.toLocaleUpperCase('tr-TR')));
+          // Eğer seçili değer listede yoksa, otomatik olarak elle girme kutusunu açar
+          useEffect(() => {
+              if (deger && !liste.includes(deger) && deger !== 'ELLE_GIR') {
+                  setElleGirModu(true);
+              }
+          }, [deger, liste]);
 
+          // Eğer "Elle Gir" modu açıksa bu kutu görünür
+          if (elleGirModu) {
+              return (
+                  <div className={`flex gap-1 items-center ${extraClass || 'w-full'}`}>
+                      <input 
+                          type="text" 
+                          value={deger} 
+                          onChange={(e) => onChange(turkceBuyukHarf(e.target.value))} 
+                          placeholder="İsim yazınız..." 
+                          className="w-full text-center outline-none bg-yellow-50 border-2 border-slate-300 py-1.5 font-black text-slate-800 rounded-lg text-xs"
+                          autoFocus
+                      />
+                      <button 
+                          type="button" 
+                          onClick={() => { setElleGirModu(false); onChange(''); }} 
+                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1.5 rounded-lg text-xs font-bold shrink-0 shadow-sm transition-colors"
+                          title="İptal Et ve Listeye Dön"
+                      >
+                          ✕
+                      </button>
+                  </div>
+              );
+          }
+
+          // Normal (Skor stili) açılır liste
           return (
-              <div className={`${extraClass || 'w-full'}`}>
-                  {/* 1. Tıklanabilir Dolgun Buton (Form üzerinde görünen kısım) */}
-                  <button 
-                      type="button"
-                      onClick={() => { setArama(''); setAcik(true); }}
-                      className="w-full bg-slate-100 border border-slate-300 hover:border-slate-400 text-slate-800 px-3 py-2.5 rounded-lg shadow-sm font-black text-[11px] md:text-xs text-left flex justify-between items-center transition-colors focus:outline-none"
-                  >
-                      <span className="truncate">{gorunenDeger || placeholder}</span>
-                      <span className="text-slate-500 shrink-0 ml-2">🔍</span>
-                  </button>
-
-                  {/* 2. Tam Ekran Arama Modalı (Simsiyah, Karizmatik) */}
-                  {acik && (
-                      <div className="fixed inset-0 z-[99999] bg-slate-900 flex flex-col animate-fade-in-up tff-no-print">
-                          {/* Modal Header & Arama Çubuğu */}
-                          <div className="bg-slate-950 p-4 border-b border-slate-800 flex gap-3 items-center shrink-0 shadow-lg">
-                              <button type="button" onClick={() => setAcik(false)} className="text-slate-400 hover:text-red-500 text-3xl font-black shrink-0 px-2 transition-colors">✕</button>
-                              <input
-                                  type="text"
-                                  autoFocus
-                                  value={arama}
-                                  onChange={(e) => setArama(turkceBuyukHarf(e.target.value))}
-                                  placeholder={`${tip === 'hakem' ? 'HAKEM' : 'GÖZLEMCİ'} ARA VEYA YAZ...`}
-                                  className="w-full bg-slate-800 border-2 border-slate-700 text-white px-4 py-3 rounded-xl font-black text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-500 shadow-inner"
-                              />
-                          </div>
-
-                          {/* Modal Liste Bölümü (Büyük dokunmatik alanlar) */}
-                          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-                              {filtrelenmis.length > 0 ? (
-                                  <div className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-md">
-                                      {filtrelenmis.map((item: string, idx: number) => (
-                                          <button
-                                              key={idx}
-                                              type="button"
-                                              onClick={() => {
-                                                  onChange(item);
-                                                  setAcik(false);
-                                              }}
-                                              className="w-full text-left p-4 md:p-5 border-b border-slate-700 last:border-b-0 hover:bg-slate-700 text-white font-black text-xs md:text-sm uppercase flex items-center gap-4 transition-colors focus:outline-none"
-                                          >
-                                              <span className="text-2xl opacity-60">👤</span> {item}
-                                          </button>
-                                      ))}
-                                  </div>
-                              ) : (
-                                  <div className="mt-4">
-                                      {arama.length > 2 ? (
-                                          <button 
-                                              type="button"
-                                              onClick={() => {
-                                                  onChange(arama);
-                                                  setAcik(false);
-                                              }}
-                                              className="w-full bg-blue-600 hover:bg-blue-500 text-white p-5 rounded-xl font-black text-sm uppercase flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all"
-                                          >
-                                              <span className="text-2xl">➕</span> "{arama}" OLARAK YENİ KAYDET
-                                          </button>
-                                      ) : (
-                                          <div className="text-center p-10 text-slate-500 font-bold">
-                                              <span className="text-5xl block mb-4 opacity-30">🔍</span>
-                                              Listede yok. Yeni bir isim eklemek için yukarıya en az 3 harf yazınız.
-                                          </div>
-                                      )}
-                                  </div>
-                              )}
-                          </div>
-                      </div>
-                  )}
-              </div>
+              <select 
+                  value={liste.includes(deger) ? deger : ''} 
+                  onChange={(e) => {
+                      if (e.target.value === 'ELLE_GIR') {
+                          setElleGirModu(true);
+                          onChange('');
+                      } else {
+                          onChange(e.target.value);
+                      }
+                  }} 
+                  className={`w-full text-center outline-none bg-slate-50 border-2 border-slate-300 py-1.5 font-black text-slate-800 rounded-lg text-xs md:text-sm cursor-pointer shadow-sm focus:border-blue-500 transition-colors ${extraClass || ''}`}
+              >
+                  <option value="" disabled>-- SEÇ --</option>
+                  <option value="ELLE_GIR">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                  {liste.map((item: string, idx: number) => (
+                      <option key={idx} value={item}>{item}</option>
+                  ))}
+              </select>
           );
       }
       // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
