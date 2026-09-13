@@ -2626,8 +2626,17 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                     onChange={(e:any) => {
                                         const val = e.target.value;
                                         setMacDurumu(val);
-                                        // 🔥 SÜPER ZEKA: Takımlar çıkmadıysa "Olaysız" yasaklanır, "Teknik" otomatik seçilir.
-                                        if (val === 'takimlar_cikmadi' && olayDurumu === 'olaysiz') {
+                                        
+                                        // 🔥 YENİ ANAYASA: AKILLI KİLİT MEKANİZMASI 🔥
+                                        
+                                        // 1. OYNANDI seçildiyse, Hava ve Tesis seçilemez. Olaysız'a veya Teknik'e zorla.
+                                        if (val === 'oynandi' && (olayDurumu === 'hava_muhalefeti' || olayDurumu === 'saha_sorunu')) {
+                                            setOlayDurumu('olaysiz');
+                                        }
+                                        
+                                        // 2. YARIDA KALDI, OYNANMADI veya ÇIKMADI seçildiyse "OLAYSIZ" KESİNLİKLE seçilemez! 
+                                        // Eğer önceden Olaysız seçiliyse, sistemi korumak için otomatik "Teknik"e geçir.
+                                        if ((val === 'yarida_kaldi' || val === 'oynanmadi' || val === 'takimlar_cikmadi') && olayDurumu === 'olaysiz') {
                                             setOlayDurumu('teknik_olay');
                                         }
                                     }} 
@@ -2648,23 +2657,42 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                               <div>
                                 <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">SAHA OLAYLARI</label>
                                 <div className="grid grid-cols-3 gap-2 mb-2">
-                                  {/* 🔥 GÜNCELLENEN KISIM: OLAYSIZ BUTONU KİLİDİ 🔥 */}
+                                  {/* OLAYSIZ KİLİDİ: Sadece Oynandı ise aktif */}
                                   <button 
-                                      onClick={() => { if (macDurumu !== 'takimlar_cikmadi') setOlayDurumu('olaysiz'); }} 
-                                      disabled={macDurumu === 'takimlar_cikmadi'}
-                                      title={macDurumu === 'takimlar_cikmadi' ? "Takımlar sahaya çıkmadığında Olaysız seçilemez!" : ""}
+                                      onClick={() => { if (macDurumu === 'oynandi' || macDurumu === '') setOlayDurumu('olaysiz'); }} 
+                                      disabled={macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi'}
+                                      title={(macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi') ? "Maç tamamlanmadıysa Olaysız seçilemez!" : ""}
                                       className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] 
-                                      ${macDurumu === 'takimlar_cikmadi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300')}`}
+                                      ${(macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi') ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300')}`}
                                   >
                                       <span className="text-[10px] md:text-sm text-center leading-none font-black uppercase">OLAYSIZ</span>
                                   </button>
                                   
                                   <button onClick={() => setOlayDurumu('teknik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'teknik_olay' ? 'bg-amber-50 border-amber-400 text-amber-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">TEKNİK</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(İhraç vb.)</span></button>
+                                  
                                   <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-50 border-red-400 text-red-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">EMNİYET</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(Kavga vb.)</span></button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                  <button onClick={() => setOlayDurumu('hava_muhalefeti')} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>☁️ HAVA MUHALEFETİ</button>
-                                  <button onClick={() => setOlayDurumu('saha_sorunu')} className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider ${olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300'}`}>🏟️ TESİS SORUNU</button>
+                                  {/* HAVA VE TESİS KİLİDİ: Sadece Oynanmadı veya Yarıda Kaldıysa aktif */}
+                                  <button 
+                                      onClick={() => { if (macDurumu !== 'oynandi') setOlayDurumu('hava_muhalefeti'); }} 
+                                      disabled={macDurumu === 'oynandi'}
+                                      title={macDurumu === 'oynandi' ? "Maç tamamlandıysa Hava Muhalefeti seçilemez!" : ""}
+                                      className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider 
+                                      ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
+                                  >
+                                      ☁️ HAVA MUHALEFETİ
+                                  </button>
+                                  
+                                  <button 
+                                      onClick={() => { if (macDurumu !== 'oynandi') setOlayDurumu('saha_sorunu'); }} 
+                                      disabled={macDurumu === 'oynandi'}
+                                      title={macDurumu === 'oynandi' ? "Maç tamamlandıysa Tesis Sorunu seçilemez!" : ""}
+                                      className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider 
+                                      ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
+                                  >
+                                      🏟️ TESİS SORUNU
+                                  </button>
                                 </div>
                               </div>
                             </div>
