@@ -328,7 +328,18 @@ export default function AdminPage() {
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [hata, setHatasi] = useState('')
   const [aktifAdmin, setAktifAdmin] = useState<any>(null) // Hangi adminin içeride olduğunu tutar
-
+useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const vize = localStorage.getItem('aktifAdminKodu');
+      // Eğer dış kapıdan vizesini almış bir adminsi direkt içeri al
+      if (vize && vize.startsWith('admin')) {
+        setGirisYapildi(true);
+      } else {
+        // Eğer dışarıda şifre girmemiş biri kaçak olarak direkt /admin yazıp girmeye çalışırsa, dış kapıya fırlat!
+        window.location.href = '/';
+      }
+    }
+  }, []);
   // Otomatik Gizli Tünel Girişi (app/page.tsx'ten gelenler için)
   useEffect(() => {
       const otoGiris = async () => {
@@ -2176,34 +2187,12 @@ export default function AdminPage() {
 
   if (!girisYapildi) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-700">
-          {/* 🔥 YENİ RESMİ İZMİR ŞUBE YÖNETİM LOGOSU VE BAŞLIĞI 🔥 */}
-            <div className="flex justify-center mb-6">
-                <div className="w-32 h-32 bg-white rounded-full shadow-[0_10px_40px_rgba(220,38,38,0.3)] border-4 border-[#dc2626] -mt-20 flex flex-col items-center justify-center relative overflow-hidden group">
-                    <img src="/dernek-logo.png" crossOrigin="anonymous" alt="TFSKD İzmir" className="w-[85%] h-[85%] object-contain mb-3 group-hover:scale-110 transition-transform duration-500" />
-                    <div className="absolute bottom-0 w-full bg-[#dc2626] text-center py-1.5 border-t border-red-800">
-                        <span className="text-[10px] text-white font-black tracking-widest uppercase shadow-sm">İZMİR</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="text-center mb-8">
-                <h1 className="text-sm md:text-base font-black tracking-widest text-white leading-snug mb-1">
-                    TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
-                </h1>
-                <h2 className="text-xs md:text-sm font-black text-red-500 tracking-widest border-b border-slate-700 pb-3">
-                    SAHA OPERASYON YÖNETİM MERKEZİ
-                </h2>
-            </div>
-          <form onSubmit={girisKontrol} className="space-y-6">
-            <div><input type="password" value={sifre} onChange={(e: any) => setSifre(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 text-center tracking-[0.5em] font-mono text-xl focus:outline-none focus:border-red-500 transition-colors" placeholder="••••••••" /></div>
-            {hata && <p className="text-red-500 text-sm font-bold text-center">{hata}</p>}
-            <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors tracking-widest">GİRİŞ YAP</button>
-          </form>
-        </div>
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(220,38,38,0.5)]"></div>
+        <h1 className="text-white text-2xl font-black animate-pulse tracking-widest drop-shadow-lg">KARARGAH AÇILIYOR...</h1>
+        <p className="text-slate-400 text-sm mt-2 font-bold tracking-widest">VIP KİMLİK DOĞRULANIYOR</p>
       </div>
-    )
+    );
   }
 
   return (
