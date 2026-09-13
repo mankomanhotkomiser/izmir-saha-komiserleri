@@ -776,15 +776,17 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (typeof window !== 'undefined') localStorage.setItem('bordro_ic_mac', JSON.stringify(yeniDurum));
   }
 
+  
   const disMacGuncelle = (ay: string, deger: string) => {
       const yeniDurum = { ...disMacDurumlari, [ay]: deger };
       setDisMacDurumlari(yeniDurum);
       if (typeof window !== 'undefined') localStorage.setItem('bordro_dis_mac', JSON.stringify(yeniDurum));
   }
 
+
   const otomatikGirisYap = async (id: string, sifre: string) => {
     try {
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).single()
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).eq('sehir', aktifSehir).single()
       if (data && !error) {
         const dbSifre = data.sifre || '1923'; 
         if (dbSifre === sifre) {
@@ -885,7 +887,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
 
     try {
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       
       const dbSifre = data.sifre || '1923'; 
