@@ -137,7 +137,7 @@ const formatKategori = (rawKategori: any) => {
     if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
     if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'BÖLGESEL AMATÖR LİG (BAL)';
     const amatorYasMatch = kat.match(/U\s*(\d{2})/);
-    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} LİGİ`;
+    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `U${amatorYasMatch[1]} YEREL AMATÖR LİG`;
     return kat;
 }
 
@@ -2974,7 +2974,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                                       onClick={() => setAcikStatuAkordiyon(isAcik ? null : st.id)} 
                                                       className={`w-full px-4 py-4 flex justify-between items-center transition-colors focus:outline-none ${isAcik ? 'bg-slate-900' : 'bg-slate-800 hover:bg-slate-700'}`}
                                                   >
-                                                      <h3 className="text-white font-black uppercase tracking-wider text-sm text-left">{st.baslik || st.kategori_anahtar}</h3>
+                                                      <h3 className="text-white font-black uppercase tracking-wider text-sm text-left">{acikStatuKategori === 'amator' ? (aktifSehir === 'izmir' ? 'İZMİR' : turkceBuyukHarf(aktifSehir)) + ' ' : ''}{st.baslik || st.kategori_anahtar}</h3>
                                                       <span className={`text-emerald-400 font-black text-xl transform transition-transform duration-300 ${isAcik ? 'rotate-180' : ''}`}>▼</span>
                                                   </button>
                                                   
@@ -3012,7 +3012,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                     {/* BAŞLIK */}
                     <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
                         <h2 className="text-base md:text-xl font-black text-indigo-400 tracking-widest uppercase flex items-center gap-2">
-                            <span className="text-2xl">📜</span> {acikStatu.baslik || acikStatu.kategori_anahtar}
+                            <span className="text-2xl">📜</span> {getAnaKategori(acikStatu.kategori_anahtar) === 'amator' ? (aktifSehir === 'izmir' ? 'İZMİR' : turkceBuyukHarf(aktifSehir)) + ' ' : ''}{acikStatu.baslik || acikStatu.kategori_anahtar}
                         </h2>
                         <button onClick={() => setAcikStatu(null)} className="text-slate-400 hover:text-white font-bold text-3xl leading-none transition-colors">✕</button>
                     </div>
