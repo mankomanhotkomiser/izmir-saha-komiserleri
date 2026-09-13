@@ -1763,64 +1763,46 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
       const gelisimPrintFotolar = prefix === 'aktif' 
           ? Object.keys(ekRaporFotolar).filter((k: string) => k.startsWith('gelisim_')).reduce((obj: any, key: string) => { obj[key] = ekRaporFotolar[key]; return obj; }, {})
           : (safeRaporDetay.gelisim_fotolar || {});
-// 🔥 YENİ HAKEM VE GÖZLEMCİ SEÇİCİ (NATIVE AÇILIR KUTU VE ELLE GİRİŞ) 🔥
-      const HakemSecici = ({ tip, deger, onChange, placeholder, extraClass }: { tip: 'hakem' | 'gozlemci', deger: string, onChange: (val: string) => void, placeholder: string, extraClass?: string }) => {
+ // 🔥 KLAVYE SORUNUNU ÇÖZEN, HIZLI "SKOR KUTUSU" STİLİ HAKEM SEÇİCİ 🔥
+      const renderHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
           const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
-          const [elleGirModu, setElleGirModu] = useState(false);
-
-          // Eğer seçili değer listede yoksa, otomatik olarak elle girme kutusunu açar
-          useEffect(() => {
-              if (deger && !liste.includes(deger) && deger !== 'ELLE_GIR') {
-                  setElleGirModu(true);
-              }
-          }, [deger, liste]);
-
-          // Eğer "Elle Gir" modu açıksa bu kutu görünür
+          
+          if (prefix !== 'aktif') {
+              return <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(deger)}</span>;
+          }
+          
+          // Eğer kaydedilmiş değer listede yoksa otomatik "Elle Gir" modundadır
+          const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
+          
           if (elleGirModu) {
               return (
-                  <div className={`flex gap-1 items-center ${extraClass || 'w-full'}`}>
+                  <div className="flex gap-1 w-full ml-2 items-center">
                       <input 
                           type="text" 
-                          value={deger} 
-                          onChange={(e) => onChange(turkceBuyukHarf(e.target.value))} 
-                          placeholder="İsim yazınız..." 
-                          className="w-full text-center outline-none bg-yellow-50 border-2 border-slate-300 py-1.5 font-black text-slate-800 rounded-lg text-xs"
-                          autoFocus
+                          value={deger === 'YENI_KAYIT' ? '' : deger} 
+                          onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))} 
+                          placeholder="Buraya İsmi Yazınız..." 
+                          className="w-full text-center outline-none bg-yellow-50 border-2 border-slate-300 py-1 font-black text-slate-800 rounded shadow-inner text-[10px] md:text-xs" 
+                          autoFocus 
                       />
-                      <button 
-                          type="button" 
-                          onClick={() => { setElleGirModu(false); onChange(''); }} 
-                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1.5 rounded-lg text-xs font-bold shrink-0 shadow-sm transition-colors"
-                          title="İptal Et ve Listeye Dön"
-                      >
-                          ✕
-                      </button>
+                      <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold shadow-sm">✕</button>
                   </div>
               );
           }
-
-          // Normal (Skor stili) açılır liste
+          
           return (
               <select 
-                  value={liste.includes(deger) ? deger : ''} 
-                  onChange={(e) => {
-                      if (e.target.value === 'ELLE_GIR') {
-                          setElleGirModu(true);
-                          onChange('');
-                      } else {
-                          onChange(e.target.value);
-                      }
-                  }} 
-                  className={`w-full text-center outline-none bg-slate-50 border-2 border-slate-300 py-1.5 font-black text-slate-800 rounded-lg text-xs md:text-sm cursor-pointer shadow-sm focus:border-blue-500 transition-colors ${extraClass || ''}`}
+                  value={deger || ''} 
+                  onChange={(e) => raporDetayGuncelle(alan, e.target.value)} 
+                  className="w-full text-center outline-none bg-slate-50 border-2 border-slate-300 py-1 font-black text-slate-800 rounded text-[10px] md:text-[11px] ml-2 cursor-pointer shadow-sm focus:border-blue-500 transition-colors"
               >
                   <option value="" disabled>-- SEÇ --</option>
-                  <option value="ELLE_GIR">✍️ LİSTEDE YOK (ELLE GİR)</option>
-                  {liste.map((item: string, idx: number) => (
-                      <option key={idx} value={item}>{item}</option>
-                  ))}
+                  <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                  {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
               </select>
           );
       }
+
       // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
   const RenderA4Header = () => {
           const katAdi = String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR');
@@ -1944,25 +1926,26 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                       <div className="bg-slate-100/50 p-1.5 border-b border-dashed border-black text-center text-[11px] font-bold">MÜSABAKADA GÖREVLİ PERSONELLER</div>
                       <div className="border-r border-black flex flex-col">
                           <div className="border-r border-black flex flex-col">
-                          <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between">
-                              <span className="text-[10px] font-bold w-20">HAKEM</span> 
-                              {prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.hakem} onChange={(v) => raporDetayGuncelle('hakem', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full ml-2" /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.hakem)}</span>}
-                          </div>
-                          {hakemModu !== 'tek_hakem' && (
-                              <>
-                                  <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.y_hakem_1} onChange={(v) => raporDetayGuncelle('y_hakem_1', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full ml-2" /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.y_hakem_1)}</span>}</div>
-                                  <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.y_hakem_2} onChange={(v) => raporDetayGuncelle('y_hakem_2', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full ml-2" /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.y_hakem_2)}</span>}</div>
-                              </>
-                          )}
+                              <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between">
+                                  <span className="text-[10px] font-bold w-20">HAKEM</span> 
+                                  {renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}
+                              </div>
+                              
+                              {hakemModu !== 'tek_hakem' && (
+                                  <>
+                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div>
+                                      <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div>
+                                  </>
+                              )}
 
-                          {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                              <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {prefix === 'aktif' ? <HakemSecici tip="hakem" deger={safeRaporDetay?.hakem_4} onChange={(v) => raporDetayGuncelle('hakem_4', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full ml-2" /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.hakem_4)}</span>}</div>
-                          )}
-                          
-                          {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
-                              <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {prefix === 'aktif' ? <HakemSecici tip="gozlemci" deger={safeRaporDetay?.gozlemci} onChange={(v) => raporDetayGuncelle('gozlemci', v)} placeholder="Seç veya Yeni İsim Yaz..." extraClass="w-full ml-2" /> : <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(safeRaporDetay?.gozlemci)}</span>}</div>
-                          )}
-                      </div>
+                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
+                                  <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div>
+                              )}
+                              
+                              {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
+                                  <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div>
+                              )}
+                          </div>
 
                       </div>
                       <div className="flex flex-col">
@@ -2674,6 +2657,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                 {macDurumu === 'takimlar_cikmadi' && (<div className="mt-5 bg-amber-50 p-5 border border-amber-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🏟️</span><p className="text-xs font-bold text-amber-800 leading-relaxed">Takımlar sahaya çıkmadığı için skor kilitlenmiştir. <br/>Lütfen Sistem Notu kısmına hangi takımın gelmediğini belirtiniz.</p></div>)}
                               </div>
                               {getAnaKategori(mac.kategori_adi) !== 'profesyonel' && (
+                              
                                 <div>
                                   <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">SAHA OLAYLARI</label>
                                   <div className="grid grid-cols-3 gap-2 mb-2">
@@ -2717,6 +2701,10 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                                 </div>
                               )}
                             </div>
+                            {getAnaKategori(mac.kategori_adi) !== 'profesyonel' && (
+                              <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5"><label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label><textarea value={raporNotu} onChange={(e: any) => handleHizliNotChange(e.target.value)} className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`} placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya oynanmama/yarıda kalma sebebinin detayını yazınız..."}></textarea></div>
+                            )}
+                                        
                             {getAnaKategori(mac.kategori_adi) !== 'profesyonel' && (
                               <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5"><label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label><textarea value={raporNotu} onChange={(e: any) => handleHizliNotChange(e.target.value)} className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`} placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya oynanmama/yarıda kalma sebebinin detayını yazınız..."}></textarea></div>
                             )}
