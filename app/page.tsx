@@ -42,13 +42,24 @@ const parseDetay = (raw: any) => {
 
 const getAnaKategori = (kategori: any) => {
       if (!kategori) return 'amator';
-      const kat = turkceBuyukHarf(kategori);
+      // Tüm boşlukları yok edip birleşik kelime gibi arıyoruz ki "1. Lig", "1.LİG", "TFF 1. LİGİ" fark etmesin!
+      const temizKat = turkceBuyukHarf(kategori).replace(/\s+/g, '');
       
-      if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
+      // Önce Kadın ve Gelişim liglerini süz
+      if (temizKat.includes('KADIN') || temizKat.includes('KIZ')) return 'kadin';
+      if (temizKat.includes('GELİŞİM') || temizKat.includes('AKADEMİ') || temizKat.includes('ELİT') || temizKat.includes('PAF') || temizKat.includes('TFFU')) return 'gelisim';
       
-      if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
-      
-      if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
+      // Sonra Profesyonelleri süz (İçinde Amatör geçmiyorsa)
+      if (!temizKat.includes('AMATÖR')) {
+          if (temizKat.includes('SÜPERLİG') || 
+              temizKat.includes('1.LİG') || 
+              temizKat.includes('2.LİG') || 
+              temizKat.includes('3.LİG') || 
+              temizKat.includes('ZİRAAT') || 
+              temizKat.includes('TÜRKİYEKUPASI')) {
+              return 'profesyonel';
+          }
+      }
       
       return 'amator';
   }
