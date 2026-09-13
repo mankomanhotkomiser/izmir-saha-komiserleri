@@ -889,22 +889,34 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
     try {
-      // 🔥 GİZLİ YÖNETİCİ GEÇİDİ KONTROLÜ 🔥
-      if (girilenSicil.toLowerCase().startsWith('admin')) {
-          const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
-          
-          if (adminData && String(adminData.sifre) === String(sifreInput)) {
-              // Gizli şifre doğru! Admin bilgilerini hafızaya yaz ve Yönetim Paneline ışınla!
-              localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
-              localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
-              window.location.href = '/admin'; 
-              return;
-          } else {
-              setGirisHatasi("Yetkisiz Giriş: Hatalı Yönetici Kodu veya Şifresi!");
-              setGirisYukleniyor(false);
-              return;
-          }
-      }
+     // GİZLİ YÖNETİCİ GEÇİDİ KONTROLÜ
+            if (girilenSicil.toLowerCase().startsWith('admin')) {
+                const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
+
+                if (adminErr) {
+                    setGirisHatasi("SİSTEM İTİRAFI 1 (Veritabanı Engeli): " + adminErr.message);
+                    setGirisYukleniyor(false);
+                    return;
+                }
+                
+                if (!adminData) {
+                    setGirisHatasi("SİSTEM İTİRAFI 2 (Kod Bulunamadı): Veritabanında '" + girilenSicil.toLowerCase() + "' kodlu birini bulamadım!");
+                    setGirisYukleniyor(false);
+                    return;
+                }
+
+                if (String(adminData.sifre).trim() !== String(sifreInput).trim()) {
+                    setGirisHatasi("SİSTEM İTİRAFI 3 (Şifre Uyuşmazlığı): Veritabanındaki şifre: '" + adminData.sifre + "' | Senin yazdığın: '" + sifreInput + "'");
+                    setGirisYukleniyor(false);
+                    return;
+                }
+
+                // EĞER BURAYA KADAR HATA VERMEDİYSE GİRİŞ %100 BAŞARILIDIR!
+                localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
+                localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
+                window.location.href = '/admin';
+                return;
+            }
 
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
