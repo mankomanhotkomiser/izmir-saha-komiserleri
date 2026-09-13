@@ -893,10 +893,10 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (girilenSicil.toLowerCase().startsWith('admin')) {
           const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
           
-          if (adminData && adminData.sifre === sifreInput) {
+          if (adminData && String(adminData.sifre) === String(sifreInput)) {
               // Gizli şifre doğru! Admin bilgilerini hafızaya yaz ve Yönetim Paneline ışınla!
               localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
-              localStorage.setItem('aktifAdminSifre', adminData.sifre);
+              localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
               window.location.href = '/admin'; 
               return;
           } else {
