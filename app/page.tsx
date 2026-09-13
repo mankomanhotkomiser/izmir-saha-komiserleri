@@ -889,6 +889,23 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
     try {
+      // 🔥 GİZLİ YÖNETİCİ GEÇİDİ KONTROLÜ 🔥
+      if (girilenSicil.toLowerCase().startsWith('admin')) {
+          const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
+          
+          if (adminData && adminData.sifre === sifreInput) {
+              // Gizli şifre doğru! Admin bilgilerini hafızaya yaz ve Yönetim Paneline ışınla!
+              localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
+              localStorage.setItem('aktifAdminSifre', adminData.sifre);
+              window.location.href = '/admin'; 
+              return;
+          } else {
+              setGirisHatasi("Yetkisiz Giriş: Hatalı Yönetici Kodu veya Şifresi!");
+              setGirisYukleniyor(false);
+              return;
+          }
+      }
+
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       

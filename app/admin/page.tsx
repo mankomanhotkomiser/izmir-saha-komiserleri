@@ -323,9 +323,30 @@ const EvetHayirBox = ({ val }: { val: any }) => (
 );
 
 export default function AdminPage() {
+  const [adminKodu, setAdminKodu] = useState('')
   const [sifre, setSifre] = useState('')
   const [girisYapildi, setGirisYapildi] = useState(false)
   const [hata, setHatasi] = useState('')
+  const [aktifAdmin, setAktifAdmin] = useState<any>(null) // Hangi adminin içeride olduğunu tutar
+
+  // Otomatik Gizli Tünel Girişi (app/page.tsx'ten gelenler için)
+  useEffect(() => {
+      const otoGiris = async () => {
+          const kayitliKod = localStorage.getItem('aktifAdminKodu');
+          const kayitliSifre = localStorage.getItem('aktifAdminSifre');
+          if (kayitliKod && kayitliSifre) {
+              const { data } = await supabase.from('adminler').select('*').eq('admin_kodu', kayitliKod).single();
+              if (data && data.sifre === kayitliSifre) {
+                  setAktifAdmin(data);
+                  setGirisYapildi(true);
+              } else {
+                  localStorage.removeItem('aktifAdminKodu');
+                  localStorage.removeItem('aktifAdminSifre');
+              }
+          }
+      };
+      otoGiris();
+  }, []);
   
   const [haftalikGruplar, setHaftalikGruplar] = useState<Record<number, any[]>>({})
   const [goruntulenenHafta, setGoruntulenenHafta] = useState<number | null>(null)
@@ -463,9 +484,11 @@ export default function AdminPage() {
   const veriGetir = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true);
     try {
+      const sehirKalkan = aktifAdmin?.sehir || 'izmir'; // 🔥 GÜVENLİK KALKANI 🔥
+      
       let maclarVerisi: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
       while (veriKaldimi) {
-        const { data, error } = await supabase.from('musabakalar').select('*').range(sayfa * limit, (sayfa + 1) * limit - 1)
+        const { data, error } = await supabase.from('musabakalar').select('*').eq('sehir', sehirKalkan).range(sayfa * limit, (sayfa + 1) * limit - 1)
         if (error) break;
         if (data && Array.isArray(data) && data.length > 0) {
           maclarVerisi = [...maclarVerisi, ...data]
@@ -474,22 +497,22 @@ export default function AdminPage() {
       }
       setSezonlukMaclar(maclarVerisi || []);
       
-      const { data: komiserlerData } = await supabase.from('komiserler').select('*')
+      const { data: komiserlerData } = await supabase.from('komiserler').select('*').eq('sehir', sehirKalkan);
       if (komiserlerData) setTumKomiserler(komiserlerData || [])
 
-      const { data: mazeretData } = await supabase.from('mazeretler').select('*');
+      const { data: mazeretData } = await supabase.from('mazeretler').select('*').eq('sehir', sehirKalkan);
       if (mazeretData) setTumMazeretler(mazeretData || []);
 
-      const { data: statuData } = await supabase.from('lig_statuleri').select('*');
+      const { data: statuData } = await supabase.from('lig_statuleri').select('*'); // Ortak
       if (statuData) setTumStatuler(statuData || []);
 
-      const { data: taleplerData } = await supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').order('created_at', { ascending: false });
+      const { data: taleplerData } = await supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').eq('sehir', sehirKalkan).order('created_at', { ascending: false });
       if (taleplerData) setSifreTalepleri(taleplerData);
 
-      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single();
+      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single(); // Ortak
       if (talimatData) setGenelTalimat(talimatData.metin || '');
 
-      const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*');
+      const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*').eq('sehir', sehirKalkan);
       if (!fError && fData) setFinansVerileri(fData || []);
 
       if (maclarVerisi.length > 0) {
@@ -1085,9 +1108,10 @@ export default function AdminPage() {
       if (!yeniPersonelAd || !yeniPersonelSicil) return;
       setPersonelEkleniyor(true);
       let islenecekSicil = yeniPersonelSicil.trim();
-      if (/^\d{4,10}$/.test(islenecekSicil) && !islenecekSicil.startsWith('35')) islenecekSicil = '35' + islenecekSicil;
+      const plaka = aktifAdmin?.sehir === 'kocaeli' ? '41' : '35'; // Şehre göre plaka zekası
+      if (/^\d{4,10}$/.test(islenecekSicil) && !islenecekSicil.startsWith(plaka)) islenecekSicil = plaka + islenecekSicil;
       try {
-          const { error } = await supabase.from('komiserler').insert([{ komiser_id: islenecekSicil, ad_soyad: yeniPersonelAd.toLocaleUpperCase('tr-TR') }]);
+          const { error } = await supabase.from('komiserler').insert([{ komiser_id: islenecekSicil, ad_soyad: yeniPersonelAd.toLocaleUpperCase('tr-TR'), sehir: aktifAdmin.sehir }]);
           if (error) { if (error.code === '23505') alert("Hata: Bu sicil numarası zaten kayıtlı!"); else throw error; } 
           else { alert("✅ Komiser eklendi."); setYeniPersonelAd(''); setYeniPersonelSicil(''); veriGetir(true); }
       } catch (err: any) { alert("Hata: " + err.message); }
@@ -1097,7 +1121,7 @@ export default function AdminPage() {
   const hakemEkleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if(!yeniHakemAd) return;
-      setHakemEkleniyor(true);
+      const { error } = await supabase.from('hakemler').insert([{ ad_soyad: yeniHakemAd.toLocaleUpperCase('tr-TR'), sehir: aktifAdmin.sehir }]);
       try {
           const { error } = await supabase.from('hakemler').insert([{ ad_soyad: yeniHakemAd.toLocaleUpperCase('tr-TR') }]);
           if(error) throw error;
@@ -1125,7 +1149,7 @@ export default function AdminPage() {
               mac_kodu: manuelMacKodu, tarih: manuelMacTarih, saat: manuelMacSaat || null, saha: manuelMacSaha.toLocaleUpperCase('tr-TR'),
               kategori_adi: manuelMacLig.toLocaleUpperCase('tr-TR'), ev_sahibi: manuelMacEv.toLocaleUpperCase('tr-TR'),
               misafir_takim: manuelMacMis.toLocaleUpperCase('tr-TR'), komiser_id: null, mac_durumu: 'oynandi',
-              olay_durumu: 'olaysiz', skor_girildi: false, tebellug_edildi: false
+              olay_durumu: 'olaysiz', skor_girildi: false, tebellug_edildi: false, sehir: aktifAdmin.sehir
           }]);
           if (error) throw error;
           alert("✅ Ekstra maç işlendi."); setManuelMacEv(''); setManuelMacMis(''); setManuelMacSaha(''); setManuelMacSaat(''); setManuelMacKodu(String(parseInt(manuelMacKodu) + 1)); veriGetir(true); 
@@ -1273,7 +1297,8 @@ export default function AdminPage() {
           const dbVerisi = yuklenenExcelVerisi.map(mac => ({
               mac_kodu: mac.mac_kodu, tarih: mac.tarih || null, saat: mac.saat || null, saha: mac.saha,
               kategori_adi: mac.kategori_adi, ev_sahibi: mac.ev_sahibi, misafir_takim: mac.misafir_takim,
-              komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null
+              komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null,
+              sehir: aktifAdmin.sehir
           }));
 
           const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim, komiser_id');
