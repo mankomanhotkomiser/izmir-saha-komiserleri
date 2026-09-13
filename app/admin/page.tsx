@@ -2235,7 +2235,7 @@ export default function AdminPage() {
             {/* MOBİL İÇİN HIZLI ÇIKIŞ/YENİLE (Sağ üste sıkıştırılmış) */}
             <div className="flex items-center gap-1 md:hidden">
                 <button onClick={() => veriGetir(false)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors">🔄</button>
-                <button onClick={() => setGirisYapildi(false)} className="bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors">ÇIKIŞ</button>
+                <button onClick={() => { localStorage.removeItem('aktifAdminKodu'); localStorage.removeItem('aktifAdminSifre'); window.location.href = '/'; }} className="bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors">ÇIKIŞ</button>
             </div>
           </div>
           {/* BUTONLAR (Mobilde yatay kaydırılabilir, Masaüstünde wrap) */}
@@ -2248,7 +2248,7 @@ export default function AdminPage() {
              
              {/* MASAÜSTÜ İÇİN YENİLE VE ÇIKIŞ */}
              <button onClick={() => veriGetir(false)} className="shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors hidden md:block">🔄 YENİLE</button>
-             <button onClick={() => setGirisYapildi(false)} className="shrink-0 bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-900 px-3 py-1.5 rounded text-xs font-bold transition-colors hidden md:block">ÇIKIŞ YAP</button>
+             <button onClick={() => { localStorage.removeItem('aktifAdminKodu'); localStorage.removeItem('aktifAdminSifre'); window.location.href = '/'; }} className="shrink-0 bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors hidden md:block">ÇIKIŞ YAP</button>
           </div>
         </div>
       </header>
