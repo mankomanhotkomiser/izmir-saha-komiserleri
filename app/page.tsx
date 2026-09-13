@@ -365,21 +365,22 @@ export default function Home() {
   // ---------------------------------
     const hizliSifreTalebi = async () => {
       const sicil = window.prompt("Şifre sıfırlama talebi için lütfen SİCİL NUMARANIZI giriniz:");
-      if (!sicil) return; 
+      if (!sicil) return;
 
       let girilenSicil = sicil.trim();
-      if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { 
-          girilenSicil = '35' + girilenSicil; 
+      // Bukalemun Plaka Sistemi (Şehre göre 35 veya 41 ekler)
+      const plaka = aktifSehir === 'izmir' ? '35' : (aktifSehir === 'kocaeli' ? '41' : '');
+      if (plaka && /^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith(plaka)) {
+          girilenSicil = plaka + girilenSicil;
       }
 
-    const aktifSehir = getAktifSehir();
-  // ---------------------------------
-      const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için İzmir Şube Yönetimine 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
+      const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için ${turkceBuyukHarf(aktifSehir)} Şube Yönetimine 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
       
       if (!onay) return;
 
       try {
-          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
+          // Güvenlik kalkanı eklendi: .eq('sehir', aktifSehir)
+          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single();
           
           if (error || !data) {
               alert("❌ HATA: Bu sicil numarasına ait bir kayıt bulunamadı!");
@@ -393,7 +394,7 @@ export default function Home() {
           }]);
 
           if (!insertError) {
-              alert("✅ BAŞARILI: Şifre sıfırlama talebiniz İzmir Şube Yönetimine iletildi!\n\nLütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.");
+              alert(`✅ BAŞARILI: Şifre sıfırlama talebiniz ${turkceBuyukHarf(aktifSehir)} Şube Yönetimine iletildi!\n\nLütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.`);
           } else {
               alert("❌ HATA: Talebiniz iletilemedi: " + insertError.message);
           }
@@ -888,7 +889,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
     try {
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       
       const dbSifre = data.sifre || '1923'; 
