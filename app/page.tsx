@@ -1516,7 +1516,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                   {/* 1. KAT: LOGO ALANI (Sıfıra Sıfır, Aşağı Kaydırınca Gizlenir) */}
                   <div className={`w-full bg-white flex justify-center items-center transition-all duration-500 origin-top overflow-hidden ${kucukHeader ? 'max-h-0 opacity-0' : 'max-h-[150px] opacity-100'}`}>
                       <img 
-                          src="/dernek-logo.png" 
+                          src={`/${aktifSehir}-logo.png`} 
                           alt="TFSKD Logo" 
                           className="w-full max-w-lg h-auto object-contain block m-0 p-0" 
                       />
