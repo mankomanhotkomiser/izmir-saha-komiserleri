@@ -867,10 +867,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
         const { data: statuData } = await supabase.from('lig_statuleri').select('*');
         if (statuData && aktif) setTumStatuler(statuData);
 
-        const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').order('ad_soyad')
+        // 🔥 YENİ: Hakem ve gözlemcileri sadece bulunduğu şehre (.eq('sehir', aktifSehir)) göre getir
+        const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad')
         if (hakemData && aktif) { setHakemListesi(hakemData.map((h: any) => h.ad_soyad)); }
 
-        const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').order('ad_soyad')
+        const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad')
         if (gozlemciData && aktif) { setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad)); }
 
       } catch (err: any) { console.error(err) }
@@ -1264,13 +1265,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
       if (girilenHakemler.length > 0) {
           try {
-              const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad');
+              // 🔥 YENİ: Sadece bu şehrin hakemleri içinde mükerrer taraması yap
+              const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir);
               const guncelListe = (mevcutHakemler || []).map((h: any) => turkceBuyukHarf(h.ad_soyad));
               const eklenecekler = girilenHakemler.filter((h: string) => !guncelListe.includes(h));
 
               if (eklenecekler.length > 0) {
                   const uniqueEklenecekler = Array.from(new Set(eklenecekler));
-                  const insertPayload = uniqueEklenecekler.map((ad: any) => ({ ad_soyad: ad }));
+                  // 🔥 YENİ: Veritabanına kaydederken aktifSehir mührünü zorunlu bas
+                  const insertPayload = uniqueEklenecekler.map((ad: any) => ({ ad_soyad: ad, sehir: aktifSehir }));
                   
                   const { error } = await supabase.from('hakemler').insert(insertPayload);
                   if (!error) {
@@ -1289,11 +1292,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
       const girilenGozlemci = detaylar.gozlemci ? turkceBuyukHarf(detaylar.gozlemci).trim() : '';
       if (girilenGozlemci.length > 2 && !girilenGozlemci.includes("SEÇ") && !girilenGozlemci.includes("YAZ")) {
           try {
-              const { data: mevcutGozlemciler } = await supabase.from('gozlemciler').select('ad_soyad');
+              // 🔥 YENİ: Sadece bu şehrin gözlemcileri içinde mükerrer taraması yap
+              const { data: mevcutGozlemciler } = await supabase.from('gozlemciler').select('ad_soyad').eq('sehir', aktifSehir);
               const guncelListe = (mevcutGozlemciler || []).map((g: any) => turkceBuyukHarf(g.ad_soyad));
               
               if (!guncelListe.includes(girilenGozlemci)) {
-                  const { error } = await supabase.from('gozlemciler').insert([{ ad_soyad: girilenGozlemci }]);
+                  // 🔥 YENİ: Veritabanına kaydederken aktifSehir mührünü zorunlu bas
+                  const { error } = await supabase.from('gozlemciler').insert([{ ad_soyad: girilenGozlemci, sehir: aktifSehir }]);
                   if (!error) {
                       setGozlemciListesi((prev: string[]) => {
                           const newList = [...prev, girilenGozlemci];
