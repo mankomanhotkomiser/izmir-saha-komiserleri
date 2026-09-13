@@ -717,7 +717,7 @@ export default function AdminPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `TFF_Izmir_Komiser_Odemeleri_${seciliBordroAy}.xls`;
+      link.download = `TFF_${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'SUBE'}_Komiser_Odemeleri_${seciliBordroAy}.xls`;
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
   }
 
@@ -733,7 +733,7 @@ export default function AdminPage() {
           <body>
               <table border="1" style="border-collapse: collapse; font-family: Arial, sans-serif; text-align: center;">
                   <thead>
-                      <tr><th colspan="3" style="font-size: 16px; background-color: #0f172a; color: white; padding: 10px; font-weight: bold;">İZMİR ŞUBESİ TÜM SAHA KOMİSERLERİ LİSTESİ</th></tr>
+                      <tr><th colspan="3" style="font-size: 16px; background-color: #0f172a; color: white; padding: 10px; font-weight: bold;">${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'ŞUBE'}</th></tr>
                       <tr style="background-color: #1e293b; color: white; font-weight: bold; font-size: 14px;">
                           <th style="padding: 10px; width: 50px;">SIRA</th>
                           <th style="padding: 10px; width: 120px;">SİCİL NUMARASI</th>
@@ -761,7 +761,7 @@ export default function AdminPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `TFF_Izmir_Tum_Komiser_Listesi.xls`;
+      link.download = `TFF_${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'SUBE'}_Tum_Komiser_Listesi.xls`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -2193,7 +2193,7 @@ export default function AdminPage() {
                     TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
                 </h1>
                 <h2 className="text-xs md:text-sm font-black text-red-500 tracking-widest border-b border-slate-700 pb-3">
-                    İZMİR ŞUBE YÖNETİMİ GİRİŞİ
+                    SAHA OPERASYON YÖNETİM MERKEZİ
                 </h2>
             </div>
           <form onSubmit={girisKontrol} className="space-y-6">
