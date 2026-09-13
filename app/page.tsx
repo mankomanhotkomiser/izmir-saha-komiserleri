@@ -889,38 +889,26 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
     try {
-     // GİZLİ YÖNETİCİ GEÇİDİ KONTROLÜ
-            const girisYap = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault() 
-    setGirisYukleniyor(true); setGirisHatasi(null);
-    let girilenSicil = kullaniciIdInput.trim()
-    if (!girilenSicil) { setGirisHatasi("Lütfen sicil numaranızı girin."); setGirisYukleniyor(false); return; }
-    if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
-    
-    try {
-      // GİZLİ YÖNETİCİ GEÇİDİ KONTROLÜ
+      // 1. GİZLİ YÖNETİCİ GEÇİDİ (ADMİN KONTROLÜ)
       if (girilenSicil.toLowerCase().startsWith('admin')) {
           const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
 
-          // Tüm itiraflar ve çökmeye sebep olan hatalar tek bir ketum mesajda birleştirildi
           if (adminErr || !adminData || String(adminData.sifre).trim() !== String(sifreInput).trim()) {
               setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz.");
               setGirisYukleniyor(false);
               return;
           }
 
-          // EĞER BURAYA KADAR HATA VERMEDİYSE GİRİŞ %100 BAŞARILIDIR!
           localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
           localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
           window.location.href = '/admin';
           return;
       }
 
-      // NORMAL KOMİSER GİRİŞİ KONTROLÜ
+      // 2. NORMAL KOMİSER GİRİŞİ KONTROLÜ
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
       const dbSifre = data?.sifre || '1923'; 
       
-      // Komiser bulunamadığında veya şifre yanlış olduğunda verilecek standart devlet tepkisi
       if (error || !data || dbSifre !== sifreInput) { 
           setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz."); 
           setGirisYukleniyor(false); 
@@ -928,25 +916,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
       }
       
       // GİRİŞ BAŞARILI
-      setSeciliKomiser(data)
-      localStorage.setItem('izmirKomiserId', data.komiser_id)
-      localStorage.setItem('izmirKomiserSifre', sifreInput)
-      await komiserDetayGetir(data)
-      await finansBilgileriniGetir(data.komiser_id); 
-      setAktifEkran('dashboard') 
-    } catch (err) { setGirisHatasi("Bağlantı sorunu oluştu, tekrar deneyin.") } 
-    finally { setGirisYukleniyor(false) }
-  }
-
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
-      if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
-      
-      const dbSifre = data.sifre || '1923'; 
-      if (dbSifre !== sifreInput) {
-          setGirisHatasi("Hatalı şifre girdiniz!"); 
-          setGirisYukleniyor(false); 
-          return;
-      }
       setSeciliKomiser(data)
       localStorage.setItem('izmirKomiserId', data.komiser_id)
       localStorage.setItem('izmirKomiserSifre', sifreInput)
