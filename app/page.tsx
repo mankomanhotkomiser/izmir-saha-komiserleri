@@ -349,15 +349,17 @@ export default function Home() {
     // --- TUSOM AKILLI ŞEHİR RADARI ---
   const getAktifSehir = () => {
     if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      if (hostname.includes('.')) {
-        const subdomain = hostname.split('.')[0];
-        if (subdomain !== 'www' && subdomain !== 'localhost' && subdomain !== '127') {
-          return subdomain.toLowerCase();
-        }
+      const domain = window.location.hostname;
+      
+      // Eski veya yeni İzmir adresleriyse:
+      if (domain.includes('izmir') || domain.includes('tfskdizmirsube')) return 'izmir';
+      
+      // 81 İL İÇİN OTOMATİK RADAR! (Örn: kocaeli.tfskd.org -> kocaeli)
+      if (domain.includes('tfskd.org')) {
+        return domain.split('.')[0]; 
       }
     }
-    return 'izmir'; 
+    return 'izmir'; // Hata olursa varsayılan 
   };
   const aktifSehir = getAktifSehir();
   // ---------------------------------
@@ -885,9 +887,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { girilenSicil = '35' + girilenSicil }
     if (!girilenSicil) { setGirisHatasi("Lütfen sicil numaranızı girin."); setGirisYukleniyor(false); return; }
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
-
+    
     try {
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
       if (error || !data) { setGirisHatasi("Bu sicil numarasına ait saha komiseri bulunamadı."); setGirisYukleniyor(false); return; }
       
       const dbSifre = data.sifre || '1923'; 
