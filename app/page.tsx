@@ -2380,13 +2380,24 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
           )}
         </main>
       );
+
   } else if (gercekAktifEkran === 'giris') {
       ekranIcerigi = (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
             <div className="flex justify-center mb-6"><div className="w-24 h-24 bg-white rounded-full p-2 shadow-lg border border-slate-100 -mt-16 flex items-center justify-center"><img src={DERNEK_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="w-[85%] h-[85%] object-contain" /></div></div>
-            <h1 className="text-sm font-black tracking-widest text-slate-800 leading-snug mb-1">TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ</h1><h2 className="text-[11px] font-bold text-red-600 tracking-widest mb-8">İZMİR ŞUBESİ SAHA OPERASYON SİSTEMİ</h2>
+            <div className="flex flex-col items-center justify-center mb-4">
+  <h1 className="text-[14px] font-black tracking-widest text-slate-800 leading-snug mb-1 text-center">
+    TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
+  </h1>
+  <h2 className="text-[22px] font-black text-black tracking-widest mb-1 text-center">
+    {aktifSehir ? aktifSehir.toLocaleUpperCase('tr-TR') : 'İZMİR'} ŞUBESİ
+  </h2>
+  <h3 className="text-[12px] font-bold text-red-600 tracking-widest text-center">
+    SAHA OPERASYON SİSTEMİ
+  </h3>
+</div>
             <form onSubmit={girisYap} className="space-y-4">
               <div><input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
               <div><input type="password" placeholder="4 Haneli Şifreniz" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={4} inputMode="numeric" pattern="\d{4}" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
