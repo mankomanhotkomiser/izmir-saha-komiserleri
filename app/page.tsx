@@ -884,7 +884,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (e) e.preventDefault() 
     setGirisYukleniyor(true); setGirisHatasi(null);
     let girilenSicil = kullaniciIdInput.trim()
-    if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { girilenSicil = '35' + girilenSicil }
     if (!girilenSicil) { setGirisHatasi("Lütfen sicil numaranızı girin."); setGirisYukleniyor(false); return; }
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
