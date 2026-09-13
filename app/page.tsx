@@ -2936,7 +2936,7 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                       <form onSubmit={sifreDegistirSubmit} className="space-y-4">
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Mevcut Şifreniz</label>
-                              <input type="password" value={eskiSifre} onChange={(e: any) => setEskiSifre(e.target.value)} maxLength={} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
+                              <input type="password" value={eskiSifre} onChange={(e: any) => setEskiSifre(e.target.value)} maxLength={8} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
                           </div>
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Yeni Şifreniz (4 Haneli Rakam)</label>
