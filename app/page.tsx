@@ -2420,17 +2420,21 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
   </h3>
 </div>
             <form onSubmit={girisYap} className="space-y-4">
-              <div><input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
-              <div><input type="password" placeholder="4 Haneli Şifreniz" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={4} inputMode="numeric" pattern="\d{4}" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required /></div>
+              <div>
+                  <input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
+              </div>
+              <div>
+                  <input type="password" placeholder="Şifrenizi Giriniz" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={8} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
+              </div>
               {girisHatasi && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100">{girisHatasi}</p>}
-              <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2">{girisYukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}</button>
-             <div className="pt-2"><button type="button" onClick={hizliSifreTalebi} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button></div>
-
-
-
-            </form>
+              <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2">
+                  {girisYukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}
+              </button>
+              <div className="pt-2">
+                  <button type="button" onClick={hizliSifreTalebi} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button>
+              </div>
+          </form>
           </div>
-          <div className="absolute bottom-6 text-[10px] text-slate-400 font-medium tracking-widest text-center w-full z-10">SAHAKOM-OS TÜRKİYE © 2026<br/>TÜM HAKLARI SAKLIDIR</div>
         </div>
       );
   } else if (gercekAktifEkran === 'dashboard') {
@@ -2932,11 +2936,11 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                       <form onSubmit={sifreDegistirSubmit} className="space-y-4">
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Mevcut Şifreniz</label>
-                              <input type="password" value={eskiSifre} onChange={(e: any) => setEskiSifre(e.target.value)} maxLength={4} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
+                              <input type="password" value={eskiSifre} onChange={(e: any) => setEskiSifre(e.target.value)} maxLength={} className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
                           </div>
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1">Yeni Şifreniz (4 Haneli Rakam)</label>
-                              <input type="password" value={yeniSifre} onChange={(e: any) => setYeniSifre(e.target.value)} maxLength={4} pattern="\d{4}" className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
+                              <input type="password" value={yeniSifre} onChange={(e: any) => setYeniSifre(e.target.value)} maxLength={8} pattern="\d{4}" className="w-full border-2 border-slate-200 rounded-lg p-3 text-center text-xl font-black tracking-widest focus:border-blue-500 focus:outline-none" required />
                           </div>
                           <div className="flex gap-3 mt-6">
                               <button type="button" onClick={() => setSifreDegistirAcik(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg transition-colors text-sm">İptal</button>
