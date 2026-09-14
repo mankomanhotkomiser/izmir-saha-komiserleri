@@ -384,7 +384,6 @@ export default function Home() {
       if (!sicil) return;
 
       let girilenSicil = sicil.trim();
-      // Bukalemun Plaka Sistemi (Şehre göre 35 veya 41 ekler)
       const plaka = aktifSehir === 'izmir' ? '35' : (aktifSehir === 'kocaeli' ? '41' : '');
       if (plaka && /^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith(plaka)) {
           girilenSicil = plaka + girilenSicil;
@@ -395,7 +394,6 @@ export default function Home() {
       if (!onay) return;
 
       try {
-          // Güvenlik kalkanı eklendi: .eq('sehir', aktifSehir)
           const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single();
           
           if (error || !data) {
@@ -403,10 +401,12 @@ export default function Home() {
               return;
           }
 
+          // 🔥 ŞEHİR MÜHRÜ EKLENDİ 🔥
           const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
               komiser_id: girilenSicil,
               ad_soyad: data.ad_soyad,
-              durum: 'bekliyor'
+              durum: 'bekliyor',
+              sehir: aktifSehir 
           }]);
 
           if (!insertError) {
@@ -743,7 +743,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
         banka_adi: bankaAdi,
         sube_kodu: subeKodu,
         hesap_no: hesapNo,
-        iban: ibanNo
+        iban: ibanNo,
+        sehir: aktifSehir // 🔥 İŞTE BODRUM'U KİLİTLEYEN ŞEHİR MÜHRÜ 🔥
       };
       const { error } = await supabase.from('komiser_finans').upsert(payload, { onConflict: 'komiser_id' });
       if (error) throw error;
@@ -828,6 +829,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
     let aktif = true;
     async function arkaPlaniHazirla() {
       try {
+        // 1. MAÇLARI FİLTRELE (Zaten sehir kalkanı varmış, ama tam izole ediyoruz)
         let tumMaclarGecici: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
         while (veriKaldimi && aktif) {
           const { data, error } = await supabase.from('musabakalar').select('*').eq('sehir', aktifSehir).range(sayfa * limit, (sayfa + 1) * limit - 1)
@@ -877,13 +879,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
           }
         }
 
-        const { data: komiserlerData } = await supabase.from('komiserler').select('*')
+        // 🔥 2. DİĞER KOMİSERLERİ FİLTRELE (Sadece kendi şehrindekiler)
+        const { data: komiserlerData } = await supabase.from('komiserler').select('*').eq('sehir', aktifSehir)
         if (komiserlerData && aktif) setTumKomiserler(komiserlerData || [])
 
+        // STATÜLER ORTAKTIR, FİLTREYE GEREK YOK
         const { data: statuData } = await supabase.from('lig_statuleri').select('*');
         if (statuData && aktif) setTumStatuler(statuData);
 
-        // 🔥 YENİ: Hakem ve gözlemcileri sadece bulunduğu şehre (.eq('sehir', aktifSehir)) göre getir
+        // 🔥 3. HAKEM VE GÖZLEMCİLERİ FİLTRELE (Sadece kendi şehrindekiler)
         const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad')
         if (hakemData && aktif) { setHakemListesi(hakemData.map((h: any) => h.ad_soyad)); }
 
@@ -1027,7 +1031,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
     else if (mazeretTipi === 'full') { Object.keys(temizGunler).forEach((g: string) => { temizGunler[g] = { active: true, merkez: genelMerkez, deplasman: genelDeplasman, tumGun: true, baslangic: '09:00', bitis: '22:00' }; }); }
 
     const payload = {
-      komiser_id: seciliKomiser?.komiser_id || '', hafta_no: hedefHafta, komple_yok: kompleYokum || mazeretTipi === 'yok', aciklama: mazeretNotu,
+      komiser_id: seciliKomiser?.komiser_id || '', 
+      hafta_no: hedefHafta, 
+      komple_yok: kompleYokum || mazeretTipi === 'yok', 
+      aciklama: mazeretNotu,
+      sehir: aktifSehir, // 🔥 ŞEHİR MÜHRÜ BURADA BASILIYOR 🔥
       detaylar: { mod: mazeretTipi, genelMerkez: mazeretTipi === 'full' ? genelMerkez : null, genelDeplasman: mazeretTipi === 'full' ? genelDeplasman : null, gunler: (mazeretTipi === 'secmeli' || mazeretTipi === 'full') ? temizGunler : null }
     };
     try {

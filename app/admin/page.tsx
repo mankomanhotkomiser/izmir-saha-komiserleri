@@ -438,7 +438,11 @@ useEffect(() => {
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
     // ÖNDER KOMUTANIN ÖZEL ŞİFRESİ
-    if (sifre === '20003535') { setGirisYapildi(true); setHatasi(''); } 
+    if (sifre === '20003535') { 
+        setAktifAdmin({ admin_kodu: 'mankoman', sehir: 'izmir' });
+        setGirisYapildi(true); 
+        setHatasi(''); 
+    } 
     else { setHatasi('Hatalı şifre. Yönetim Merkezine giriş reddedildi.') }
   }
 
@@ -495,11 +499,15 @@ useEffect(() => {
   const veriGetir = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true);
     try {
+      const isVIP = aktifAdmin?.admin_kodu === 'mankoman';
       const sehirKalkan = aktifAdmin?.sehir || 'izmir'; // 🔥 GÜVENLİK KALKANI 🔥
       
       let maclarVerisi: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
       while (veriKaldimi) {
-        const { data, error } = await supabase.from('musabakalar').select('*').eq('sehir', sehirKalkan).range(sayfa * limit, (sayfa + 1) * limit - 1)
+        let query = supabase.from('musabakalar').select('*').range(sayfa * limit, (sayfa + 1) * limit - 1);
+        if (!isVIP) query = query.eq('sehir', sehirKalkan);
+        
+        const { data, error } = await query;
         if (error) break;
         if (data && Array.isArray(data) && data.length > 0) {
           maclarVerisi = [...maclarVerisi, ...data]
@@ -508,22 +516,30 @@ useEffect(() => {
       }
       setSezonlukMaclar(maclarVerisi || []);
       
-      const { data: komiserlerData } = await supabase.from('komiserler').select('*').eq('sehir', sehirKalkan);
-      if (komiserlerData) setTumKomiserler(komiserlerData || [])
+      let komiserQuery = supabase.from('komiserler').select('*');
+      if (!isVIP) komiserQuery = komiserQuery.eq('sehir', sehirKalkan);
+      const { data: komiserlerData } = await komiserQuery;
+      if (komiserlerData) setTumKomiserler(komiserlerData || []);
 
-      const { data: mazeretData } = await supabase.from('mazeretler').select('*').eq('sehir', sehirKalkan);
+      let mazeretQuery = supabase.from('mazeretler').select('*');
+      if (!isVIP) mazeretQuery = mazeretQuery.eq('sehir', sehirKalkan);
+      const { data: mazeretData } = await mazeretQuery;
       if (mazeretData) setTumMazeretler(mazeretData || []);
 
-      const { data: statuData } = await supabase.from('lig_statuleri').select('*'); // Ortak
+      const { data: statuData } = await supabase.from('lig_statuleri').select('*'); 
       if (statuData) setTumStatuler(statuData || []);
 
-      const { data: taleplerData } = await supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').eq('sehir', sehirKalkan).order('created_at', { ascending: false });
+      let talepQuery = supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').order('created_at', { ascending: false });
+      if (!isVIP) talepQuery = talepQuery.eq('sehir', sehirKalkan);
+      const { data: taleplerData } = await talepQuery;
       if (taleplerData) setSifreTalepleri(taleplerData);
 
-      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single(); // Ortak
+      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single(); 
       if (talimatData) setGenelTalimat(talimatData.metin || '');
 
-      const { data: fData, error: fError } = await supabase.from('komiser_finans').select('*').eq('sehir', sehirKalkan);
+      let finansQuery = supabase.from('komiser_finans').select('*');
+      if (!isVIP) finansQuery = finansQuery.eq('sehir', sehirKalkan);
+      const { data: fData, error: fError } = await finansQuery;
       if (!fError && fData) setFinansVerileri(fData || []);
 
       if (maclarVerisi.length > 0) {
