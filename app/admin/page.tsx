@@ -331,11 +331,10 @@ export default function AdminPage() {
 useEffect(() => {
     if (typeof window !== 'undefined') {
       const vize = localStorage.getItem('aktifAdminKodu');
-      // Eğer dış kapıdan vizesini almış bir adminsi direkt içeri al
-      if (vize && vize.startsWith('admin')) {
+      // 🔥 MANKOMAN VIP GEÇİŞ İZNİ EKLENDİ 🔥
+      if (vize && (vize.startsWith('admin') || vize === 'mankoman')) {
         setGirisYapildi(true);
       } else {
-        // Eğer dışarıda şifre girmemiş biri kaçak olarak direkt /admin yazıp girmeye çalışırsa, dış kapıya fırlat!
         window.location.href = '/';
       }
     }
