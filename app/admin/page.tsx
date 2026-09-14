@@ -499,8 +499,13 @@ useEffect(() => {
   const veriGetir = async (sessiz = false) => {
     if (!sessiz) setYukleniyor(true);
     try {
-      const isVIP = aktifAdmin?.admin_kodu === 'mankoman';
-      const sehirKalkan = aktifAdmin?.sehir || 'izmir'; // 🔥 GÜVENLİK KALKANI 🔥
+      // 🔥 HAFIZA TUZAKLARINI YIKAN ZIRHLI KOD! 🔥
+      // React'ın yavaş hafızasına (aktifAdmin) güvenmiyoruz, doğrudan tarayıcının beynine (localStorage) iniyoruz!
+      const kayitliAdminKodu = localStorage.getItem('aktifAdminKodu') || '';
+      const kayitliSehir = localStorage.getItem('aktifSehir') || aktifAdmin?.sehir || 'izmir';
+      
+      const isVIP = kayitliAdminKodu === 'mankoman' || aktifAdmin?.admin_kodu === 'mankoman';
+      const sehirKalkan = kayitliSehir; // KOCAELİ İSE KOCAELİ! İZMİR İSE İZMİR!
       
       let maclarVerisi: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
       while (veriKaldimi) {
