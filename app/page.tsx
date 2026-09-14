@@ -950,6 +950,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
         localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
         localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
+        
+        // 🔥 İŞTE EKSİK OLAN VE BU APTALLIĞA SEBEP OLAN SATIR BURASI! 🔥
+        // Adminin şehrini hafızaya zorla kazıyoruz!
+        localStorage.setItem('aktifSehir', adminData.sehir || 'izmir'); 
+        
         window.location.href = '/admin';
         return;
       }
