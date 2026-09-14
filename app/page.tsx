@@ -362,55 +362,56 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
-    // --- TUSOM AKILLI ŞEHİR RADARI ---
-  const getAktifSehir = () => {
+    // --- 🔥 TUSOM AKILLI ŞEHİR RADARI (YENİ BEYİN) 🔥 ---
+  const [aktifSehir, setAktifSehir] = useState('genelmerkez');
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const domain = window.location.hostname;
-      
-      // Eski veya yeni İzmir adresleriyse:
-      if (domain.includes('izmir') || domain.includes('tfskdizmirsube')) return 'izmir';
-      
-      // 81 İL İÇİN OTOMATİK RADAR! (Örn: kocaeli.tfskd.org -> kocaeli)
-      if (domain.includes('tfskd.org')) {
-        return domain.split('.')[0]; 
-      }
+      const kayitliSehir = localStorage.getItem('aktifSehir');
+      if (kayitliSehir) setAktifSehir(kayitliSehir);
     }
-    return 'izmir'; // Hata olursa varsayılan 
-  };
-  const aktifSehir = getAktifSehir();
+  }, []);
   // ---------------------------------
     const hizliSifreTalebi = async () => {
       const sicil = window.prompt("Şifre sıfırlama talebi için lütfen SİCİL NUMARANIZI giriniz:");
       if (!sicil) return;
 
       let girilenSicil = sicil.trim();
-      const plaka = aktifSehir === 'izmir' ? '35' : (aktifSehir === 'kocaeli' ? '41' : '');
-      if (plaka && /^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith(plaka)) {
-          girilenSicil = plaka + girilenSicil;
+
+      // Plaka otomatik algılama (Basit bir zeka ekliyoruz, ilerde geliştirilebilir)
+      // 35 ile başlıyorsa İzmir, 41 ile başlıyorsa Kocaeli vs. 
+      // Ancak doğrudan veritabanından sorgulamak en güvenlisi.
+      if (/^\d{4,10}$/.test(girilenSicil) && girilenSicil.length < 8 && !girilenSicil.startsWith('35') && !girilenSicil.startsWith('41')) {
+          // Eğer çok kısa bir sicil girdiyse ve başında plaka yoksa, şimdilik İzmir kabul edelim (Gerçekte her komiser tam sicilini bilmeli)
+          girilenSicil = '35' + girilenSicil; 
       }
 
-      const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için ${turkceBuyukHarf(aktifSehir)} Şube Yönetimine 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
+      const onay = window.confirm(`🚨 DİKKAT!\n\n${girilenSicil} sicil numarası için Şube Yönetiminize 'Şifre Sıfırlama Talebi' göndermek istediğinize emin misiniz?`);
       
       if (!onay) return;
 
       try {
-          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single();
+          // 🔥 YENİ ZEKÂ: Adamın sicilini Supabase'de ara, İLİNİ BUL! 🔥
+          // Artık .eq('sehir', aktifSehir) yok, çünkü aktifSehir henüz belli değil.
+          const { data, error } = await supabase.from('komiserler').select('ad_soyad, sehir').eq('komiser_id', girilenSicil).single();
           
           if (error || !data) {
               alert("❌ HATA: Bu sicil numarasına ait bir kayıt bulunamadı!");
               return;
           }
 
-          // 🔥 ŞEHİR MÜHRÜ EKLENDİ 🔥
+          const komiserinSehri = data.sehir; // İşte komiserin asıl ili!
+
+          // 🔥 ŞEHİR MÜHRÜ İLE VERİTABANINA YAZ 🔥
           const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
               komiser_id: girilenSicil,
               ad_soyad: data.ad_soyad,
               durum: 'bekliyor',
-              sehir: aktifSehir 
+              sehir: komiserinSehri 
           }]);
 
           if (!insertError) {
-              alert(`✅ BAŞARILI: Şifre sıfırlama talebiniz ${turkceBuyukHarf(aktifSehir)} Şube Yönetimine iletildi!\n\nLütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.`);
+              alert(`✅ BAŞARILI: Şifre sıfırlama talebiniz ${turkceBuyukHarf(komiserinSehri)} Şube Yönetimine iletildi!\n\nLütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.`);
           } else {
               alert("❌ HATA: Talebiniz iletilemedi: " + insertError.message);
           }
@@ -481,9 +482,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
       setTalepGonderiliyor(true);
       try {
           let girilenSicil = unuttumSicil.trim();
-          if (/^\d{4,10}$/.test(girilenSicil) && !girilenSicil.startsWith('35')) { girilenSicil = '35' + girilenSicil; }
+          
+          // Çok kısa sicillerde yine varsayılan bir plaka ekleme opsiyonu (İsteğe bağlı)
+          if (/^\d{4,10}$/.test(girilenSicil) && girilenSicil.length < 8 && !girilenSicil.startsWith('35') && !girilenSicil.startsWith('41')) { 
+              girilenSicil = '35' + girilenSicil; 
+          }
 
-          const { data, error } = await supabase.from('komiserler').select('ad_soyad').eq('komiser_id', girilenSicil).single();
+          // 🔥 YENİ ZEKÂ: Komiserin ilini veritabanından çek 🔥
+          const { data, error } = await supabase.from('komiserler').select('ad_soyad, sehir').eq('komiser_id', girilenSicil).single();
           
           if (error || !data) {
               alert("Bu sicil numarasına ait bir kayıt bulunamadı!");
@@ -491,14 +497,18 @@ const [kucukHeader, setKucukHeader] = useState(false);
               return;
           }
 
+          const komiserinSehri = data.sehir;
+
+          // 🔥 ŞEHİR MÜHRÜ İLE VERİTABANINA YAZ 🔥
           const { error: insertError } = await supabase.from('sifre_talepleri').insert([{
               komiser_id: girilenSicil,
               ad_soyad: data.ad_soyad,
-              durum: 'bekliyor'
+              durum: 'bekliyor',
+              sehir: komiserinSehri
           }]);
 
           if (!insertError) {
-              alert("✅ Şifre sıfırlama talebiniz İzmir Şube Yönetimine iletildi. Lütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.");
+              alert(`✅ Şifre sıfırlama talebiniz ${turkceBuyukHarf(komiserinSehri)} Şube Yönetimine iletildi. Lütfen yöneticinizle iletişime geçerek yeni şifrenizi belirleyiniz.`);
               setSifremiUnuttumAcik(false);
               setUnuttumSicil('');
           } else {
@@ -806,10 +816,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
   const otomatikGirisYap = async (id: string, sifre: string) => {
     try {
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).eq('sehir', aktifSehir).single()
+      // 🔥 YENİ BEYİN: Şehri URL'den değil, direkt sicilden bul 🔥
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', id).single()
       if (data && !error) {
         const dbSifre = data.sifre || '1923'; 
         if (dbSifre === sifre) {
+            setAktifSehir(data.sehir || 'izmir');
+            localStorage.setItem('aktifSehir', data.sehir || 'izmir');
             setSeciliKomiser(data)
             await komiserDetayGetir(data)
             await finansBilgileriniGetir(data.komiser_id); 
@@ -912,22 +925,23 @@ const [kucukHeader, setKucukHeader] = useState(false);
     try {
       // 1. GİZLİ YÖNETİCİ GEÇİDİ (ADMİN KONTROLÜ)
       if (girilenSicil.toLowerCase().startsWith('admin')) {
-          const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
+        const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
 
-          if (adminErr || !adminData || String(adminData.sifre).trim() !== String(sifreInput).trim()) {
-              setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz.");
-              setGirisYukleniyor(false);
-              return;
-          }
+        if (adminErr || !adminData || String(adminData.sifre).trim() !== String(sifreInput).trim()) {
+            setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz.");
+            setGirisYukleniyor(false);
+            return;
+        }
 
-          localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
-          localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
-          window.location.href = '/admin';
-          return;
+        localStorage.setItem('aktifAdminKodu', adminData.admin_kodu);
+        localStorage.setItem('aktifAdminSifre', String(adminData.sifre));
+        window.location.href = '/admin';
+        return;
       }
 
-      // 2. NORMAL KOMİSER GİRİŞİ KONTROLÜ
-      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).eq('sehir', aktifSehir).single()
+      // 2. NORMAL KOMİSER GİRİŞİ KONTROLÜ (ŞEHİR FİLTRESİ KALDIRILDI!)
+      // 🔥 Sistem artık sadece sicile bakıyor, şehri veritabanından öğrenecek 🔥
+      const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
       const dbSifre = data?.sifre || '1923'; 
       
       if (error || !data || dbSifre !== sifreInput) { 
@@ -936,7 +950,10 @@ const [kucukHeader, setKucukHeader] = useState(false);
           return; 
       }
       
-      // GİRİŞ BAŞARILI
+      // GİRİŞ BAŞARILI - ŞEHRİ HAFIZAYA YAZ
+      setAktifSehir(data.sehir || 'izmir');
+      localStorage.setItem('aktifSehir', data.sehir || 'izmir');
+
       setSeciliKomiser(data)
       localStorage.setItem('izmirKomiserId', data.komiser_id)
       localStorage.setItem('izmirKomiserSifre', sifreInput)
@@ -982,6 +999,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
       cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
       pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
     }); skorFormunuSifirla(); localStorage.removeItem('izmirKomiserId'); localStorage.removeItem('izmirKomiserSifre');
+    // 🔥 ÇIKIŞTA ŞEHRİ SIFIRLA (GENEL MERKEZE DÖN) 🔥
+    localStorage.removeItem('aktifSehir');
+    setAktifSehir('genelmerkez');
   }
 
   const komiserDetayGetir = async (komiser: any) => {
@@ -2429,18 +2449,23 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
-            <div className="flex justify-center mb-6"><div className="w-24 h-24 bg-white rounded-full p-2 shadow-lg border border-slate-100 -mt-16 flex items-center justify-center"><img src={DERNEK_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="w-[85%] h-[85%] object-contain" /></div></div>
-            <div className="flex flex-col items-center justify-center mb-4">
-  <h1 className="text-[14px] font-black tracking-widest text-slate-800 leading-snug mb-1 text-center">
-    TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
-  </h1>
-  <h2 className="text-[22px] font-black text-black tracking-widest mb-1 text-center">
-    {aktifSehir ? aktifSehir.toLocaleUpperCase('tr-TR') : 'İZMİR'} ŞUBESİ
-  </h2>
-  <h3 className="text-[12px] font-bold text-red-600 tracking-widest text-center">
-    SAHA OPERASYON SİSTEMİ
-  </h3>
-</div>
+            <div className="flex justify-center mb-6">
+                <div className="w-28 h-28 bg-white rounded-full p-2 shadow-lg border-4 border-red-600 -mt-16 flex items-center justify-center overflow-hidden">
+                    {/* Buraya Genel Merkez logosunu (varsa) veya TFF logosunu koyuyoruz */}
+                    <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFSKD Genel Merkez" className="w-[90%] h-[90%] object-contain" />
+                </div>
+            </div>
+            <div className="flex flex-col items-center justify-center mb-6">
+                <h1 className="text-[14px] font-black tracking-widest text-slate-800 leading-snug mb-1 text-center">
+                  TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
+                </h1>
+                <h2 className="text-[20px] font-black text-black tracking-widest mb-1 text-center bg-red-100 px-3 py-1 rounded border border-red-200 shadow-sm mt-1">
+                  GENEL MERKEZ
+                </h2>
+                <h3 className="text-[12px] font-bold text-red-600 tracking-widest text-center mt-2">
+                  DİJİTAL SAHA OPERASYON MERKEZİ
+                </h3>
+            </div>
             <form onSubmit={girisYap} className="space-y-4">
               <div>
                   <input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
