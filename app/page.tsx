@@ -932,17 +932,18 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const girisYap = async (e?: React.FormEvent) => {
     if (e) e.preventDefault() 
     setGirisYukleniyor(true); setGirisHatasi(null);
+    
     let girilenSicil = kullaniciIdInput.trim()
     if (!girilenSicil) { setGirisHatasi("Lütfen sicil numaranızı girin."); setGirisYukleniyor(false); return; }
     if (!sifreInput) { setGirisHatasi("Lütfen şifrenizi girin."); setGirisYukleniyor(false); return; }
     
     try {
       // 1. GİZLİ YÖNETİCİ GEÇİDİ (ADMİN KONTROLÜ)
-      if (girilenSicil.toLowerCase().startsWith('admin')) {
+      if (girilenSicil.toLowerCase().startsWith('admin') || girilenSicil.toLowerCase() === 'mankoman') {
         const { data: adminData, error: adminErr } = await supabase.from('adminler').select('*').eq('admin_kodu', girilenSicil.toLowerCase()).single();
 
         if (adminErr || !adminData || String(adminData.sifre).trim() !== String(sifreInput).trim()) {
-            setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz.");
+            setGirisHatasi("Hatalı yönetici kodu veya şifre girdiniz.");
             setGirisYukleniyor(false);
             return;
         }
@@ -953,21 +954,40 @@ const [kucukHeader, setKucukHeader] = useState(false);
         return;
       }
 
-      // 2. NORMAL KOMİSER GİRİŞİ KONTROLÜ (ŞEHİR FİLTRESİ KALDIRILDI!)
-      // 🔥 Sistem artık sadece sicile bakıyor, şehri veritabanından öğrenecek 🔥
+      // 2. NORMAL KOMİSER GİRİŞİ KONTROLÜ
       const { data, error } = await supabase.from('komiserler').select('*').eq('komiser_id', girilenSicil).single()
-      const dbSifre = data?.sifre || '1923'; 
       
-      if (error || !data || dbSifre !== sifreInput) { 
+      if (error || !data) { 
           setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz."); 
           setGirisYukleniyor(false); 
           return; 
       }
-      
-      // GİRİŞ BAŞARILI - ŞEHRİ HAFIZAYA YAZ
-      setAktifSehir(data.sehir || 'izmir');
-      localStorage.setItem('aktifSehir', data.sehir || 'izmir');
 
+      const komiserSehri = data.sehir || 'izmir';
+
+      // 🔥 YENİ KURAL: ADRES BİR ŞUBEYE AİTSE (İzmir/Kocaeli) YABANCIYI SOKMA!
+      // 'genelmerkez' veya 'Uygulama' ise herkes girebilir.
+      const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+      let kapiSehri = 'genelmerkez';
+      if (domain.includes('izmir') || domain.includes('tfskdizmirsube')) kapiSehri = 'izmir';
+      else if (domain.includes('kocaeli')) kapiSehri = 'kocaeli';
+
+      if (kapiSehri !== 'genelmerkez' && kapiSehri !== komiserSehri) {
+          setGirisHatasi(`Güvenlik İhlali: Sicil numaranız ${kapiSehri.toLocaleUpperCase('tr-TR')} şubesine ait değildir!`);
+          setGirisYukleniyor(false);
+          return;
+      }
+
+      const dbSifre = data?.sifre || '1923'; 
+      if (dbSifre !== sifreInput) {
+          setGirisHatasi("Hatalı sicil numarası veya şifre girdiniz."); 
+          setGirisYukleniyor(false); 
+          return;
+      }
+      
+      // GİRİŞ BAŞARILI - KOMİSERİ DOĞRUDAN KENDİ ŞUBESİNE ZİMMETLE
+      setAktifSehir(komiserSehri);
+      localStorage.setItem('aktifSehir', komiserSehri);
       setSeciliKomiser(data)
       localStorage.setItem('izmirKomiserId', data.komiser_id)
       localStorage.setItem('izmirKomiserSifre', sifreInput)
@@ -2459,38 +2479,51 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
       );
 
   } else if (gercekAktifEkran === 'giris') {
+      // Dinamik Kapı Logosu
+      const kapiDomain = typeof window !== 'undefined' ? window.location.hostname : '';
+      let girisLogo = AMATOR_MERKEZ_LOGO;
+      if (kapiDomain.includes('izmir') || kapiDomain.includes('tfskdizmirsube')) girisLogo = '/izmir-logo.png';
+      else if (kapiDomain.includes('kocaeli')) girisLogo = '/kocaeli-logo.png';
+
       ekranIcerigi = (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
+          
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
-            <div className="flex justify-center mb-6">
-                <div className="w-28 h-28 bg-white rounded-full p-2 shadow-lg border-4 border-red-600 -mt-16 flex items-center justify-center overflow-hidden">
-                    {/* Buraya Genel Merkez logosunu (varsa) veya TFF logosunu koyuyoruz */}
-                    <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFSKD Genel Merkez" className="w-[90%] h-[90%] object-contain" />
+            
+            {/* 🔥 BÜYÜTÜLMÜŞ LOGO ALANI (Sınırlara sıfır) 🔥 */}
+            <div className="flex justify-center mb-5">
+                <div className="w-28 h-28 bg-white rounded-full p-1 shadow-lg border-4 border-slate-100 -mt-16 flex items-center justify-center overflow-hidden">
+                    <img src={girisLogo} crossOrigin="anonymous" alt="TFSKD Logo" className="w-[95%] h-[95%] object-contain scale-110" />
                 </div>
             </div>
-            <div className="flex flex-col items-center justify-center mb-6">
-                <h1 className="text-[14px] font-black tracking-widest text-slate-800 leading-snug mb-1 text-center">
+
+            {/* 🔥 YENİ TEMİZ VE BÜYÜK BAŞLIKLAR 🔥 */}
+            <div className="flex flex-col items-center justify-center mb-8 w-full">
+                <h1 className="text-[17px] md:text-[19px] font-black tracking-wider text-black leading-snug text-center mb-1.5 drop-shadow-sm">
                   TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
                 </h1>
-                <h2 className="text-[20px] font-black text-black tracking-widest mb-1 text-center bg-red-100 px-3 py-1 rounded border border-red-200 shadow-sm mt-1">
-                  GENEL MERKEZ
-                </h2>
-                <h3 className="text-[12px] font-bold text-red-600 tracking-widest text-center mt-2">
-                  DİJİTAL SAHA OPERASYON MERKEZİ
+                <h3 className="text-[14px] font-bold text-red-600 tracking-widest text-center mt-1">
+                  SAHA OPERASYON MERKEZİ
                 </h3>
             </div>
-            <form onSubmit={girisYap} className="space-y-4">
+
+            <form onSubmit={girisYap} className="space-y-5">
               <div>
-                  <input type="text" placeholder="Sicil Numaranız" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
+                  {/* SİCİL NO - Hane sınırı ve ek uyarılar kaldırıldı */}
+                  <input type="text" placeholder="Sicil No" value={kullaniciIdInput} onChange={(e: any) => setKullaniciIdInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.2em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
               </div>
               <div>
-                  <input type="password" placeholder="Şifrenizi Giriniz" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} maxLength={8} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
+                  {/* ŞİFRE - maxLength kısıtlaması kaldırıldı */}
+                  <input type="password" placeholder="Şifre" value={sifreInput} onChange={(e: any) => setSifreInput(e.target.value)} onKeyDown={enterTusuKontrol} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-center text-slate-800 font-black tracking-[0.5em] text-lg focus:outline-none focus:border-red-500 focus:bg-white transition-all shadow-inner" required />
               </div>
-              {girisHatasi && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100">{girisHatasi}</p>}
-              <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2">
-                  {girisYukleniyor ? 'GİRİŞ YAPILIYOR...' : 'SİSTEME GİRİŞ YAP'}
+              
+              {girisHatasi && <p className="text-red-500 text-xs font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100 animate-fade-in-down">{girisHatasi}</p>}
+              
+              <button type="submit" disabled={girisYukleniyor} className="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-black py-4 rounded-xl tracking-widest shadow-[0_8px_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-2">
+                  {girisYukleniyor ? 'SORGULANIYOR...' : 'SİSTEME GİRİŞ YAP'}
               </button>
+              
               <div className="pt-2">
                   <button type="button" onClick={hizliSifreTalebi} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors underline decoration-dotted">Şifremi Unuttum</button>
               </div>
