@@ -362,13 +362,27 @@ const temizHakem = (isim: any) => {
 };
 
 export default function Home() {
-    // --- 🔥 TUSOM AKILLI ŞEHİR RADARI (YENİ BEYİN) 🔥 ---
-  const [aktifSehir, setAktifSehir] = useState('genelmerkez');
+    // --- 🔥 TUSOM AKILLI ŞEHİR RADARI (HİBRİT BEYİN) 🔥 ---
+  const [aktifSehir, setAktifSehir] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const domain = window.location.hostname;
       const kayitliSehir = localStorage.getItem('aktifSehir');
-      if (kayitliSehir) setAktifSehir(kayitliSehir);
+
+      if (kayitliSehir) {
+          // Adam daha önce giriş yapmış ve şubesi zimmetlenmiş, onu kullan
+          setAktifSehir(kayitliSehir);
+      } else {
+          // Adam ilk defa giriyor, adrese bak!
+          if (domain.includes('izmir') || domain.includes('tfskdizmirsube')) {
+              setAktifSehir('izmir'); // URL İzmir ise direkt İzmir yap, menü sorma
+          } else if (domain.includes('kocaeli')) {
+              setAktifSehir('kocaeli'); // URL Kocaeli ise direkt Kocaeli yap
+          } else {
+              setAktifSehir('genelmerkez'); // URL Genel Merkez ise (Uygulama) menü seçtir
+          }
+      }
     }
   }, []);
   // ---------------------------------
