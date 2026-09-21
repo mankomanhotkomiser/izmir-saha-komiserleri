@@ -1714,7 +1714,9 @@ useEffect(() => {
                   </div>
                   <div className="flex-1 flex flex-col text-black">
                       <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 uppercase tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
-                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'} className="w-full flex-1 outline-none bg-transparent font-serif text-sm leading-relaxed resize-none border border-dashed border-slate-300 p-2 pointer-events-none"></textarea>
+                      <div className="w-full flex-1 font-serif text-sm leading-relaxed border border-dashed border-slate-300 p-2 whitespace-pre-wrap min-h-[150px]">
+    {safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'}
+</div>
                   </div>
                   <RenderA4Footer />
               </div>
@@ -1841,12 +1843,16 @@ useEffect(() => {
                   </div>
 
                   <div className="bg-slate-100 p-2 font-black text-sm mb-1 shrink-0 border border-slate-300">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
-                  <textarea readOnly value={safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''} rows={1} className="w-full border-b border-black bg-transparent outline-none resize-none mb-4 px-2 text-xs pointer-events-none shrink-0"></textarea>
+                  <div className="w-full border-b border-black mb-4 px-2 text-xs whitespace-pre-wrap min-h-[40px] shrink-0">
+    {safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''}
+</div>
 
                   <div className="flex-1 flex flex-col min-h-[150px]">
                       <h3 className="font-black text-xs uppercase mb-1 bg-slate-100 p-2 border border-slate-300">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
                       <p className="text-[9px] mb-1 font-bold text-slate-600">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      <textarea readOnly value={safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'} className="ruled-textarea w-full flex-1 outline-none p-2 text-sm bg-transparent pointer-events-none resize-none font-serif text-blue-900"></textarea>
+                      <div className="ruled-textarea w-full flex-1 p-2 text-sm font-serif text-blue-900 whitespace-pre-wrap min-h-[150px]">
+    {safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'}
+</div>
                   </div>
 
                   <RenderA4Footer />
