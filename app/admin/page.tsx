@@ -157,51 +157,45 @@ const isBordroKategori = (kategoriAdi: string) => {
     if (!kategoriAdi) return false;
     const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
 
-    // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Bodrum'a Tatile Gidenler 🏖️)
-    const yasakliKelimeler = [
-        'GELİŞİM', 'AKADEMİ', 'ELİT', 'PAF', 
-        'KADIN', 'KIZ', 'KADINLAR', 'KIZLAR',
-        'TFF U1', 'TFF U2', 'TFF U-', 'TFF U 1', 'TFF U 2' // TFF U19, TFF U15 vb. engelle
-    ];
-    
-    for (let i = 0; i < yasakliKelimeler.length; i++) {
-        if (kat.includes(yasakliKelimeler[i])) return false; 
-    }
-
-    // 🔥 TFF KONTROLÜ 🔥
-    // İsminde TFF geçiyorsa SADECE Profesyonel Ligler geçebilir. 
+    // 1. TFF KONTROLÜ - EN KESİN FİLTRE (TFF U15, TFF U19 GİREMEZ!)
+    // Eğer içinde TFF geçiyorsa, SADECE ağır abiler (Prof Ligler) geçebilir.
     if (kat.includes('TFF')) {
         const isProf = kat.includes('SÜPER') || 
                        kat.includes('1. LİG') || kat.includes('1.LİG') ||
                        kat.includes('2. LİG') || kat.includes('2.LİG') ||
                        kat.includes('3. LİG') || kat.includes('3.LİG');
         if (!isProf) {
-            return false; // TFF yazıyor ama profesyonel değil, anında REDDET!
+            return false; // TFF yazıyor ama profesyonel değil (örn: TFF U15), anında REDDET!
         }
     }
 
-    // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR VE YEREL LİGLER
+    // 2. KESİNLİKLE BORDRO DIŞI KALACAK DİĞER KELİMELER
+    const yasakliKelimeler = [
+        'GELİŞİM', 'AKADEMİ', 'ELİT', 'PAF', 
+        'KADIN', 'KIZ', 'KADINLAR', 'KIZLAR'
+    ];
+    
+    for (let i = 0; i < yasakliKelimeler.length; i++) {
+        if (kat.includes(yasakliKelimeler[i])) return false; 
+    }
+
+    // 3. İZİN VERİLENLER (Buraya kadar geldiyse TFF engeline veya Kadınlar engeline takılmamış demektir)
     const izinliKelimeler = [
         'SÜPER', '1. LİG', '1.LİG', '2. LİG', '2.LİG', '3. LİG', '3.LİG',
-        'BAL', 'BÖLGESEL', 'AMATÖR', 'İZMİR', 'KOCAELİ', 'HATAY', 'YALOVA',
-        'KUPA', 'ZTK', 'TÜRKİYE KUPASI',
-        'U19', 'U 19', 'U-19',
-        'U18', 'U 18', 'U-18',
-        'U17', 'U 17', 'U-17',
-        'U16', 'U 16', 'U-16',
-        'U15', 'U 15', 'U-15',
-        'U14', 'U 14', 'U-14',
-        'U13', 'U 13', 'U-13',
-        'U12', 'U 12', 'U-12',
-        'U11', 'U 11', 'U-11',
-        'U10', 'U 10', 'U-10'
+        'BAL', 'BÖLGESEL', 'AMATÖR', 'KUPA', 'ZTK', 'TÜRKİYE KUPASI',
+        'İZMİR', 'KOCAELİ', 'HATAY', 'YALOVA', 'İSTANBUL', 'ANKARA',
+        'U19', 'U 19', 'U-19', 'U18', 'U 18', 'U-18',
+        'U17', 'U 17', 'U-17', 'U16', 'U 16', 'U-16',
+        'U15', 'U 15', 'U-15', 'U14', 'U 14', 'U-14',
+        'U13', 'U 13', 'U-13', 'U12', 'U 12', 'U-12',
+        'U11', 'U 11', 'U-11', 'U10', 'U 10', 'U-10'
     ];
 
     for (let i = 0; i < izinliKelimeler.length; i++) {
         if (kat.includes(izinliKelimeler[i])) return true;
     }
 
-    // Hiçbirine uymadıysa şansa bırakma, reddet!
+    // Hiçbirine uymuyorsa reddet
     return false; 
 };
 
