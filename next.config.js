@@ -1,17 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Eski Webpack motoru için kalkan
+  // Eski motor (Webpack) için Canvas kalkanı
   webpack: (config) => {
     config.resolve.alias.canvas = false;
     return config;
   },
-  // Yeni nesil Turbopack motoru için kalkan
-  turbopack: {
-    resolveAlias: {
-      canvas: false
-    }
-  }
+  // Yeni motor (Turbopack) uyarılarını susturan boş kural
+  turbopack: {}
 };
 
-// Sarı uyarıyı çözen klasik dışa aktarma yöntemi
+// Sarı uyarıyı yok eden standart dışa aktarma komutu
 module.exports = nextConfig;

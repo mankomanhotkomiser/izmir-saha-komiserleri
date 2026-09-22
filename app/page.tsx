@@ -1197,14 +1197,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
       setEkRaporDosyalar(yeniDosyalar);
   }
   
+  // 🔥 1. MOTOR: HİBRİT FOTOĞRAF VE TEK SAYFA PDF ÇEVİRİCİ 🔥
   const handleFotoYukle = async (id: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
       try {
-          // 🔥 EĞER DOSYA PDF İSE: GİZLİCE FOTOĞRAFINI ÇEK 🔥
           if (file.type === 'application/pdf') {
-              
               // @ts-ignore
               const pdfjsLib = await import('pdfjs-dist');
               const pdfVer = pdfjsLib.version || '3.11.174';
@@ -1215,7 +1214,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
               // @ts-ignore
               const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
               
-              // Tek sayfa lazımsa sadece 1. sayfayı çekiyoruz
               const page = await pdf.getPage(1);
               const viewport = page.getViewport({ scale: 1.5 }); 
               const canvas = document.createElement('canvas');
@@ -1241,16 +1239,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
               setEkRaporFotolar((prev: any) => ({ ...prev, [id]: dataUrl }));
               setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: dosya }));
-
           } else {
-              // 🔥 EĞER NORMAL FOTOĞRAF İSE SIKIŞTIR 🔥
-              const ayarlar = {
-                  maxSizeMB: 0.25,
-                  maxWidthOrHeight: 1600,
-                  useWebWorker: true,
-                  fileType: 'image/webp',
-                  initialQuality: 0.8
-              };
+              const ayarlar = { maxSizeMB: 0.25, maxWidthOrHeight: 1600, useWebWorker: true, fileType: 'image/webp', initialQuality: 0.8 };
               const sikistirilmisDosya = await imageCompression(file, ayarlar);
 
               const reader = new FileReader();
@@ -1266,9 +1256,90 @@ const [kucukHeader, setKucukHeader] = useState(false);
           console.error("Yükleme hatası:", error);
           alert("Dosya işlenirken bir sorun oluştu.");
       }
-      
-      // Inputu temizle ki aynı dosyayı yanlışlıkla silerse tekrar seçebilsin
       e.target.value = ''; 
+  };
+
+  // 🔥 2. MOTOR: AKILLI PDF PARÇALAMA (DİJİTAL GİYOTİN) 🔥
+  const handleAkilliPdfYukle = async (takim: 'ev' | 'mis', e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || file.type !== 'application/pdf') {
+          alert("Lütfen sadece PDF dosyası seçiniz!");
+          return;
+      }
+      
+      try {
+          // @ts-ignore
+          const pdfjsLib = await import('pdfjs-dist');
+          const pdfVer = pdfjsLib.version || '3.11.174';
+          // @ts-ignore
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVer}/pdf.worker.min.js`;
+
+          const arrayBuffer = await file.arrayBuffer();
+          // @ts-ignore
+          const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+          
+          const islemYap = async (pageNum: number, imgKey: string, bolum: 'tam' | 'ust' | 'alt' = 'tam') => {
+              if (pageNum > pdf.numPages) return;
+              const page = await pdf.getPage(pageNum);
+              const viewport = page.getViewport({ scale: 1.5 }); 
+              
+              const anaCanvas = document.createElement('canvas');
+              const anaCtx = anaCanvas.getContext('2d');
+              if (!anaCtx) return; 
+              
+              anaCanvas.width = viewport.width;
+              anaCanvas.height = viewport.height;
+              
+              // @ts-ignore
+              await page.render({ canvasContext: anaCtx, viewport: viewport }).promise;
+
+              const kesikCanvas = document.createElement('canvas');
+              const kesikCtx = kesikCanvas.getContext('2d');
+              if (!kesikCtx) return;
+
+              kesikCanvas.width = anaCanvas.width;
+
+              if (bolum === 'ust') {
+                  kesikCanvas.height = anaCanvas.height * 0.72;
+                  kesikCtx.drawImage(anaCanvas, 0, 0, anaCanvas.width, anaCanvas.height * 0.72, 0, 0, kesikCanvas.width, kesikCanvas.height);
+              } else if (bolum === 'alt') {
+                  kesikCanvas.height = anaCanvas.height * 0.35;
+                  kesikCtx.drawImage(anaCanvas, 0, anaCanvas.height * 0.65, anaCanvas.width, anaCanvas.height * 0.35, 0, 0, kesikCanvas.width, kesikCanvas.height);
+              } else {
+                  kesikCanvas.height = anaCanvas.height;
+                  kesikCtx.drawImage(anaCanvas, 0, 0);
+              }
+              
+              const dataUrl = kesikCanvas.toDataURL('image/webp', 0.8);
+              const arr = dataUrl.split(',');
+              const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
+              const bstr = atob(arr[1]);
+              let n = bstr.length;
+              const u8arr = new Uint8Array(n);
+              while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+              
+              const dosyaIsmi = bolum === 'ust' ? 'esame_kesik.webp' : (bolum === 'alt' ? 'teknik_kesik.webp' : `pdf_sayfa_${pageNum}.webp`);
+              const dosya = new File([u8arr], dosyaIsmi, {type:mime});
+
+              setEkRaporFotolar((prev: any) => ({ ...prev, [imgKey]: dataUrl }));
+              setEkRaporDosyalar((prev: any) => ({ ...prev, [imgKey]: dosya }));
+          };
+
+          const esameKey = takim === 'ev' ? 'gelisim_ev_esame' : 'gelisim_mis_esame';
+          const teknikKey = takim === 'ev' ? 'gelisim_ev_teknik' : 'gelisim_mis_teknik';
+          
+          if (pdf.numPages >= 2) {
+              await islemYap(1, esameKey, 'tam');
+              await islemYap(2, teknikKey, 'tam');
+          } else {
+              await islemYap(1, esameKey, 'ust');
+              await islemYap(1, teknikKey, 'alt');
+          }
+          e.target.value = ''; 
+      } catch (error) {
+          console.error(error);
+          alert("PDF okunurken bir hata oluştu.");
+      }
   };
 
   
