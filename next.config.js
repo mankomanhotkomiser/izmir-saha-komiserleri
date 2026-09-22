@@ -1,11 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Eski Webpack motoru için kalkan
   webpack: (config) => {
     config.resolve.alias.canvas = false;
     return config;
   },
-  turbopack: {},
+  // Yeni nesil Turbopack motoru için kalkan
+  turbopack: {
+    resolveAlias: {
+      canvas: false
+    }
+  }
 };
 
-export default nextConfig; 
-// (Eğer dosyanın adı next.config.js ise en alt satır module.exports = nextConfig; olmalı)
+// Sarı uyarıyı çözen klasik dışa aktarma yöntemi
+module.exports = nextConfig;
