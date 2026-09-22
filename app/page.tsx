@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 import RehberModal from '../components/RehberModal'
 // @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist';
+
 
 if (typeof window !== 'undefined' && typeof pdfjsLib !== 'undefined') {
     // @ts-ignore
@@ -1293,7 +1293,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
               setEkRaporFotolar((prev: any) => ({ ...prev, [imgKey]: dataUrl }));
               setEkRaporDosyalar((prev: any) => ({ ...prev, [imgKey]: dosya }));
-          }; // <--- İŞTE BÜTÜN SİSTEMİ ÇÖKERTEN EKSİK PARANTEZ BURADAYDI!
+          };
 
           const esameKey = takim === 'ev' ? 'gelisim_ev_esame' : 'gelisim_mis_esame';
           const teknikKey = takim === 'ev' ? 'gelisim_ev_teknik' : 'gelisim_mis_teknik';
@@ -1311,113 +1311,111 @@ const [kucukHeader, setKucukHeader] = useState(false);
       }
   };
 
-  function ekRaporGuncelle(id: number, text: string) {
+  const ekRaporGuncelle = (id: number, text: string) => {
+      setRaporDetay((prev: any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r: any) => r.id === id ? { ...r, text } : r) }));
+  };
 
-        const ekRaporGuncelle = (id: number, text: string) => {
-            setRaporDetay((prev: any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r: any) => r.id === id ? { ...r, text } : r) }));
-        };
+  const kartiIndir = async () => {
+      const element = document.getElementById('gorev-karti-alani');
+      if (element) {
+          try {
+              const fullWidth = element.scrollWidth;
+              const fullHeight = element.scrollHeight;
+              const dataURL = await toPng(element, { backgroundColor: '#f1f5f9', pixelRatio: 2, width: fullWidth, height: fullHeight });
+              const link = document.createElement('a');
+              link.href = dataURL; link.download = `${seciliKomiser?.ad_soyad?.replace(/\s+/g, '_') || 'Komiser'}_Gorev_Karti.png`;
+              document.body.appendChild(link); link.click(); document.body.removeChild(link);
+          } catch (err) { alert("Görev kartı indirilirken bir sorun oluştu."); }
+      }
+  };
 
-        const kartiIndir = async () => {
-            const element = document.getElementById('gorev-karti-alani');
-            if (element) {
-                try {
-                    const fullWidth = element.scrollWidth;
-                    const fullHeight = element.scrollHeight;
-                    const dataURL = await toPng(element, { backgroundColor: '#f1f5f9', pixelRatio: 2, width: fullWidth, height: fullHeight });
-                    const link = document.createElement('a');
-                    link.href = dataURL; link.download = `${seciliKomiser?.ad_soyad?.replace(/\s+/g, '_') || 'Komiser'}_Gorev_Karti.png`;
-                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                } catch (err) { alert("Görev kartı indirilirken bir sorun oluştu."); }
-            }
-        };
+  const tffTutanakIndir = async (mac: any, prefix: string = 'tff') => {
+      const element = document.getElementById(`${prefix}-form-${mac.id}`);
+      if (element) {
+          try {
+              const style = document.createElement('style');
+              style.innerHTML = '.tff-no-print { display: none !important; }';
+              document.head.appendChild(style);
 
-        const tffTutanakIndir = async (mac: any, prefix: string = 'tff') => {
-            const element = document.getElementById(`${prefix}-form-${mac.id}`);
-            if (element) {
-                try {
-                    const style = document.createElement('style');
-                    style.innerHTML = '.tff-no-print { display: none !important; }';
-                    document.head.appendChild(style);
+              const fullWidth = element.scrollWidth;
+              const fullHeight = element.scrollHeight;
 
-                    const fullWidth = element.scrollWidth;
-                    const fullHeight = element.scrollHeight;
+              const dataURL = await toPng(element, {
+                  backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
+                  style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' }
+              });
+              const link = document.createElement('a'); link.href = dataURL; link.download = `TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
+              document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
+          } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
+      }
+  };
 
-                    const dataURL = await toPng(element, {
-                        backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
-                        style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' }
-                    });
-                    const link = document.createElement('a'); link.href = dataURL; link.download = `TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
-                    document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
-                } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
-            }
-        };
+  const bordroIndirYazdir = () => {
+      const element = document.getElementById(`bordro-print-area`);
+      if (!element) {
+          alert("Bordro ekranda bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+          return;
+      }
 
-        const bordroIndirYazdir = () => {
-            const element = document.getElementById(`bordro-print-area`);
-            if (!element) {
-                alert("Bordro ekranda bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
-                return;
-            }
+      try {
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) {
+              alert("Lütfen tarayıcınızın 'Açılır Pencere' (Pop-up) engelleyicisini kapatın.");
+              return;
+          }
 
-            try {
-                const printWindow = window.open('', '_blank');
-                if (!printWindow) {
-                    alert("Lütfen tarayıcınızın 'Açılır Pencere' (Pop-up) engelleyicisini kapatın.");
-                    return;
+          const reportHtml = element.outerHTML;
+          const doc = printWindow.document;
+
+          doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Bordro_${seciliKomiser?.ad_soyad}_${tamEkranBordroAy}</title>
+            <meta charset="utf-8">
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                @media print {
+                    @page { margin: 8mm; size: A4 portrait; }
+                    body { 
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important; 
+                        background-color: white !important; 
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .tff-no-print { display: none !important; }
+                    .mobile-zoom { 
+                        zoom: 0.90 !important; 
+                        transform: none !important; 
+                    } 
+                    select { display: none !important; }
+                    .print\\:block { display: block !important; }
                 }
-
-                const reportHtml = element.outerHTML;
-                const doc = printWindow.document;
-
-                doc.write(`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Bordro_${seciliKomiser?.ad_soyad}_${tamEkranBordroAy}</title>
-                  <meta charset="utf-8">
-                  <script src="https://cdn.tailwindcss.com"></script>
-                  <style>
-                      @media print {
-                          @page { margin: 8mm; size: A4 portrait; }
-                          body { 
-                              -webkit-print-color-adjust: exact !important; 
-                              print-color-adjust: exact !important; 
-                              background-color: white !important; 
-                              margin: 0 !important;
-                              padding: 0 !important;
-                          }
-                          .tff-no-print { display: none !important; }
-                          .mobile-zoom { 
-                              zoom: 0.90 !important; 
-                              transform: none !important; 
-                          } 
-                          select { display: none !important; }
-                          .print\\:block { display: block !important; }
-                      }
-                      body { font-family: Arial, sans-serif; background: #ffffff; color: #000000; }
-                      .border-black { border-color: #000000 !important; }
-                      table { width: 100%; border-collapse: collapse; }
-                      th, td { border: 1px solid black; padding: 4px; }
-                  </style>
-              </head>
-              <body>
-                  <div style="width: 100%; max-width: 800px; margin: 0 auto; background: white;">
-                      ${reportHtml}
-                  </div>
-                  <script>
-                      setTimeout(function() {
-                          window.print();
-                          window.close();
-                      }, 1000);
-                  </script>
-              </body>
-              </html>
-          `);
-                doc.close();
-            } catch (err) {
-                alert("PDF/Yazdır ekranı hazırlanırken bir sorun oluştu.");
-            }
-        };
+                body { font-family: Arial, sans-serif; background: #ffffff; color: #000000; }
+                .border-black { border-color: #000000 !important; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid black; padding: 4px; }
+            </style>
+        </head>
+        <body>
+            <div style="width: 100%; max-width: 800px; margin: 0 auto; background: white;">
+                ${reportHtml}
+            </div>
+            <script>
+                setTimeout(function() {
+                    window.print();
+                    window.close();
+                }, 1000);
+            </script>
+        </body>
+        </html>
+    `);
+          doc.close();
+      } catch (err) {
+          alert("PDF/Yazdır ekranı hazırlanırken bir sorun oluştu.");
+      }
+  };
 
         const yeniHakemleriKaydet = async (detaylar: any) => {
             const girilenHakemler = [
@@ -3537,4 +3535,5 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 )}
 
                 <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-            </Fragment> ); }
+            </Fragment> ); 
+            }
