@@ -2484,11 +2484,8 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
       );
 
   } else if (gercekAktifEkran === 'giris') {
-      // Dinamik Kapı Logosu
-      const kapiDomain = typeof window !== 'undefined' ? window.location.hostname : '';
-      let girisLogo = AMATOR_MERKEZ_LOGO;
-      if (kapiDomain.includes('izmir') || kapiDomain.includes('tfskdizmirsube')) girisLogo = '/izmir-logo.png';
-      else if (kapiDomain.includes('kocaeli')) girisLogo = '/kocaeli-logo.png';
+      // 🔥 SADECE GİRİŞ KAPISI İÇİN ORTAK DERNEK LOGOSU 🔥
+      const girisLogo = '/icon-512.png';
 
       ekranIcerigi = (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
