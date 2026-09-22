@@ -77,7 +77,6 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     if (katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return false; // BAL Liginde detaylı rapor yok
     return true; 
 };
-
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
