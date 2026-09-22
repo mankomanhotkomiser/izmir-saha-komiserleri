@@ -1289,10 +1289,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
           
           await islemYap(1, esameKey);
           if (pdf.numPages >= 2) {
+              // PDF 2 sayfaysa normal bölüştür
               await islemYap(2, teknikKey);
+              alert("✅ PDF Başarıyla Parçalandı! 1. Sayfa Esameye, 2. Sayfa Teknik Kadroya eklendi.");
+          } else {
+              // TFF tek sayfa PDF verdiyse, sistemi kandırmak için aynı sayfayı iki kutuya da klonla!
+              await islemYap(1, teknikKey);
+              alert("✅ TFF formatı tek sayfa algılandı! Sistem engeline takılmamak için belge her iki zorunlu alana da otomatik yerleştirildi.");
           }
-          
-          alert("✅ PDF Başarıyla Parçalandı! 1. Sayfa Esameye, 2. Sayfa Teknik Kadroya eklendi.");
           e.target.value = ''; 
       } catch (error) {
           console.error(error);
