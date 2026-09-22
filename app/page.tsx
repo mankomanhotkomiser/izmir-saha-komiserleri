@@ -2522,19 +2522,19 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         <RenderGelisimUpload title="Doktor / Sağlıkçı (ATT) Kartı" imgKey="gelisim_saglik" />
                                         <RenderGelisimUpload title="1. Sedyeci Kartı" imgKey="gelisim_sedyeci1" />
                                         <RenderGelisimUpload title="2. Sedyeci Kartı" imgKey="gelisim_sedyeci2" />
-                                        <RenderGelisimUpload title="Saha Tanzim Görevlisi" imgKey="gelisim_saha_gor" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                                  <RenderGelisimUpload title="Saha Tanzim Görevlisi" imgKey="gelisim_saha_gor" />
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              )}
+          </div>
+      );
+  }
 
-                </div>
-            );
-        };
-        // ==========================================
-        // ANA EKRAN YÖNLENDİRİCİSİ (RENDER AKIŞI)
-        // ==========================================
+  // ==========================================
+  // ANA EKRAN YÖNLENDİRİCİSİ (RENDER AKIŞI)
+  // ==========================================
         const gercekAktifEkran = zorunluMazeret ? 'mazeretBildir' : aktifEkran;
         let ekranIcerigi = null;
 
@@ -3537,6 +3537,4 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 )}
 
                 <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
-            </Fragment>
-        );
-    }
+            </Fragment> ); }
