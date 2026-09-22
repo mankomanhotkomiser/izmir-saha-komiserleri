@@ -1260,8 +1260,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
           // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (Vercel Hatasını Yıkan Taktik) 🔥
           // @ts-ignore
           const pdfjsLib = await import('pdfjs-dist');
+          const pdfVer = pdfjsLib.version || '3.11.174';
           // @ts-ignore
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVer}/pdf.worker.min.js`;
 
           const arrayBuffer = await file.arrayBuffer();
           // @ts-ignore
