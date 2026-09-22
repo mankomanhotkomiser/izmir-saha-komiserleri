@@ -4,6 +4,10 @@ import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 import RehberModal from '../components/RehberModal'
+import * as pdfjsLib from 'pdfjs-dist';
+if (typeof window !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 // =========================================================================
 // ⚙️ YÖNETİCİ AYARLARI
@@ -1234,6 +1238,58 @@ const [kucukHeader, setKucukHeader] = useState(false);
           alert("Fotoğraf işlenirken bir sorun oluştu. Lütfen tekrar seçin.");
       }
   }
+  // 🔥 AKILLI PDF PARÇALAMA MOTORU (NİNJA KILICI) 🔥
+  const handleAkilliPdfYukle = async (takim: 'ev' | 'mis', e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || file.type !== 'application/pdf') {
+          alert("Lütfen sadece PDF dosyası seçiniz!");
+          return;
+      }
+      
+      try {
+          alert("⏳ PDF İşleniyor ve sayfalara ayrılıyor... Lütfen bekleyin.");
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+          
+          const islemYap = async (pageNum: number, imgKey: string) => {
+              if (pageNum > pdf.numPages) return;
+              const page = await pdf.getPage(pageNum);
+              const viewport = page.getViewport({ scale: 2.0 }); 
+              const canvas = document.createElement('canvas');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+              
+              const dataUrl = canvas.toDataURL('image/webp', 0.8);
+              const arr = dataUrl.split(',');
+              const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
+              const bstr = atob(arr[1]);
+              let n = bstr.length;
+              const u8arr = new Uint8Array(n);
+              while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+              const dosya = new File([u8arr], `pdf_sayfa_${pageNum}.webp`, {type:mime});
+
+              setEkRaporFotolar((prev: any) => ({ ...prev, [imgKey]: dataUrl }));
+              setEkRaporDosyalar((prev: any) => ({ ...prev, [imgKey]: dosya }));
+          };
+
+          const esameKey = takim === 'ev' ? 'gelisim_ev_esame' : 'gelisim_mis_esame';
+          const teknikKey = takim === 'ev' ? 'gelisim_ev_teknik' : 'gelisim_mis_teknik';
+          
+          await islemYap(1, esameKey);
+          if (pdf.numPages >= 2) {
+              await islemYap(2, teknikKey);
+          }
+          
+          alert("✅ PDF Başarıyla Parçalandı! 1. Sayfa Esameye, 2. Sayfa Teknik Kadroya eklendi.");
+          e.target.value = ''; 
+      } catch (error) {
+          console.error(error);
+          alert("PDF okunurken bir hata oluştu. Lütfen dosyanın şifreli olmadığından emin olun.");
+      }
+  };
+
+  const ekRaporGuncelle = (id: number, text: string) => {
 
   const ekRaporGuncelle = (id: number, text: string) => {
       setRaporDetay((prev:any) => ({ ...prev, ek_raporlar: (Array.isArray(prev.ek_raporlar) ? prev.ek_raporlar : []).map((r:any) => r.id === id ? { ...r, text } : r) }));
@@ -2409,7 +2465,13 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                       <div className="space-y-8">
                           {/* EV SAHİBİ */}
                           <div>
-                              <h4 className="font-black text-sm bg-blue-100 text-blue-800 p-2 rounded border border-blue-200 mb-3 tracking-widest uppercase">🏠 EV SAHİBİ TAKIM: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3 bg-blue-100 p-2 rounded border border-blue-200">
+    <h4 className="font-black text-sm text-blue-800 tracking-widest uppercase">🏠 EV SAHİBİ TAKIM: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
+    <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded shadow text-[10px] font-black tracking-widest flex items-center gap-1 transition-transform hover:scale-105">
+        <span>⚡ AKILLI PDF (2 SAYFA) YÜKLE</span>
+        <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('ev', e)} />
+    </label>
+</div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                                   <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_ev_esame" />
                                   <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_ev_teknik" />
@@ -2420,7 +2482,13 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
 
                           {/* MİSAFİR */}
                           <div>
-                              <h4 className="font-black text-sm bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-3 tracking-widest uppercase">🚌 MİSAFİR TAKIM: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3 bg-amber-100 p-2 rounded border border-amber-200">
+    <h4 className="font-black text-sm text-amber-800 tracking-widest uppercase">🚌 MİSAFİR TAKIM: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
+    <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded shadow text-[10px] font-black tracking-widest flex items-center gap-1 transition-transform hover:scale-105">
+        <span>⚡ AKILLI PDF (2 SAYFA) YÜKLE</span>
+        <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('mis', e)} />
+    </label>
+</div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                                   <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_mis_esame" />
                                   <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_mis_teknik" />
