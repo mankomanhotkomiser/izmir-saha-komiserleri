@@ -1578,26 +1578,41 @@ useEffect(() => {
           );
       };
 
-      const RenderA4MatchInfo = () => (
+      // isEk (Ek Belge) kuralı çalışırsa skorları atar, başlıkları birbirine yaklaştırıp küçültür
+      const RenderA4MatchInfo = ({ isEk = false }: { isEk?: boolean }) => (
           <>
-            <div className="border border-black text-xs font-bold mb-4 shrink-0">
-                <div className="flex border-b border-black text-center bg-slate-100">
-                    <div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ TARİHİ</div><div className="w-1/5 border-r border-black p-1.5 flex items-center justify-center">MAÇ SAATİ</div><div className="w-2/5 border-r border-black p-1.5 flex items-center justify-center">STAD ADI(İL/İLÇE)</div><div className="w-1/5 p-1.5 flex items-center justify-center">LİG KATEGORİSİ</div>
-                </div>
-                <div className="flex text-center uppercase">
-                    <div className="w-1/5 border-r border-black p-2">{guvenliTarih(mac.tarih)}</div><div className="w-1/5 border-r border-black p-2">{guvenliSaat(mac.saat)}</div><div className="w-2/5 border-r border-black p-2 truncate">{mac.saha}</div><div className="w-1/5 p-2 truncate">{mac.kategori_adi}</div>
-                </div>
-            </div>
-            <div className="border-2 border-black text-xs font-bold mb-4 shrink-0">
-                <div className="grid grid-cols-6 border-b border-black">
-                    <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="uppercase text-sm">{mac.ev_sahibi}</span></div>
-                    <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div></div>
-                </div>
-                <div className="grid grid-cols-6">
-                    <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="uppercase text-sm">{mac.misafir_takim}</span></div>
-                    <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div></div>
-                </div>
-            </div>
+              <div className={`border border-black font-bold ${isEk ? 'mb-2 text-[10px]' : 'mb-4 text-xs'} shrink-0`}>
+                  <div className="flex border-b border-black text-center bg-slate-100">
+                      <div className="w-1/5 border-r border-black p-1 flex items-center justify-center text-[10px] md:text-xs">MAÇ TARİHİ</div>
+                      <div className="w-1/5 border-r border-black p-1 flex items-center justify-center text-[10px] md:text-xs">MAÇ SAATİ</div>
+                      <div className="w-2/5 border-r border-black p-1 flex items-center justify-center text-[10px] md:text-xs">STAD ADI</div>
+                      <div className="w-1/5 p-1 flex items-center justify-center text-[10px] md:text-xs">KATEGORİ</div>
+                  </div>
+                  <div className="flex text-center uppercase text-[10px] md:text-xs">
+                      <div className="w-1/5 border-r border-black p-1">{guvenliTarih(mac.tarih)}</div>
+                      <div className="w-1/5 border-r border-black p-1">{guvenliSaat(mac.saat)}</div>
+                      <div className="w-2/5 border-r border-black p-1.5 truncate">{turkceBuyukHarf(mac.saha)}</div>
+                      <div className="w-1/5 p-1.5 truncate">{turkceBuyukHarf(mac.kategori_adi)}</div>
+                  </div>
+              </div>
+              
+              {!isEk ? (
+                  <div className="border-2 border-black text-xs font-bold mb-6 shrink-0">
+                      <div className="grid grid-cols-6 border-b border-black">
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.ev_sahibi)}</span></div>
+                          <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div></div>
+                      </div>
+                      <div className="grid grid-cols-6">
+                          <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.misafir_takim)}</span></div>
+                          <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div></div>
+                      </div>
+                  </div>
+              ) : (
+                  <div className="border border-black text-[10px] md:text-xs font-bold mb-4 flex bg-slate-50 shrink-0">
+                      <div className="w-1/2 p-1.5 border-r border-black flex gap-2 items-center justify-center"><span className="text-slate-600">EV SAHİBİ:</span> <span className="uppercase truncate font-black">{turkceBuyukHarf(mac.ev_sahibi)}</span></div>
+                      <div className="w-1/2 p-1.5 flex gap-2 items-center justify-center"><span className="text-slate-600">MİSAFİR:</span> <span className="uppercase truncate font-black">{turkceBuyukHarf(mac.misafir_takim)}</span></div>
+                  </div>
+              )}
           </>
       );
 
@@ -1931,102 +1946,67 @@ useEffect(() => {
                   </div>
               ))}
 
-              {/* DİNAMİK ELİT RAPOR - ESAMELER VE BELGELER (5 EKSTRA SAYFA) */}
+              {/* ========================================================== */}
+              {/* DİNAMİK ELİT RAPOR - ESAMELER VE BELGELER (DİNAMİK TAM SAYFA) */}
+              {/* ========================================================== */}
               {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
                   <>
-                      {gelisimPrintFotolar['gelisim_ev_esame'] && (
-                          <div className="print-page flex flex-col relative">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_ev_esame'] as string} baslik="EV SAHİBİ TAKIM MÜSABAKA ESAME LİSTESİ" />
-                              <RenderA4Footer />
-                          </div>
-                      )}
-                      {(gelisimPrintFotolar['gelisim_ev_teknik'] || gelisimPrintFotolar['gelisim_ev_yayin'] || gelisimPrintFotolar['gelisim_ev_foto']) && (
-                          <div className="print-page flex flex-col relative">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <div className="flex-1 flex flex-col">
-                                  {gelisimPrintFotolar['gelisim_ev_teknik'] && (
-                                      <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
-                                          <div className="w-full h-full flex flex-col">
-                                              <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">EV SAHİBİ TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_ev_teknik'] as string} crossOrigin="anonymous" alt="Ev Sahibi Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
-                                          </div>
-                                      </div>
-                                  )}
-                                  {(gelisimPrintFotolar['gelisim_ev_foto'] || gelisimPrintFotolar['gelisim_ev_yayin']) && (
-                                      <div className="border border-black p-2 mt-auto shrink-0">
-                                          <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 bg-slate-100 py-1">EV SAHİBİ TAKIM MÜSABAKA YAYIN İZİNLERİ VB.</h3>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              {gelisimPrintFotolar['gelisim_ev_foto'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><img src={gelisimPrintFotolar['gelisim_ev_foto'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" /></div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                              {gelisimPrintFotolar['gelisim_ev_yayin'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><img src={gelisimPrintFotolar['gelisim_ev_yayin'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" /></div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                          </div>
-                                      </div>
-                                  )}
+                      {(() => {
+                          const ekSayfalar = [];
+
+                          if (gelisimPrintFotolar['gelisim_ev_esame']) ekSayfalar.push({ id: 'ev_esame', url: gelisimPrintFotolar['gelisim_ev_esame'], baslik: 'EV SAHİBİ TAKIM MÜSABAKA ESAME LİSTESİ' });
+                          if (gelisimPrintFotolar['gelisim_ev_teknik']) ekSayfalar.push({ id: 'ev_teknik', url: gelisimPrintFotolar['gelisim_ev_teknik'], baslik: 'EV SAHİBİ TAKIM TEKNİK EKİP KADROSU' });
+                          if (gelisimPrintFotolar['gelisim_ev_foto']) ekSayfalar.push({ id: 'ev_foto', url: gelisimPrintFotolar['gelisim_ev_foto'], baslik: 'EV SAHİBİ TAKIM FOTOĞRAF ÇEKİM İZNİ' });
+                          if (gelisimPrintFotolar['gelisim_ev_yayin']) ekSayfalar.push({ id: 'ev_yayin', url: gelisimPrintFotolar['gelisim_ev_yayin'], baslik: 'EV SAHİBİ TAKIM CANLI YAYIN İZNİ' });
+
+                          if (gelisimPrintFotolar['gelisim_mis_esame']) ekSayfalar.push({ id: 'mis_esame', url: gelisimPrintFotolar['gelisim_mis_esame'], baslik: 'MİSAFİR TAKIM MÜSABAKA ESAME LİSTESİ' });
+                          if (gelisimPrintFotolar['gelisim_mis_teknik']) ekSayfalar.push({ id: 'mis_teknik', url: gelisimPrintFotolar['gelisim_mis_teknik'], baslik: 'MİSAFİR TAKIM TEKNİK EKİP KADROSU' });
+                          if (gelisimPrintFotolar['gelisim_mis_foto']) ekSayfalar.push({ id: 'mis_foto', url: gelisimPrintFotolar['gelisim_mis_foto'], baslik: 'MİSAFİR TAKIM FOTOĞRAF ÇEKİM İZNİ' });
+                          if (gelisimPrintFotolar['gelisim_mis_yayin']) ekSayfalar.push({ id: 'mis_yayin', url: gelisimPrintFotolar['gelisim_mis_yayin'], baslik: 'MİSAFİR TAKIM CANLI YAYIN İZNİ' });
+
+                          return ekSayfalar.map((sayfa) => (
+                              <div key={sayfa.id} className="print-page flex flex-col relative">
+                                  <RenderA4Header />
+                                  {/* 🔥 İŞTE BURADA: isEk={true} olduğu için skor tabloları bu sayfalarda ÇIKMAYACAK! 🔥 */}
+                                  <RenderA4MatchInfo isEk={true} />
+                                  <RenderTamSayfaResim url={sayfa.url as string} baslik={sayfa.baslik} />
+                                  <RenderA4Footer />
                               </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
-                      {gelisimPrintFotolar['gelisim_mis_esame'] && (
-                          <div className="print-page flex flex-col relative">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <RenderTamSayfaResim url={gelisimPrintFotolar['gelisim_mis_esame'] as string} baslik="MİSAFİR TAKIM MÜSABAKA ESAME LİSTESİ" />
-                              <RenderA4Footer />
-                          </div>
-                      )}
-                      {(gelisimPrintFotolar['gelisim_mis_teknik'] || gelisimPrintFotolar['gelisim_mis_yayin'] || gelisimPrintFotolar['gelisim_mis_foto']) && (
-                          <div className="print-page flex flex-col relative">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo />
-                              <div className="flex-1 flex flex-col">
-                                  {gelisimPrintFotolar['gelisim_mis_teknik'] && (
-                                      <div className="flex-1 border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 mb-4">
-                                          <div className="w-full h-full flex flex-col">
-                                              <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 py-1 bg-slate-100 border border-slate-300">MİSAFİR TAKIM MÜSABAKA TEKNİK EKİP KADROSU</h3>
-                                              <img src={gelisimPrintFotolar['gelisim_mis_teknik'] as string} crossOrigin="anonymous" alt="Misafir Teknik" className="max-w-full max-h-[400px] mx-auto object-contain shadow-sm flex-1" />
-                                          </div>
-                                      </div>
-                                  )}
-                                  {(gelisimPrintFotolar['gelisim_mis_foto'] || gelisimPrintFotolar['gelisim_mis_yayin']) && (
-                                      <div className="border border-black p-2 mt-auto shrink-0">
-                                          <h3 className="text-center font-black text-sm tracking-widest uppercase mb-2 bg-slate-100 py-1">MİSAFİR TAKIM MÜSABAKA YAYIN İZİNLERİ VB.</h3>
-                                          <div className="grid grid-cols-2 gap-4">
-                                              {gelisimPrintFotolar['gelisim_mis_foto'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><img src={gelisimPrintFotolar['gelisim_mis_foto'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" /></div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">FOTOĞRAF ÇEKİM İZNİ</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                              {gelisimPrintFotolar['gelisim_mis_yayin'] ? (
-                                                  <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><img src={gelisimPrintFotolar['gelisim_mis_yayin'] as string} crossOrigin="anonymous" className="max-h-[250px] mx-auto object-contain" /></div>
-                                              ) : <div className="border border-slate-300 p-2 text-center"><h4 className="text-[10px] font-bold mb-1">CANLI YAYIN İZNİ (EĞİTİM)</h4><p className="text-xs text-slate-400 py-8">YOK</p></div>}
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
+                          ));
+                      })()}
+
+                      {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ (ESKİ SİSTEM 4'LÜ GRID) 🔥 */}
                       {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
                           <div className="print-page flex flex-col relative">
                               <RenderA4Header />
-                              <RenderA4MatchInfo />
+                              <RenderA4MatchInfo isEk={true} />
+
                               <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded shrink-0">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
+
                               <div className="flex-1 grid grid-cols-2 gap-4 content-start">
                                   {gelisimPrintFotolar['gelisim_saglik'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4><img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4>
+                                          <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                      </div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_sedyeci1'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
+                                          <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                      </div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_sedyeci2'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4><img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
+                                          <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                      </div>
                                   )}
                                   {gelisimPrintFotolar['gelisim_saha_gor'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50"><h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4><img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[250px] mx-auto object-contain" /></div>
+                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
+                                          <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                      </div>
                                   )}
                               </div>
                               <RenderA4Footer />
