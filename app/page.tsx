@@ -2487,20 +2487,28 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
       // 🔥 SADECE GİRİŞ KAPISI İÇİN ORTAK DERNEK LOGOSU 🔥
       const girisLogo = '/icon-512.png';
 
+      // 🔥 AKILLI ŞUBE TABELASI (Adresten Şehri Bulur) 🔥
+      const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+      let altSubeIsmi = '';
+      if (domain.includes('izmir') || domain.includes('tfskdizmirsube')) altSubeIsmi = 'İZMİR ŞUBESİ';
+      else if (domain.includes('kocaeli')) altSubeIsmi = 'KOCAELİ ŞUBESİ';
+      else if (domain.includes('yalova')) altSubeIsmi = 'YALOVA ŞUBESİ';
+      else if (domain.includes('hatay')) altSubeIsmi = 'HATAY ŞUBESİ';
+
       ekranIcerigi = (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-[#dc2626] to-[#b91c1c] rounded-b-[50%] scale-150 transform -translate-y-1/4 shadow-2xl opacity-90"></div>
           
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
             
-            {/* 🔥 BÜYÜTÜLMÜŞ LOGO ALANI (Sınırlara sıfır) 🔥 */}
+            {/* 🔥 BÜYÜTÜLMÜŞ ORTAK LOGO ALANI 🔥 */}
             <div className="flex justify-center mb-5">
                 <div className="w-28 h-28 bg-white rounded-full p-1 shadow-lg border-4 border-slate-100 -mt-16 flex items-center justify-center overflow-hidden">
                     <img src={girisLogo} crossOrigin="anonymous" alt="TFSKD Logo" className="w-[95%] h-[95%] object-contain scale-110" />
                 </div>
             </div>
 
-            {/* 🔥 YENİ TEMİZ VE BÜYÜK BAŞLIKLAR 🔥 */}
+            {/* 🔥 YENİ TEMİZ BAŞLIKLAR VE DİNAMİK ŞUBE İSMİ 🔥 */}
             <div className="flex flex-col items-center justify-center mb-8 w-full">
                 <h1 className="text-[17px] md:text-[19px] font-black tracking-wider text-black leading-snug text-center mb-1.5 drop-shadow-sm">
                   TÜRKİYE FUTBOL SAHA KOMİSERLERİ DERNEĞİ
@@ -2508,6 +2516,12 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
                 <h3 className="text-[14px] font-bold text-red-600 tracking-widest text-center mt-1">
                   SAHA OPERASYON MERKEZİ
                 </h3>
+                {/* EĞER LİNKTE İL ADI VARSA BURADA ŞUBE TABELASI ÇIKAR */}
+                {altSubeIsmi && (
+                    <h4 className="text-[13px] font-black text-slate-700 tracking-widest text-center mt-3 bg-slate-100 px-4 py-1.5 rounded border border-slate-200 shadow-inner">
+                        {altSubeIsmi}
+                    </h4>
+                )}
             </div>
 
             <form onSubmit={girisYap} className="space-y-5">
