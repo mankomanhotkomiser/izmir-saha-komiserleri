@@ -1244,7 +1244,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       }
       
       try {
-          alert("⏳ PDF İşleniyor... Lütfen bekleyin.");
+          
           
           // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (HTTPS Mühürlü) 🔥
           // @ts-ignore
