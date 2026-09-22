@@ -1274,7 +1274,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
               const canvas = document.createElement('canvas');
               const ctx = canvas.getContext('2d');
               
-              // 🔥 TYPESCRIPT'İ SUSTURAN GÜVENLİK KİLİDİ 🔥
               if (!ctx) return; 
               
               canvas.width = viewport.width;
@@ -1310,7 +1309,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
           console.error(error);
           alert("PDF okunurken bir hata oluştu. Lütfen dosyanın şifreli olmadığından emin olun.");
       }
-
+  };
+  
   const ekRaporGuncelle = (id: number, text: string) => {
 
   const ekRaporGuncelle = (id: number, text: string) => {
