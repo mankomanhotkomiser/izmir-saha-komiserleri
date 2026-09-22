@@ -1235,6 +1235,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
         } // <--- İŞTE EKSİK OLAN VE SİSTEMİ ÇÖKERTEN PARANTEZ BU!
 
         // 🔥 AKILLI PDF PARÇALAMA MOTORU (NİNJA KILICI) 🔥
+  // 🔥 AKILLI PDF PARÇALAMA MOTORU VE DİJİTAL MAKAS 🔥
   const handleAkilliPdfYukle = async (takim: 'ev' | 'mis', e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || file.type !== 'application/pdf') {
@@ -1243,9 +1244,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
       }
       
       try {
-          alert("⏳ PDF İşleniyor ve sayfalara ayrılıyor... Lütfen bekleyin.");
+          alert("⏳ PDF İşleniyor... Lütfen bekleyin.");
           
-          // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (Vercel Hatasını Yıkan Taktik) 🔥
+          // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (HTTPS Mühürlü) 🔥
           // @ts-ignore
           const pdfjsLib = await import('pdfjs-dist');
           const pdfVer = pdfjsLib.version || '3.11.174';
@@ -1260,7 +1261,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
               if (pageNum > pdf.numPages) return;
               const page = await pdf.getPage(pageNum);
               
-              // 🔥 1. HIZLANDIRMA: Telefon kilitlenmesin diye ölçek 1.5'e çekildi! Okuma süresi 3 kat hızlanacak.
+              // 🔥 1. HIZLANDIRMA: Telefon donmasın diye çözünürlük ölçeği optimize edildi
               const viewport = page.getViewport({ scale: 1.5 }); 
               
               const anaCanvas = document.createElement('canvas');
@@ -1285,11 +1286,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
                   kesikCanvas.height = anaCanvas.height * 0.72;
                   kesikCtx.drawImage(anaCanvas, 0, 0, anaCanvas.width, anaCanvas.height * 0.72, 0, 0, kesikCanvas.width, kesikCanvas.height);
               } else if (bolum === 'alt') {
-                  // Alt %35'lik kısım (Teknik Kadro - Hiçbir isim kaçmasın diye hafif üstten bindirmeli %65'ten başlattık)
+                  // Alt %35'lik kısım (Teknik Kadro - Hiçbir isim kaçmasın)
                   kesikCanvas.height = anaCanvas.height * 0.35;
                   kesikCtx.drawImage(anaCanvas, 0, anaCanvas.height * 0.65, anaCanvas.width, anaCanvas.height * 0.35, 0, 0, kesikCanvas.width, kesikCanvas.height);
               } else {
-                  // Normal 2 Sayfa PDF ise makasa gerek yok, tamamını al
+                  // Normal 2 Sayfa PDF ise makasa gerek yok
                   kesikCanvas.height = anaCanvas.height;
                   kesikCtx.drawImage(anaCanvas, 0, 0);
               }
@@ -1313,16 +1314,21 @@ const [kucukHeader, setKucukHeader] = useState(false);
           const teknikKey = takim === 'ev' ? 'gelisim_ev_teknik' : 'gelisim_mis_teknik';
           
           if (pdf.numPages >= 2) {
-              // PDF zaten efendi gibi 2 sayfaysa normal böl
               await islemYap(1, esameKey, 'tam');
               await islemYap(2, teknikKey, 'tam');
               alert("✅ PDF 2 sayfa olarak algılandı ve başarıyla bölündü!");
           } else {
-              // PDF 1 sayfaysa, senin AKILLI MAKAS algoritman devreye giriyor!
               await islemYap(1, esameKey, 'ust');
               await islemYap(1, teknikKey, 'alt');
-              alert("✂️ Akıllı Makas Devrede! Tek sayfalık belge; '21 Kişilik Esame' ve 'Teknik Kadro' olarak fiziksel ikiye bölündü.");
+              alert("✂️ Akıllı Makas Devrede! Tek sayfalık belge; '21 Kişilik Esame' ve 'Teknik Kadro' olarak ortadan ikiye bölündü.");
           }
+          
+          e.target.value = ''; 
+      } catch (error) {
+          console.error(error);
+          alert("PDF okunurken bir hata oluştu. Lütfen dosyanın şifreli olmadığından emin olun.");
+      }
+  };
   
 
   const ekRaporGuncelle = (id: number, text: string) => {
