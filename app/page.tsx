@@ -2501,10 +2501,11 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
           
           <div className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full text-center relative z-10 border border-slate-100">
             
-            {/* 🔥 BÜYÜTÜLMÜŞ ORTAK LOGO ALANI 🔥 */}
+            {/* 🔥 BÜYÜTÜLMÜŞ VE KULAKLARI KURTARILMIŞ ORTAK LOGO ALANI 🔥 */}
             <div className="flex justify-center mb-5">
-                <div className="w-28 h-28 bg-white rounded-full p-1 shadow-lg border-4 border-slate-100 -mt-16 flex items-center justify-center overflow-hidden">
-                    <img src={girisLogo} crossOrigin="anonymous" alt="TFSKD Logo" className="w-[95%] h-[95%] object-contain scale-110" />
+                {/* Yuvarlağı w-32 h-32 yaptık, yukarıya doğru -mt-20 çektik, iç boşluğu p-3 yaptık */}
+                <div className="w-32 h-32 bg-white rounded-full p-3 shadow-lg border-4 border-slate-100 -mt-20 flex items-center justify-center relative">
+                    <img src={girisLogo} crossOrigin="anonymous" alt="TFSKD Logo" className="w-full h-full object-contain" />
                 </div>
             </div>
 
