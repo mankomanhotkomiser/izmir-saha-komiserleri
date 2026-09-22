@@ -1202,100 +1202,33 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (!file) return;
 
       try {
-          // 🔥 ALTIN SIKIŞTIRMA MOTORU (WebP ve 250KB Limiti) 🔥
-          const ayarlar = {
-              maxSizeMB: 0.25,
-              maxWidthOrHeight: 1600,
-              useWebWorker: true,
-              fileType: 'image/webp',
-              initialQuality: 0.8
-          };
-
-          // Orijinal devasa dosyayı sıkıştırılmış WebP formatına çeviriyoruz
-          const sikistirilmisDosya = await imageCompression(file, ayarlar);
-
-          const reader = new FileReader();
-          reader.onload = (event) => { 
-              if(event.target?.result) { 
-                  // Ekranda önizleme göstermek için
-                  setEkRaporFotolar((prev: any) => ({ ...prev, [id]: event.target!.result as string })); 
-                  
-                  // 🔥 Supabase'e gidecek olan asıl SIKIŞTIRILMIŞ dosyayı bekleme odasına alıyoruz 🔥
-                  setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: sikistirilmisDosya }));
-              } 
-          };
-          
-          // Önizlemeyi de o küçücük sıkıştırılmış dosyadan oluşturuyoruz ki telefon kasmasın
-          reader.readAsDataURL(sikistirilmisDosya);
-
-      } catch (error) {
-                console.error("Sıkıştırma hatası:", error);
-                alert("Fotoğraf işlenirken bir sorun oluştu. Lütfen tekrar seçin.");
-            }
-        } // <--- İŞTE EKSİK OLAN VE SİSTEMİ ÇÖKERTEN PARANTEZ BU!
-
-        // 🔥 AKILLI PDF PARÇALAMA MOTORU (NİNJA KILICI) 🔥
-  // 🔥 AKILLI PDF PARÇALAMA MOTORU VE DİJİTAL MAKAS 🔥
-  const handleAkilliPdfYukle = async (takim: 'ev' | 'mis', e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || file.type !== 'application/pdf') {
-          alert("Lütfen sadece PDF dosyası seçiniz!");
-          return;
-      }
-      
-      try {
-          
-          
-          // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (HTTPS Mühürlü) 🔥
-          // @ts-ignore
-          const pdfjsLib = await import('pdfjs-dist');
-          const pdfVer = pdfjsLib.version || '3.11.174';
-          // @ts-ignore
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVer}/pdf.worker.min.js`;
-
-          const arrayBuffer = await file.arrayBuffer();
-          // @ts-ignore
-          const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-          
-          const islemYap = async (pageNum: number, imgKey: string, bolum: 'tam' | 'ust' | 'alt' = 'tam') => {
-              if (pageNum > pdf.numPages) return;
-              const page = await pdf.getPage(pageNum);
-              
-              // 🔥 1. HIZLANDIRMA: Telefon donmasın diye çözünürlük ölçeği optimize edildi
-              const viewport = page.getViewport({ scale: 1.5 }); 
-              
-              const anaCanvas = document.createElement('canvas');
-              const anaCtx = anaCanvas.getContext('2d');
-              if (!anaCtx) return; 
-              
-              anaCanvas.width = viewport.width;
-              anaCanvas.height = viewport.height;
+          // 🔥 EĞER DOSYA PDF İSE: GİZLİCE FOTOĞRAFINI ÇEK 🔥
+          if (file.type === 'application/pdf') {
               
               // @ts-ignore
-              await page.render({ canvasContext: anaCtx, viewport: viewport }).promise;
+              const pdfjsLib = await import('pdfjs-dist');
+              const pdfVer = pdfjsLib.version || '3.11.174';
+              // @ts-ignore
+              pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVer}/pdf.worker.min.js`;
 
-              // 🔥 2. DAHİYANE FİKRİN: DİJİTAL MAKAS (GİYOTİN)
-              const kesikCanvas = document.createElement('canvas');
-              const kesikCtx = kesikCanvas.getContext('2d');
-              if (!kesikCtx) return;
-
-              kesikCanvas.width = anaCanvas.width;
-
-              if (bolum === 'ust') {
-                  // Üst %72'lik kısım (Esame: İlk 11 + 10 Yedek = 21 Kişi)
-                  kesikCanvas.height = anaCanvas.height * 0.72;
-                  kesikCtx.drawImage(anaCanvas, 0, 0, anaCanvas.width, anaCanvas.height * 0.72, 0, 0, kesikCanvas.width, kesikCanvas.height);
-              } else if (bolum === 'alt') {
-                  // Alt %35'lik kısım (Teknik Kadro - Hiçbir isim kaçmasın)
-                  kesikCanvas.height = anaCanvas.height * 0.35;
-                  kesikCtx.drawImage(anaCanvas, 0, anaCanvas.height * 0.65, anaCanvas.width, anaCanvas.height * 0.35, 0, 0, kesikCanvas.width, kesikCanvas.height);
-              } else {
-                  // Normal 2 Sayfa PDF ise makasa gerek yok
-                  kesikCanvas.height = anaCanvas.height;
-                  kesikCtx.drawImage(anaCanvas, 0, 0);
-              }
+              const arrayBuffer = await file.arrayBuffer();
+              // @ts-ignore
+              const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
               
-              const dataUrl = kesikCanvas.toDataURL('image/webp', 0.8);
+              // Tek sayfa lazımsa sadece 1. sayfayı çekiyoruz
+              const page = await pdf.getPage(1);
+              const viewport = page.getViewport({ scale: 1.5 }); 
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return; 
+              
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              
+              // @ts-ignore
+              await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+              
+              const dataUrl = canvas.toDataURL('image/webp', 0.8);
               const arr = dataUrl.split(',');
               const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
               const bstr = atob(arr[1]);
@@ -1303,32 +1236,41 @@ const [kucukHeader, setKucukHeader] = useState(false);
               const u8arr = new Uint8Array(n);
               while(n--){ u8arr[n] = bstr.charCodeAt(n); }
               
-              const dosyaIsmi = bolum === 'ust' ? 'esame_kesik.webp' : (bolum === 'alt' ? 'teknik_kesik.webp' : `pdf_sayfa_${pageNum}.webp`);
+              const dosyaIsmi = `pdf_cevrilmis_${id}_${Date.now()}.webp`;
               const dosya = new File([u8arr], dosyaIsmi, {type:mime});
 
-              setEkRaporFotolar((prev: any) => ({ ...prev, [imgKey]: dataUrl }));
-              setEkRaporDosyalar((prev: any) => ({ ...prev, [imgKey]: dosya }));
-          };
+              setEkRaporFotolar((prev: any) => ({ ...prev, [id]: dataUrl }));
+              setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: dosya }));
 
-          const esameKey = takim === 'ev' ? 'gelisim_ev_esame' : 'gelisim_mis_esame';
-          const teknikKey = takim === 'ev' ? 'gelisim_ev_teknik' : 'gelisim_mis_teknik';
-          
-          if (pdf.numPages >= 2) {
-              await islemYap(1, esameKey, 'tam');
-              await islemYap(2, teknikKey, 'tam');
-              alert("✅ PDF 2 sayfa olarak algılandı ve başarıyla bölündü!");
           } else {
-              await islemYap(1, esameKey, 'ust');
-              await islemYap(1, teknikKey, 'alt');
-              alert("✂️ Akıllı Makas Devrede! Tek sayfalık belge; '21 Kişilik Esame' ve 'Teknik Kadro' olarak ortadan ikiye bölündü.");
+              // 🔥 EĞER NORMAL FOTOĞRAF İSE SIKIŞTIR 🔥
+              const ayarlar = {
+                  maxSizeMB: 0.25,
+                  maxWidthOrHeight: 1600,
+                  useWebWorker: true,
+                  fileType: 'image/webp',
+                  initialQuality: 0.8
+              };
+              const sikistirilmisDosya = await imageCompression(file, ayarlar);
+
+              const reader = new FileReader();
+              reader.onload = (event) => { 
+                  if(event.target?.result) { 
+                      setEkRaporFotolar((prev: any) => ({ ...prev, [id]: event.target!.result as string })); 
+                      setEkRaporDosyalar((prev: any) => ({ ...prev, [id]: sikistirilmisDosya }));
+                  } 
+              };
+              reader.readAsDataURL(sikistirilmisDosya);
           }
-          
-          e.target.value = ''; 
       } catch (error) {
-          console.error(error);
-          alert("PDF okunurken bir hata oluştu. Lütfen dosyanın şifreli olmadığından emin olun.");
+          console.error("Yükleme hatası:", error);
+          alert("Dosya işlenirken bir sorun oluştu.");
       }
+      
+      // Inputu temizle ki aynı dosyayı yanlışlıkla silerse tekrar seçebilsin
+      e.target.value = ''; 
   };
+
   
 
   const ekRaporGuncelle = (id: number, text: string) => {
@@ -1898,23 +1840,24 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
         // 🔥 GELİŞİM LİGİ DOSYA YÜKLEME KUTUCUĞU (YAYIN İZİNLERİ EKLENDİ) 🔥
         const RenderGelisimUpload = ({ title, imgKey, desc }: { title: string; imgKey: string; desc?: string; }) => {
-            const foto = ekRaporFotolar[imgKey];
-            return (
-                <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between gap-3 shadow-sm mb-2">
-                    <div className="flex-1">
-                        <h5 className="font-bold text-slate-800 text-[11px] uppercase">{title}</h5>
-                        {desc && <p className="text-[9px] text-slate-500 mt-0.5">{desc}</p>}
-                    </div>
-                    <div className="shrink-0 flex items-center gap-2">
-                        {foto && <img src={foto} className="w-10 h-10 object-cover rounded border border-slate-300" alt="Önizleme" />}
-                        <label className={`cursor-pointer px-3 py-1.5 rounded shadow-sm text-[10px] font-black transition-colors whitespace-nowrap text-white ${foto ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                            {foto ? '🔄 DEĞİŞTİR' : '📸 YÜKLE'}
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFotoYukle(imgKey, e)} />
-                        </label>
-                    </div>
-                </div>
-            );
-        };
+      const foto = ekRaporFotolar[imgKey];
+      return (
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between gap-3 shadow-sm mb-2">
+              <div className="flex-1">
+                  <h5 className="font-bold text-slate-800 text-[11px] uppercase">{title}</h5>
+                  {desc && <p className="text-[9px] text-slate-500 mt-0.5">{desc}</p>}
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                  {foto && <img src={foto} className="w-10 h-10 object-cover rounded border border-slate-300" alt="Önizleme" />}
+                  <label className={`cursor-pointer px-3 py-1.5 rounded shadow-sm text-[10px] font-black transition-colors whitespace-nowrap text-white ${foto ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                      {foto ? '🔄 DEĞİŞTİR' : '📸 YÜKLE'}
+                      {/* 🔥 DİKKAT: accept kısmına application/pdf eklendi! 🔥 */}
+                      <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle(imgKey, e)} />
+                  </label>
+              </div>
+          </div>
+      );
+  };
 
         const renderTffRaporu = (mac: any, prefix: string) => {
             let safeRaporDetay = prefix === 'aktif' ? raporDetay : parseDetay(mac?.tff_rapor_detaylari);
