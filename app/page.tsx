@@ -5,17 +5,6 @@ import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 import RehberModal from '../components/RehberModal'
 // @ts-ignore
-
-
-if (typeof window !== 'undefined' && typeof pdfjsLib !== 'undefined') {
-    // @ts-ignore
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
-import * as pdfjsLib from 'pdfjs-dist';
-if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
-
 // =========================================================================
 // ⚙️ YÖNETİCİ AYARLARI
 // =========================================================================

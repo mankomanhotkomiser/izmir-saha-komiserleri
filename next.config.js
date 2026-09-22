@@ -7,4 +7,5 @@ const nextConfig = {
   turbopack: {},
 };
 
-module.exports = nextConfig;
+export default nextConfig; 
+// (Eğer dosyanın adı next.config.js ise en alt satır module.exports = nextConfig; olmalı)
