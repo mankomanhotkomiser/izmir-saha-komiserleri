@@ -2552,21 +2552,31 @@ const renderOrtakHeader = (geriDonusuGoster = false) => (
               </div>
             </div>
             
-            {/* ANA AKSİYON KARTLARI (GÖREV - RAPOR - STATÜLER) */}
+            {/* ANA AKSİYON KARTLARI (GÖREV - RAPOR - STATÜLER) - TÜRKİYE TEMASI */}
             <div className="grid grid-cols-2 gap-3 mb-6">
-                <button onClick={() => setAktifEkran('gorevKartlari')} className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-4 rounded-xl shadow-lg flex flex-col items-center justify-center gap-2 hover:scale-105 transition-transform border border-emerald-400 relative">
-                    <span className="text-3xl md:text-4xl">🪪</span>
+                
+                {/* 1. GÖREV KARTIM (Kırmızı Tema) */}
+                <button onClick={() => setAktifEkran('gorevKartlari')} className="bg-gradient-to-br from-red-600 to-red-800 text-white p-5 rounded-xl shadow-md flex flex-col items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.02] transition-all border border-red-500 relative group">
+                    <svg className="w-10 h-10 md:w-12 md:h-12 mb-1 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                    </svg>
                     <span className="text-xs md:text-sm font-black tracking-widest text-center">GÖREV KARTIM</span>
-                    {tebellugBekleyenSayisi > 0 && <span className="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full animate-bounce shadow-lg">{tebellugBekleyenSayisi} YENİ</span>}
+                    {tebellugBekleyenSayisi > 0 && <span className="absolute top-2 right-2 bg-white text-red-700 text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce shadow-md">{tebellugBekleyenSayisi} YENİ</span>}
                 </button>
                 
-                <button onClick={() => setAktifEkran('skorRapor')} className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 rounded-xl shadow-lg flex flex-col items-center justify-center gap-2 hover:scale-105 transition-transform border border-blue-400">
-                    <span className="text-3xl md:text-4xl">📝</span>
+                {/* 2. SKOR VE RAPOR (Beyaz Tema - Kırmızı İkon) */}
+                <button onClick={() => setAktifEkran('skorRapor')} className="bg-white text-slate-800 p-5 rounded-xl shadow-md flex flex-col items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.02] transition-all border-b-4 border-red-600 group">
+                    <svg className="w-10 h-10 md:w-12 md:h-12 mb-1 text-red-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
                     <span className="text-[10px] md:text-xs font-black tracking-widest text-center leading-tight">SKOR VE SAHA RAPORU</span>
                 </button>
                 
-                <button onClick={() => { setAcikStatuKategori('gelisim'); setStatuModalAcik(true); }} className="col-span-2 bg-gradient-to-br from-purple-600 to-purple-800 text-white p-4 rounded-xl shadow-lg flex flex-col items-center justify-center gap-2 hover:scale-105 transition-transform border border-purple-400">
-                    <span className="text-3xl md:text-4xl">📚</span>
+                {/* 3. STATÜLER VE TALİMATLAR (Koyu Tema - Kırmızı Çizgi) */}
+                <button onClick={() => { setAcikStatuKategori('gelisim'); setStatuModalAcik(true); }} className="col-span-2 bg-slate-900 text-white p-5 rounded-xl shadow-md flex flex-col items-center justify-center gap-2 hover:shadow-lg hover:bg-slate-800 hover:scale-[1.01] transition-all border-l-4 border-r-4 border-red-600 group">
+                    <svg className="w-10 h-10 md:w-12 md:h-12 mb-1 text-slate-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
                     <span className="text-xs md:text-sm font-black tracking-widest text-center">LİG STATÜLERİ VE TALİMATLAR</span>
                 </button>
             </div>
