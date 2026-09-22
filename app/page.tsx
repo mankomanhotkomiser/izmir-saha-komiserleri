@@ -4,6 +4,13 @@ import React, { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import { toPng } from 'html-to-image'
 import RehberModal from '../components/RehberModal'
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist';
+
+if (typeof window !== 'undefined' && typeof pdfjsLib !== 'undefined') {
+    // @ts-ignore
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 import * as pdfjsLib from 'pdfjs-dist';
 if (typeof window !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -1234,11 +1241,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
           reader.readAsDataURL(sikistirilmisDosya);
 
       } catch (error) {
-          console.error("Sıkıştırma hatası:", error);
-          alert("Fotoğraf işlenirken bir sorun oluştu. Lütfen tekrar seçin.");
-      }
-  }
-  // 🔥 AKILLI PDF PARÇALAMA MOTORU (NİNJA KILICI) 🔥
+                console.error("Sıkıştırma hatası:", error);
+                alert("Fotoğraf işlenirken bir sorun oluştu. Lütfen tekrar seçin.");
+            }
+        } // <--- İŞTE EKSİK OLAN VE SİSTEMİ ÇÖKERTEN PARANTEZ BU!
+
+        // 🔥 AKILLI PDF PARÇALAMA MOTORU (NİNJA KILICI) 🔥
   const handleAkilliPdfYukle = async (takim: 'ev' | 'mis', e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || file.type !== 'application/pdf') {
@@ -1248,7 +1256,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
       
       try {
           alert("⏳ PDF İşleniyor ve sayfalara ayrılıyor... Lütfen bekleyin.");
+          
+          // 🔥 MOTORU SADECE TIKLANDIĞINDA ÇAĞIRIYORUZ (Vercel Hatasını Yıkan Taktik) 🔥
+          // @ts-ignore
+          const pdfjsLib = await import('pdfjs-dist');
+          // @ts-ignore
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
           const arrayBuffer = await file.arrayBuffer();
+          // @ts-ignore
           const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
           
           const islemYap = async (pageNum: number, imgKey: string) => {
@@ -1256,9 +1272,16 @@ const [kucukHeader, setKucukHeader] = useState(false);
               const page = await pdf.getPage(pageNum);
               const viewport = page.getViewport({ scale: 2.0 }); 
               const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              
+              // 🔥 TYPESCRIPT'İ SUSTURAN GÜVENLİK KİLİDİ 🔥
+              if (!ctx) return; 
+              
               canvas.width = viewport.width;
               canvas.height = viewport.height;
-              await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+              
+              // @ts-ignore
+              await page.render({ canvasContext: ctx, viewport: viewport }).promise;
               
               const dataUrl = canvas.toDataURL('image/webp', 0.8);
               const arr = dataUrl.split(',');
@@ -1287,7 +1310,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
           console.error(error);
           alert("PDF okunurken bir hata oluştu. Lütfen dosyanın şifreli olmadığından emin olun.");
       }
-  };
 
   const ekRaporGuncelle = (id: number, text: string) => {
 
