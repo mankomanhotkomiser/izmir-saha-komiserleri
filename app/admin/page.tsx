@@ -152,7 +152,7 @@ const getAyYil = (tarihMetni: any) => {
     } catch (e) { return null; }
 }
 
-// 🔥 BORDRO (💰 💰 💰 BORDROLAR) FİLTRESİ: KİMLER HAKEDİŞ ALACAK? 🔥
+// 🔥 BORDRO ( BORDROLAR) FİLTRESİ: KİMLER HAKEDİŞ ALACAK? 🔥
 const isBordroKategori = (kategoriAdi: string) => {
     if (!kategoriAdi) return false;
     const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
@@ -724,7 +724,7 @@ useEffect(() => {
       <body>
           <table>
               <thead>
-                  <tr><th colspan="10" style="font-size: 16px; background-color: #0f172a;">${seciliBordroAy} DÖNEMİ KOMİSER 💰 BORDROLAR VE HAKEDİŞ LİSTESİ</th></tr>
+                  <tr><th colspan="10" style="font-size: 16px; background-color: #0f172a;">${seciliBordroAy} DÖNEMİ KOMİSER  BORDROLAR VE HAKEDİŞ LİSTESİ</th></tr>
                   <tr>
                       <th>SIRA</th>
                       <th>ADI SOYADI</th>
@@ -2279,7 +2279,7 @@ useEffect(() => {
           </div>
           {/* BUTONLAR (Mobilde yatay kaydırılabilir, Masaüstünde wrap) */}
           <div className="flex overflow-x-auto md:flex-wrap items-center gap-2 w-full md:w-auto pb-1 md:pb-0 custom-scrollbar flex-nowrap md:justify-end">
-             <button onClick={() => setFinansModalAcik(true)} className="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse">💰 💰 BORDROLAR</button>
+             <button onClick={() => setFinansModalAcik(true)} className="shrink-0 bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg animate-pulse"> BORDROLAR </button>
              <button onClick={() => setBultenModalAcik(true)} className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white border border-purple-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">📋 BÜLTEN</button>
              <button onClick={() => setExcelModalAcik(true)} className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">📥 EXCEL</button>
              <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM</button>
@@ -2299,7 +2299,7 @@ useEffect(() => {
                 <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in-up">
                     <div className="bg-emerald-900/40 p-4 border-b border-emerald-500/50 flex justify-between items-center shrink-0">
                         <h2 className="text-base md:text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2">
-                            <span className="text-2xl">💰</span> 💰 BORDROLAR VE BORDRO MERKEZİ
+                            <span className="text-2xl"></span>  BORDROLAR VE BORDRO MERKEZİ
                         </h2>
                         <button onClick={() => setFinansModalAcik(false)} className="text-slate-400 hover:text-white font-bold text-3xl leading-none transition-colors ml-2">✕</button>
                     </div>
