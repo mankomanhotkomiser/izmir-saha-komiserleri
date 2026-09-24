@@ -2051,7 +2051,7 @@ useEffect(() => {
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
                 <div className="text-right hidden sm:block">
-                    <span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span>
+                    <span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Saha Komiseri</span>
                     <span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-inner">{komiserTamIsim}</span>
                 </div>
                 <span className={`text-xl transition-transform duration-300 ${renkSiniflari.text} ${isAcik ? 'rotate-180' : ''}`}>▼</span>
@@ -2069,7 +2069,7 @@ useEffect(() => {
                      )}
                  </div>
              )}
-             <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
+             <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Saha Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
              
              {tip !== 'bekleyen' && (
                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4">
