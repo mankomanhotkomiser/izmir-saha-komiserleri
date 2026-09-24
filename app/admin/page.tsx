@@ -444,10 +444,53 @@ useEffect(() => {
   const [manuelMacSaha, setManuelMacSaha] = useState('')
   const [manuelMacLig, setManuelMacLig] = useState('')
   const [manuelMacEv, setManuelMacEv] = useState('')
-  const [manuelMacMis, setManuelMacMis] = useState('')
-  const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
+  // 🔥 YENİ: MAÇ BİLGİSİ GÜNCELLEME (SAHA/SAAT) EKRANI STATELERİ VE FONKSİYONLARI 🔥
+  const [bilgiGuncelleAcikMac, setBilgiGuncelleAcikMac] = useState<any | null>(null);
+  const [guncelTarih, setGuncelTarih] = useState('');
+  const [guncelSaat, setGuncelSaat] = useState('');
+  const [guncelSaha, setGuncelSaha] = useState('');
+  const [bilgiGuncelleniyor, setBilgiGuncelleniyor] = useState(false);
+  
+  const acBilgiGuncellePenceresi = (mac: any) => {
+      setBilgiGuncelleAcikMac(mac);
+      let safeDate = '';
+      if (mac.tarih) {
+          if (mac.tarih.includes('.')) {
+              const parts = mac.tarih.split('.');
+              if (parts.length === 3) safeDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          } else {
+              safeDate = mac.tarih;
+          }
+      }
+      setGuncelTarih(safeDate);
+      setGuncelSaat(mac.saat || '');
+      setGuncelSaha(mac.saha || '');
+  };
 
-  const [genelArama, setGenelArama] = useState('')
+  const bilgileriGuncelleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!bilgiGuncelleAcikMac) return;
+      setBilgiGuncelleniyor(true);
+      try {
+          const payload = {
+              tarih: guncelTarih,
+              saat: guncelSaat,
+              saha: turkceBuyukHarf(guncelSaha),
+              // 🔥 SİSTEM ZEKASI: Saat değiştiği için komiserin onayı (tebellüğü) düşürülür ki tekrar görsün!
+              tebellug_edildi: false 
+          };
+          
+          const { error } = await supabase.from('musabakalar').update(payload).eq('id', bilgiGuncelleAcikMac.id);
+          if (error) throw error;
+          
+          alert("✅ Maç bilgileri güncellendi!\nKomiserin yeni saati/sahayı görebilmesi için tebellüğü (görev onayı) otomatik olarak geri çekildi. Telefonunda tekrar alarm çalacaktır.");
+          sessizMacGuncelle(bilgiGuncelleAcikMac.id, payload);
+          setBilgiGuncelleAcikMac(null);
+      } catch (err: any) {
+          alert("Hata: " + err.message);
+      }
+      setBilgiGuncelleniyor(false);
+  };
 
   const girisKontrol = (e: React.FormEvent) => {
     e.preventDefault()
@@ -2069,7 +2112,7 @@ useEffect(() => {
                      )}
                  </div>
              )}
-             <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Saha Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
+             <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
              
              {tip !== 'bekleyen' && (
                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4">
@@ -2764,6 +2807,56 @@ useEffect(() => {
                 </div>
             </div>
         )}
+        {/* 🔥 YENİ: MAÇ BİLGİLERİNİ GÜNCELLEME MODALI 🔥 */}
+        {bilgiGuncelleAcikMac && (
+            <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up">
+                <div className="bg-slate-900 border-2 border-amber-500 rounded-xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl relative">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                    <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center">
+                        <h2 className="text-sm md:text-base font-black text-amber-400 tracking-widest uppercase flex items-center gap-2">
+                            <span className="text-xl">✏️</span> MAÇ BİLGİLERİNİ GÜNCELLE
+                        </h2>
+                        <button onClick={() => setBilgiGuncelleAcikMac(null)} className="text-slate-400 hover:text-white font-bold text-2xl leading-none transition-colors">✕</button>
+                    </div>
+                    <form onSubmit={bilgileriGuncelleSubmit} className="p-5 md:p-6 space-y-4">
+                        <div className="bg-slate-800/50 border border-slate-700 p-3 rounded-lg text-center mb-4 shadow-inner">
+                            <span className="block text-[10px] text-slate-400 font-bold mb-1">MÜSABAKA:</span>
+                            <span className="text-sm font-black text-white">{bilgiGuncelleAcikMac.ev_sahibi} vs {bilgiGuncelleAcikMac.misafir_takim}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">Yeni Tarih</label>
+                                <input type="date" value={guncelTarih} onChange={e => setGuncelTarih(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-amber-500 font-mono text-sm" required />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">Yeni Saat</label>
+                                <input type="time" value={guncelSaat} onChange={e => setGuncelSaat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-amber-500 font-mono text-sm" required />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Yeni Saha / Tesis</label>
+                            <input type="text" value={guncelSaha} onChange={e => setGuncelSaha(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Saha adı..." />
+                        </div>
+                        
+                        <div className="bg-amber-950/30 border border-amber-900/50 p-3 rounded-lg mt-4 flex items-start gap-2">
+                            <span className="text-amber-500 text-lg">💡</span>
+                            <p className="text-[10px] text-amber-200/80 leading-relaxed font-bold">
+                                Bu bilgileri güncellediğinizde, maçın atandığı saha komiserinin görev kartı otomatik olarak <b>kırmızıya dönecek</b> (tebellüğ iptal edilecek) ve telefonunda yeni alarm çalacaktır. Komiserin değişen saati/sahayı görüp yeniden tebellüğ etmesi zorunlu kılınır.
+                            </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800 mt-4 flex gap-3">
+                            <button type="button" onClick={() => setBilgiGuncelleAcikMac(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs tracking-widest border border-slate-700">İPTAL</button>
+                            <button type="submit" disabled={bilgiGuncelleniyor} className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-black py-3 rounded-lg transition-colors text-xs tracking-widest shadow-md">
+                                {bilgiGuncelleniyor ? '⚙️ KAYDEDİLİYOR...' : '💾 GÜNCELLE'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
 
         {/* 🔥 TFF RAPORU İNDİRME / YAZDIRMA MODALI 🔥 */}
         {tamEkranRaporMac && (
@@ -3146,9 +3239,10 @@ useEffect(() => {
                                                     <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
                                                 </div>
                                                 
-                                                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
-                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
-                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                <div className="flex flex-wrap justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
+                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">⛔ İPTAL ET</button>
+                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                    <button onClick={() => acBilgiGuncellePenceresi(mac)} className="bg-amber-900/40 hover:bg-amber-800/80 text-amber-400 border border-amber-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">✏️ BİLGİ GÜNCELLE</button>
                                                 </div>
 
                                                 {degisimAcikMacId === mac.id && (
@@ -3203,9 +3297,10 @@ useEffect(() => {
                                                     <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
                                                 </div>
                                                 
-                                                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
-                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">⛔ İPTAL ET</button>
-                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                <div className="flex flex-wrap justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
+                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">⛔ İPTAL ET</button>
+                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
+                                                    <button onClick={() => acBilgiGuncellePenceresi(mac)} className="bg-amber-900/40 hover:bg-amber-800/80 text-amber-400 border border-amber-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">✏️ BİLGİ GÜNCELLE</button>
                                                 </div>
 
                                                 {degisimAcikMacId === mac.id && (
