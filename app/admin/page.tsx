@@ -959,27 +959,25 @@ useEffect(() => {
           else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
           else if (isIptal) durum = 'İPTAL';
 
-          let rowStyle = "background-color: #ffffff; color: #000000;"; 
-          if (bultenTab === 'sonuc' && m.skor_girildi) {
-              if (durum === 'OLAYSIZ') { rowStyle = "background-color: #dcfce7; color: #166534;"; } 
-              else if (durum === 'EMNİYETLİK' || durum === 'YARIDA KALDI' || durum === 'ÇIKMADI') { rowStyle = "background-color: #fee2e2; color: #991b1b;"; } 
-              else if (durum === 'İHRAÇ VAR') { rowStyle = "background-color: #ffedd5; color: #9a3412;"; } 
-              else if (durum === 'İPTAL') { rowStyle = "background-color: #f1f5f9; color: #475569;"; }
-          } else {
-              try {
-                  let dStr = String(m.tarih || '').trim();
-                  let y = 0, mn = 0, dNum = 0;
-                  if (dStr.includes('.')) { const p = dStr.split('.'); if (p.length === 3) { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
-                  else if (dStr.includes('-')) { const p = dStr.split('-'); if (p.length === 3) { if (p[0].length === 4) { y = Number(p[0]); mn = Number(p[1]) - 1; dNum = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
-                  if (y) {
-                      const day = new Date(y, mn, dNum).getDay();
-                      if (day === 3) rowStyle = "background-color: #ffffff; color: #059669; font-weight: bold;";
-                      else if (day === 4) rowStyle = "background-color: #ffffff; color: #9333ea; font-weight: bold;";
-                      else if (day === 6) rowStyle = "background-color: #ffffff; color: #000000; font-weight: bold;";
-                      else if (day === 0) rowStyle = "background-color: #ffffff; color: #dc2626; font-weight: bold;";
-                  }
-              } catch(e) {}
-          }
+          // 🔥 ARKA PLAN HER ZAMAN BEYAZ, YAZI KARAKTERİ GÜNE GÖRE RENKLİ 🔥
+          let rowStyle = "background-color: #ffffff; color: #000000; font-weight: bold;"; 
+          try {
+              let dStr = String(m.tarih || '').trim();
+              let y = 0, mn = 0, dNum = 0;
+              if (dStr.includes('.')) { const p = dStr.split('.'); if (p.length === 3) { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
+              else if (dStr.includes('-')) { const p = dStr.split('-'); if (p.length === 3) { if (p[0].length === 4) { y = Number(p[0]); mn = Number(p[1]) - 1; dNum = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
+              
+              if (y) {
+                  const day = new Date(y, mn, dNum).getDay();
+                  if (day === 0) rowStyle = "background-color: #ffffff; color: #dc2626; font-weight: bold;";      // PAZAR: Kırmızı
+                  else if (day === 1) rowStyle = "background-color: #ffffff; color: #059669; font-weight: bold;"; // PAZARTESİ: Yeşil
+                  else if (day === 2) rowStyle = "background-color: #ffffff; color: #0891b2; font-weight: bold;"; // SALI: Turkuaz
+                  else if (day === 3) rowStyle = "background-color: #ffffff; color: #f97316; font-weight: bold;"; // ÇARŞAMBA: Turuncu
+                  else if (day === 4) rowStyle = "background-color: #ffffff; color: #9333ea; font-weight: bold;"; // PERŞEMBE: Mor
+                  else if (day === 5) rowStyle = "background-color: #ffffff; color: #db2777; font-weight: bold;"; // CUMA: Pembe
+                  else if (day === 6) rowStyle = "background-color: #ffffff; color: #000000; font-weight: bold;"; // CUMARTESİ: Siyah
+              }
+          } catch(e) {}
 
           const tarih = guvenliTarih(m.tarih);
           const gunIsmi = getGunIsmi(m.tarih);
@@ -2611,7 +2609,29 @@ useEffect(() => {
                                             const gunIsmi = getGunIsmi(m.tarih);
 
                                             return (
-                                                <tr key={idx} className={`border-b border-slate-300 ${(() => { if (!m.tarih) return 'bg-white hover:bg-slate-50 text-slate-800'; try { let dStr = String(m.tarih).trim(); let y = 0, mn = 0, dNum = 0; if (dStr.includes('.')) { const p = dStr.split('.'); if (p.length === 3) { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } } else if (dStr.includes('-')) { const p = dStr.split('-'); if (p.length === 3) { if (p[0].length === 4) { y = Number(p[0]); mn = Number(p[1]) - 1; dNum = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } } if (!y) return 'bg-white hover:bg-slate-50 text-slate-800'; const day = new Date(y, mn, dNum).getDay(); if (day === 3) return "bg-white hover:bg-slate-50 text-emerald-600 border-slate-300 font-bold"; if (day === 4) return "bg-white hover:bg-slate-50 text-purple-600 border-slate-300 font-bold"; if (day === 6) return "bg-white hover:bg-slate-50 text-black border-slate-300 font-black"; if (day === 0) return "bg-white hover:bg-slate-50 text-red-600 border-slate-300 font-bold"; return 'bg-white hover:bg-slate-50 text-slate-800'; } catch(e) { return 'bg-white hover:bg-slate-50 text-slate-800'; } })()}`}>
+                                                <tr key={idx} className={`border-b border-slate-300 ${(() => { 
+                                                    if (!m.tarih) return 'bg-white text-slate-800 font-bold'; 
+                                                    try { 
+                                                        let dStr = String(m.tarih).trim(); 
+                                                        let y = 0, mn = 0, dNum = 0; 
+                                                        if (dStr.includes('.')) { const p = dStr.split('.'); if (p.length === 3) { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } } 
+                                                        else if (dStr.includes('-')) { const p = dStr.split('-'); if (p.length === 3) { if (p[0].length === 4) { y = Number(p[0]); mn = Number(p[1]) - 1; dNum = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } } 
+                                                        
+                                                        if (!y) return 'bg-white text-slate-800 font-bold'; 
+                                                        const day = new Date(y, mn, dNum).getDay(); 
+                                                        
+                                                        // 🔥 ARKA PLANLAR BEMBEYAZ, SADECE YAZILAR RENKLİ 🔥
+                                                        if (day === 0) return "bg-white text-red-600 font-bold";      // Pazar
+                                                        if (day === 1) return "bg-white text-emerald-600 font-bold";  // Pazartesi (Yeşil)
+                                                        if (day === 2) return "bg-white text-cyan-600 font-bold";     // Salı (Turkuaz)
+                                                        if (day === 3) return "bg-white text-orange-500 font-bold";   // Çarşamba (Turuncu)
+                                                        if (day === 4) return "bg-white text-purple-600 font-bold";   // Perşembe (Mor)
+                                                        if (day === 5) return "bg-white text-pink-600 font-bold";     // Cuma (Pembe)
+                                                        if (day === 6) return "bg-white text-black font-black";       // Cumartesi (Siyah)
+                                                        
+                                                        return 'bg-white text-slate-800 font-bold'; 
+                                                    } catch(e) { return 'bg-white text-slate-800 font-bold'; } 
+                                                })()}`}>
                                                     <td className="border border-slate-300 p-2 text-center font-mono text-slate-500">{formatMacKodu(m.mac_kodu)}</td>
                                                     <td className={`border border-slate-300 p-2 text-center ${gunRengi}`}>{guvenliTarih(m.tarih)}<br/><span className="text-[9px] opacity-70">{gunIsmi}</span></td>
                                                     <td className="border border-slate-300 p-2 text-center font-bold text-slate-700">{guvenliSaat(m.saat)}</td>
