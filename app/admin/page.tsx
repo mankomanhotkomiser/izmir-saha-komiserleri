@@ -580,11 +580,9 @@ useEffect(() => {
         
         const suAn = Date.now();
         let enYakinHaftaNo = 1;
-        let minFark = Infinity;
         cumalar.forEach((cuma: any, idx: number) => {
-            const fark = Math.abs(cuma - suAn);
-            if (fark < minFark) {
-                minFark = fark;
+            // 🔥 TFF KATI TAKVİMİ: Tam Cuma 00:00 olana kadar asla diğer haftaya atlama! 🔥
+            if (suAn >= cuma) {
                 enYakinHaftaNo = idx + 1;
             }
         });
