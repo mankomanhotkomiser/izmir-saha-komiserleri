@@ -3143,7 +3143,7 @@ useEffect(() => {
                                                 <div className="flex flex-col mb-2">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className="bg-purple-900/50 text-purple-300 text-[9px] font-black px-2 py-0.5 rounded tracking-widest border border-purple-700 shadow-sm">KOD: {mac.mac_kodu}</span>
-                                                        <span className="text-slate-400 text-[10px] font-bold">📍 {mac.saha} | {mac.kategori_adi}</span>
+                                                        <span className="text-slate-400 text-[10px] font-bold">📅 {guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)} | 📍 {mac.saha} | {mac.kategori_adi}</span>
                                                     </div>
                                                     <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
                                                 </div>
@@ -3200,7 +3200,7 @@ useEffect(() => {
                                                 <div className="flex flex-col mb-2">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className="bg-slate-700 text-slate-300 text-[9px] font-black px-2 py-0.5 rounded tracking-widest border border-slate-600 shadow-sm">KOD: {mac.mac_kodu}</span>
-                                                        <span className="text-slate-400 text-[10px] font-bold">📍 {mac.saha} | {mac.kategori_adi}</span>
+                                                        <span className="text-slate-400 text-[10px] font-bold">📅 {guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)} | 📍 {mac.saha} | {mac.kategori_adi}</span>
                                                     </div>
                                                     <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
                                                 </div>
