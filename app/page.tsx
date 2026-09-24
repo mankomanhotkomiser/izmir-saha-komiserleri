@@ -2820,13 +2820,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     const pDetay = parseDetay(mac.tff_rapor_detaylari);
                                     const detayliGonderilmis = pDetay?.detayli_kaydedildi === true;
                                     
-                                    // 🔥 ZAMAN KALKANI KONTROLÜ 🔥
-                                    const macZamani = getZaman(mac);
-                                    const kilitliMi = !raporGonderilmis && macZamani > 0 && Date.now() < macZamani;
-
                                     let borderClass = 'border-slate-200';
-                                    if (kilitliMi) { borderClass = 'border-slate-300 opacity-80 bg-slate-50'; }
-                                    else if (!raporGonderilmis) { borderClass = 'border-slate-300 hover:border-slate-400'; } 
+                                    if (!raporGonderilmis) { borderClass = 'border-slate-300 hover:border-slate-400'; } 
                                     else if (detayliGoster && !detayliGonderilmis) { borderClass = 'border-red-400'; } 
                                     else { borderClass = 'border-green-500'; }
                                     
@@ -2834,14 +2829,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     return (
                                         <div key={mac.id || `skor-${idx}`} className={`bg-white rounded-xl shadow-sm border-2 transition-all ${borderClass}`}>
                                             <button 
-                                                onClick={() => {
-                                                    if (kilitliMi) {
-                                                        alert(`⚠️ KİLİTLİ GÖREV!\n\nBu müsabakanın başlama saati (${guvenliSaat(mac.saat)}) henüz gelmemiştir.\nMaç saati gelmeden rapora müdahale edemezsiniz.`);
-                                                    } else {
-                                                        raporFormunuAc(mac);
-                                                    }
-                                                }} 
-                                                className={`w-full text-left p-4 md:p-5 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${kilitliMi ? 'cursor-not-allowed' : 'hover:bg-slate-50'} ${raporGonderilmis && !acikMi ? 'bg-slate-50' : ''}`}
+                                                onClick={() => raporFormunuAc(mac)} 
+                                                className={`w-full text-left p-4 md:p-5 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50 transition-colors ${raporGonderilmis && !acikMi ? 'bg-slate-50' : ''}`}
                                             >
                                                 <div className="w-full sm:w-auto pr-0 sm:pr-4">
                                                     <div className="flex flex-wrap items-center gap-2 mb-2"><span className="bg-slate-100 text-slate-800 border border-slate-300 text-[9px] md:text-[10px] px-2 py-0.5 rounded font-black tracking-wider uppercase">{formatMacKodu(mac?.mac_kodu)}</span><span className={`${detayliGoster ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-slate-700 bg-slate-100 border-slate-300'} border text-[10px] md:text-[11px] px-2 py-0.5 rounded font-black tracking-wider`}>{turkceBuyukHarf(mac?.kategori_adi || 'LİG BELİRTİLMEMİŞ')}</span><span className="text-slate-500 text-[10px] md:text-xs font-bold">{turkceBuyukHarf(gorevTuruBelirle(mac?.kategori_adi, mac?.mac_kodu))}</span></div>
@@ -2851,9 +2840,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex flex-col gap-2 items-end w-full sm:w-auto">
-                                                            {/* 🔥 KİLİT YAZISI VE İKONU BURADA 🔥 */}
-                                                            <span className={`px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[160px] md:min-w-[180px] tracking-widest border ${raporGonderilmis ? 'bg-green-100 text-green-800 border-green-300' : (kilitliMi ? 'bg-slate-200 text-slate-500 border-slate-400' : 'bg-red-600 text-white border-red-700 animate-pulse')}`}>
-                                                                {raporGonderilmis ? '✓ SKOR GÖNDERİLDİ' : (kilitliMi ? '🔒 SAATİ BEKLENİYOR' : '❌ SKOR BEKLENİYOR')}
+                                                            <span className={`px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[160px] md:min-w-[180px] tracking-widest border ${raporGonderilmis ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-600 text-white border-red-700 animate-pulse'}`}>
+                                                                {raporGonderilmis ? '✓ SKOR GÖNDERİLDİ' : '❌ SKOR BEKLENİYOR'}
                                                             </span>
                                                             {detayliGoster && (<span className={`px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[160px] md:min-w-[180px] tracking-widest border ${detayliGonderilmis ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-800 border-red-300 animate-pulse'}`}>{detayliGonderilmis ? '✓ DETAYLI TAMAM' : '🚨 DETAYLI RAPOR YOK'}</span>)}
                                                         </div>
