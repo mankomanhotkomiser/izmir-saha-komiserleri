@@ -309,14 +309,20 @@ const getZaman = (mac: any) => {
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
 const isMazeretWindowOpen = () => {
-    if (TEST_MODU_MAZERET_SUREKLI_ACIK) return true;
     const now = new Date();
-    const day = now.getDay(); 
+    const day = now.getDay();  // 0: Pazar, 1: Pzt, 2: Salı, 3: Çarş, 4: Perş, 5: Cuma, 6: Cts
     const hour = now.getHours();
-    const min = now.getMinutes();
-    if (day === 0 && hour >= 23) return true; 
-    if (day === 1) return true;                
-    if (day === 2 && (hour < 8 || (hour === 8 && min < 30))) return true; 
+
+    // 1. Pazar Günü (Sadece saat 21:00 ve sonrası AÇIK)
+    if (day === 0 && hour >= 21) return true;
+    
+    // 2. Pazartesi Günü (Tüm gün 24 saat AÇIK)
+    if (day === 1) return true;
+    
+    // 3. Salı Günü (Gece 23:59'a kadar AÇIK. Saat 24:00 olduğunda otomatik kapanır)
+    if (day === 2) return true;
+
+    // Bunun dışındaki gün ve saatlerde KESİNLİKLE KAPALI
     return false;
 };
 
@@ -2525,7 +2531,47 @@ const [kucukHeader, setKucukHeader] = useState(false);
             ekranIcerigi = (
                 <main className="min-h-screen bg-slate-100 flex flex-col font-sans">
                     {renderOrtakHeader(!zorunluMazeret)}
-                    {mazeretKaydedildi ? (<div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold tracking-widest">Sisteme Yönlendiriliyorsunuz...</p></div></div>) : (
+                    {mazeretKaydedildi ? (
+                        <div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold tracking-widest">Sisteme Yönlendiriliyorsunuz...</p></div></div>
+                    ) : !isMazeretWindowOpen() ? (
+                        // 🔥 DİNAMİK AÇILIŞ ZAMANI VE KİLİT EKRANI 🔥
+                        <div className="flex-1 flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border-2 border-slate-700 text-white p-8 md:p-10 rounded-2xl text-center shadow-2xl animate-fade-in-up max-w-lg w-full relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-red-600"></div>
+                                <span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">🔒</span>
+                                <h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-red-500 uppercase">SİSTEM KİLİTLİ</h3>
+                                
+                                <p className="font-bold text-sm md:text-base leading-relaxed mb-6 text-slate-300">
+                                    Haftalık mazeret bildirim süresi şu an için kapalıdır. Acil durumlar için Başkan <span className="font-black text-white underline">Servet Kaya</span> ile iletişime geçiniz.
+                                </p>
+
+                                <div className="bg-slate-800 border border-slate-600 rounded-xl p-4 mb-6 shadow-inner">
+                                    <span className="block text-3xl mb-3 animate-bounce">⏳</span>
+                                    <h4 className="text-emerald-400 font-black text-xs md:text-sm tracking-widest uppercase mb-2">BİR SONRAKİ AÇILIŞ ZAMANI:</h4>
+                                    <p className="text-white font-bold text-sm md:text-base leading-snug">
+                                        {(() => {
+                                            const now = new Date();
+                                            const day = now.getDay();
+                                            const nextSunday = new Date(now);
+                                            // Eğer bugün pazar değilse, bir sonraki pazarı bulmak için gün ekliyoruz.
+                                            if (day !== 0) {
+                                                nextSunday.setDate(now.getDate() + (7 - day));
+                                            }
+                                            const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                                            const tarihStr = `${nextSunday.getDate()} ${aylar[nextSunday.getMonth()]}`;
+                                            const hedefHafta = globalAktifHaftaNo + 1;
+                                            
+                                            return `${hedefHafta}. Hafta programı için mazeret bildirimleri ${tarihStr} Pazar saat 21:00'da aktif olacaktır.`;
+                                        })()}
+                                    </p>
+                                </div>
+
+                                <button onClick={() => setAktifEkran('dashboard')} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-xl shadow-md tracking-widest transition-transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                                    <span>🔙</span> ANA EKRANA DÖN
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
                         <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6 overflow-y-auto">
                             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200">
 
