@@ -2534,39 +2534,51 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     {mazeretKaydedildi ? (
                         <div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold tracking-widest">Sisteme Yönlendiriliyorsunuz...</p></div></div>
                     ) : !isMazeretWindowOpen() ? (
-                        // 🔥 DİNAMİK AÇILIŞ ZAMANI VE KİLİT EKRANI 🔥
+                        // 🔥 EĞİTİCİ VE BİLGİLENDİRİCİ BEKLEME EKRANI 🔥
                         <div className="flex-1 flex items-center justify-center p-4">
-                            <div className="bg-slate-900 border-2 border-slate-700 text-white p-8 md:p-10 rounded-2xl text-center shadow-2xl animate-fade-in-up max-w-lg w-full relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-red-600"></div>
-                                <span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">🔒</span>
-                                <h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-red-500 uppercase">SİSTEM KİLİTLİ</h3>
+                            <div className="bg-white border-2 border-slate-200 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-lg w-full relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600"></div>
+                                <span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">⏳</span>
+                                <h3 className="text-xl md:text-2xl font-black tracking-widest mb-4 text-slate-800 uppercase">MAZERET BİLDİRİM SİSTEMİ</h3>
                                 
-                                <p className="font-bold text-sm md:text-base leading-relaxed mb-6 text-slate-300">
-                                    Haftalık mazeret bildirim süresi şu an için kapalıdır. Acil durumlar için Başkan <span className="font-black text-white underline">Servet Kaya</span> ile iletişime geçiniz.
-                                </p>
+                                {(() => {
+                                    const now = new Date();
+                                    const day = now.getDay();
+                                    const nextSunday = new Date(now);
+                                    if (day !== 0) nextSunday.setDate(now.getDate() + (7 - day));
+                                    
+                                    const nextTuesday = new Date(nextSunday);
+                                    nextTuesday.setDate(nextSunday.getDate() + 2);
+                                    
+                                    const nextWednesday = new Date(nextSunday);
+                                    nextWednesday.setDate(nextSunday.getDate() + 3);
 
-                                <div className="bg-slate-800 border border-slate-600 rounded-xl p-4 mb-6 shadow-inner">
-                                    <span className="block text-3xl mb-3 animate-bounce">⏳</span>
-                                    <h4 className="text-emerald-400 font-black text-xs md:text-sm tracking-widest uppercase mb-2">BİR SONRAKİ AÇILIŞ ZAMANI:</h4>
-                                    <p className="text-white font-bold text-sm md:text-base leading-snug">
-                                        {(() => {
-                                            const now = new Date();
-                                            const day = now.getDay();
-                                            const nextSunday = new Date(now);
-                                            // Eğer bugün pazar değilse, bir sonraki pazarı bulmak için gün ekliyoruz.
-                                            if (day !== 0) {
-                                                nextSunday.setDate(now.getDate() + (7 - day));
-                                            }
-                                            const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-                                            const tarihStr = `${nextSunday.getDate()} ${aylar[nextSunday.getMonth()]}`;
-                                            const hedefHafta = globalAktifHaftaNo + 1;
-                                            
-                                            return `${hedefHafta}. Hafta programı için mazeret bildirimleri ${tarihStr} Pazar saat 21:00'da aktif olacaktır.`;
-                                        })()}
-                                    </p>
-                                </div>
+                                    const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                                    const pazarStr = `${nextSunday.getDate()} ${aylar[nextSunday.getMonth()]} Pazar`;
+                                    const saliStr = `${nextTuesday.getDate()} ${aylar[nextTuesday.getMonth()]} Salı`;
+                                    const carsambaStr = `${nextWednesday.getDate()} ${aylar[nextWednesday.getMonth()]} Çarşamba`;
+                                    
+                                    const hedefHafta = globalAktifHaftaNo > 0 ? globalAktifHaftaNo : 1;
 
-                                <button onClick={() => setAktifEkran('dashboard')} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-xl shadow-md tracking-widest transition-transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                                    return (
+                                        <div className="text-sm md:text-base font-medium text-slate-600 leading-relaxed text-left space-y-4">
+                                            <p className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-900 font-bold text-center">
+                                                {hedefHafta}. Hafta programı için mazeret bildirimi <br/><span className="text-lg text-blue-700">{pazarStr} saat 21:00'da</span><br/> aktif olacaktır.
+                                            </p>
+                                            <p>
+                                                Sistem <strong>{saliStr} saat 23:59'a kadar</strong> açık kalacaktır. Bu süre içerisinde dilediğiniz gibi müsait olduğunuz zamanları güncelleyebilirsiniz.
+                                            </p>
+                                            <div className="bg-red-50 p-4 rounded-xl border border-red-100 mt-4">
+                                                <h4 className="font-black text-red-800 text-xs tracking-widest uppercase mb-1">⚠️ Önemli Bilgilendirme</h4>
+                                                <p className="text-red-700 text-xs leading-relaxed font-bold">
+                                                    {carsambaStr} saat 00:00'dan itibaren sistem otomatik olarak kilitlenecektir. Bu tarihten sonra yaşanacak acil durumlar için Başkan <u>Servet Kaya</u> ile iletişime geçmeniz gerekecektir.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                <button onClick={() => setAktifEkran('dashboard')} className="w-full mt-6 bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-md tracking-widest transition-transform hover:scale-[1.02] flex items-center justify-center gap-2">
                                     <span>🔙</span> ANA EKRANA DÖN
                                 </button>
                             </div>
