@@ -256,13 +256,14 @@ const getGunRengi = (tarihStr: string | null | undefined) => {
         const d = new Date(y, m, dNum);
         const day = d.getDay(); 
         
-        if (day === 0) return 'text-red-600 font-black'; 
-        if (day === 6) return 'text-black font-black'; 
-        if (day === 1) return 'text-blue-600 font-bold'; 
-        if (day === 2) return 'text-orange-500 font-bold'; 
-        if (day === 3) return 'text-emerald-600 font-bold'; 
-        if (day === 4) return 'text-purple-600 font-bold'; 
-        if (day === 5) return 'text-teal-600 font-bold'; 
+        // 🔥 TFF ORİJİNAL EXCEL RENK PALETİ 🔥
+        if (day === 0) return 'text-red-600 font-black';     // PAZAR: Kırmızı
+        if (day === 1) return 'text-emerald-600 font-bold';  // PAZARTESİ: Yeşil
+        if (day === 2) return 'text-cyan-600 font-bold';     // SALI: Turkuaz / Mavi
+        if (day === 3) return 'text-orange-500 font-bold';   // ÇARŞAMBA: Turuncu
+        if (day === 4) return 'text-purple-600 font-bold';   // PERŞEMBE: Mor
+        if (day === 5) return 'text-pink-600 font-bold';     // CUMA: Pembe/Bordo
+        if (day === 6) return 'text-black font-black';       // CUMARTESİ: Siyah
         
         return 'text-slate-700 font-bold'; 
     } catch (e) {
