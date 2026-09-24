@@ -445,6 +445,9 @@ useEffect(() => {
   const [manuelMacLig, setManuelMacLig] = useState('')
   const [manuelMacEv, setManuelMacEv] = useState('')
   // 🔥 YENİ: MAÇ BİLGİSİ GÜNCELLEME (SAHA/SAAT) EKRANI STATELERİ VE FONKSİYONLARI 🔥
+  const [manuelMacMis, setManuelMacMis] = useState('')
+  const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
+  const [genelArama, setGenelArama] = useState('')
   const [bilgiGuncelleAcikMac, setBilgiGuncelleAcikMac] = useState<any | null>(null);
   const [guncelTarih, setGuncelTarih] = useState('');
   const [guncelSaat, setGuncelSaat] = useState('');
