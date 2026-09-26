@@ -1878,18 +1878,16 @@ useEffect(() => {
                       )}
                   </div>
 
-                  <div className="bg-slate-100 p-2 font-black text-sm mb-2 shrink-0 border border-slate-300">I) ORGANİZASYON :</div>
-                  <div className="text-xs font-medium shrink-0">
-                      <p className="mb-2 font-bold">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
-                      {gelisimOrganizasyon.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
-                      <p className="mt-4 mb-2 font-bold">(b) Müsabaka sonu değerlendirmesi</p>
+                  <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">I) ORGANİZASYON :</div>
+                  <div className="text-[10px] font-medium shrink-0">
+                      <p className="mb-1 font-bold">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
+                      {gelisimOrganizasyon.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
+                      <p className="mt-2 mb-1 font-bold">(b) Müsabaka sonu değerlendirmesi</p>
                   </div>
                   
-                  <textarea 
-                      readOnly 
-                      value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} 
-                      className="ruled-textarea flex-1 w-full resize-none p-2 text-sm text-blue-900 font-serif"
-                  ></textarea>
+                  <div className="w-full flex-1 min-h-[20px] pb-1 border-b border-dashed border-slate-300 text-[10px]">
+                      {safeRaporDetay?.gelisim_sorular?.degerlendirme || ''}
+                  </div>
               </div>
               )}
 
@@ -1897,42 +1895,42 @@ useEffect(() => {
               {raporTuru === 'gelisim' && (
               <div className="print-page flex flex-col relative">
                   
-                  <div className="bg-slate-100 p-2 font-black text-sm mb-2 shrink-0 border border-slate-300">II) TEKNİK HUSUSLAR :</div>
-                  <div className="mb-4 text-xs font-medium space-y-1 shrink-0">
-                      <p className="mb-2 font-bold">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
-                      {gelisimTeknik.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
-                      <div className="mt-4 space-y-2">
-                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4 font-bold">b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.isim_listeleri} /></div></div>
-                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4 font-bold">c) Takımlar koyu ve açık renk forma setlerini getirdi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.forma_setleri} /></div></div>
-                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4 font-bold">d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.wc_hijyen} /></div></div>
+                  <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">II) TEKNİK HUSUSLAR :</div>
+                  <div className="mb-2 text-[10px] font-medium space-y-0.5 shrink-0">
+                      <p className="mb-1 font-bold">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
+                      {gelisimTeknik.map((soru: any) => (<div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4">{soru.text}</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.[soru.id]} /></div></div>))}
+                      <div className="mt-2 space-y-1">
+                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4 font-bold">b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.isim_listeleri} /></div></div>
+                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4 font-bold">c) Takımlar koyu ve açık renk forma setlerini getirdi mi?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.forma_setleri} /></div></div>
+                          <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4 font-bold">d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.wc_hijyen} /></div></div>
                       </div>
                   </div>
 
-                  <div className="bg-slate-100 p-2 font-black text-sm mb-2 shrink-0 border border-slate-300">III) GÜVENLİK KONULARI :</div>
-                  <div className="mb-4 text-xs font-medium space-y-2 shrink-0">
-                      <div className="flex items-center gap-2 border-b border-dotted border-slate-400 pb-2"><span className="font-bold whitespace-nowrap">a) Misafir takım geliş ve gidişleri nasıl sağlandı ?</span><input readOnly type="text" value={safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''} className="clean-input flex-1 pointer-events-none" /></div>
-                      <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4 font-bold">b) Her iki takım yöneticilerine soyunma odalarına ve koridorlara girebilecek kişiler konusundaki kısıtlamaları ve akreditasyon kartı mecburiyeti hatırlatıldı mı ?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama} /></div></div>
-                      <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-1"><span className="text-[10px] w-3/4 font-bold">c) Misafir takım yöneticileri için tribünde uygun yer ayrıldı mı ?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer} /></div></div>
-                      <div className="flex items-center gap-2 border-b border-dotted border-slate-400 py-2"><span className="font-bold">d) Müsabakada görevli Resmi Güvenlik sayısı :</span><input readOnly type="text" value={safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || ''} className="clean-input w-16 text-center pointer-events-none font-black" /><span>Kişi</span></div>
+                  <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">III) GÜVENLİK KONULARI :</div>
+                  <div className="mb-2 text-[10px] font-medium space-y-1 shrink-0">
+                      <div className="flex items-center gap-2 border-b border-dotted border-slate-400 pb-1"><span className="font-bold whitespace-nowrap">a) Misafir takım geliş ve gidişleri nasıl sağlandı ?</span><span className="flex-1 text-[10px] inline-block">{safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''}</span></div>
+                      <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4 font-bold">b) Her iki takım yöneticilerine soyunma odalarına ve koridorlara girebilecek kişiler konusundaki kısıtlamaları ve akreditasyon kartı mecburiyeti hatırlatıldı mı ?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama} /></div></div>
+                      <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5"><span className="text-[10px] w-3/4 font-bold">c) Misafir takım yöneticileri için tribünde uygun yer ayrıldı mı ?</span><div className="flex gap-4 w-1/4 justify-end pr-2"><EvetHayirBox val={safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer} /></div></div>
+                      <div className="flex items-center gap-2 border-b border-dotted border-slate-400 py-1"><span className="font-bold">d) Müsabakada görevli Resmi Güvenlik sayısı :</span><span className="font-bold w-12 text-center inline-block">{safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || '-'}</span><span>Kişi</span></div>
                   </div>
 
-                  <div className="bg-slate-100 p-2 font-black text-sm mb-2 shrink-0 border border-slate-300">IV) İŞLETİMSEL EKSİKLİK :</div>
-                  <div className="mb-4 text-xs font-medium space-y-1 shrink-0">
+                  <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">IV) İŞLETİMSEL EKSİKLİK :</div>
+                  <div className="mb-2 text-[10px] font-medium space-y-0.5 shrink-0">
                       <p className="font-bold">Sahadaki eksikliklerin tespit edilerek yazılması;</p>
-                      <div className="flex items-center gap-2"><span className="font-black">1-</span><input readOnly type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''} className="clean-input flex-1 pointer-events-none" /></div>
-                      <div className="flex items-center gap-2"><span className="font-black">2-</span><input readOnly type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''} className="clean-input flex-1 pointer-events-none" /></div>
-                      <div className="flex items-center gap-2"><span className="font-black">3-</span><input readOnly type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''} className="clean-input flex-1 pointer-events-none" /></div>
+                      <div className="flex items-center gap-2"><span className="font-black">1-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''}</span></div>
+                      <div className="flex items-center gap-2"><span className="font-black">2-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''}</span></div>
+                      <div className="flex items-center gap-2"><span className="font-black">3-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''}</span></div>
                   </div>
 
-                  <div className="bg-slate-100 p-2 font-black text-sm mb-1 shrink-0 border border-slate-300">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
-                  <div className="w-full border-b border-black mb-4 px-2 text-xs whitespace-pre-wrap min-h-[40px] shrink-0">
+                  <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
+                  <div className="w-full border-b border-slate-300 mb-2 px-1 text-[10px] whitespace-pre-wrap min-h-[20px] shrink-0">
     {safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''}
 </div>
 
-                  <div className="flex-1 flex flex-col min-h-[150px]">
-                      <h3 className="font-black text-xs uppercase mb-1 bg-slate-100 p-2 border border-slate-300">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
-                      <p className="text-[9px] mb-1 font-bold text-slate-600">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                      <div className="ruled-textarea w-full flex-1 p-2 text-sm font-serif text-blue-900 whitespace-pre-wrap min-h-[150px]">
+                  <div className="flex-1 flex flex-col min-h-[60px]">
+                      <h3 className="font-black text-xs uppercase mb-1 bg-slate-100 p-1 border border-slate-300">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
+                      <p className="text-[9px] mb-1 font-bold text-slate-500">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
+                      <div className="w-full flex-1 p-1 text-[11px] font-serif leading-normal whitespace-pre-wrap min-h-[60px]">
     {safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'}
 </div>
                   </div>
