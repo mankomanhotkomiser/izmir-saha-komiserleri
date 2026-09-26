@@ -1964,76 +1964,63 @@ const [kucukHeader, setKucukHeader] = useState(false);
             const ihracMisListesi = Array.isArray(safeRaporDetay.ihrac_mis) ? safeRaporDetay.ihrac_mis : [];
             const ekRaporlarListesi = Array.isArray(safeRaporDetay.ek_raporlar) ? safeRaporDetay.ek_raporlar : [];
             const maxSatir = Math.max(ihracEvListesi.length, ihracMisListesi.length) || 1;
-            const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
+            const raporTarihi = safeRaporDetay.islem_saati ? new Date(safeRaporDetay.islem_saati).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
 
             const gelisimPrintFotolar = prefix === 'aktif'
                 ? Object.keys(ekRaporFotolar).filter((k: string) => k.startsWith('gelisim_')).reduce((obj: any, key: string) => { obj[key] = ekRaporFotolar[key]; return obj; }, {})
                 : (safeRaporDetay.gelisim_fotolar || {});
-            // 🔥 KLAVYE SORUNUNU ÇÖZEN, HIZLI "SKOR KUTUSU" STİLİ HAKEM SEÇİCİ 🔥
-            const renderHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
+
+            // 🔥 1. OTONOM SİYAH ARAYÜZ (MOBİL VERİ GİRİŞİ) YARDIMCILARI 🔥
+            const renderMobilOtonomCheckbox = (etiket: string, deger: any, onChange: (val: string) => void) => (
+                <div className="flex flex-col mb-4 bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner">
+                    <span className="text-xs font-bold text-slate-300 mb-3">{etiket}</span>
+                    <div className="flex gap-3 w-full">
+                        <button type="button" onClick={() => onChange('evet')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all flex items-center justify-center gap-2 tracking-widest ${deger === 'evet' ? 'bg-emerald-600 text-white shadow-lg scale-[1.02] border border-emerald-400' : 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700'}`}>
+                            <span className="text-xl">✅</span> EVET
+                        </button>
+                        <button type="button" onClick={() => onChange('hayir')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all flex items-center justify-center gap-2 tracking-widest ${deger === 'hayir' ? 'bg-red-600 text-white shadow-lg scale-[1.02] border border-red-400' : 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700'}`}>
+                            <span className="text-xl">❌</span> HAYIR
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const renderHakemSeciciMobil = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
                 const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
-
-                if (prefix !== 'aktif') {
-                    return <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(deger)}</span>;
-                }
-
-                // Eğer kaydedilmiş değer listede yoksa otomatik "Elle Gir" modundadır
                 const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
 
                 if (elleGirModu) {
                     return (
-                        <div className="flex gap-1 w-full ml-2 items-center">
-                            <input
-                                type="text"
-                                value={deger === 'YENI_KAYIT' ? '' : deger}
-                                onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))}
-                                placeholder="Buraya İsmi Yazınız..."
-                                className="w-full text-center outline-none bg-yellow-50 border-2 border-slate-300 py-1 font-black text-slate-800 rounded shadow-inner text-[10px] md:text-xs"
-                                autoFocus />
-                            <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold shadow-sm">✕</button>
+                        <div className="flex gap-2 w-full items-center mt-1">
+                            <input type="text" value={deger === 'YENI_KAYIT' ? '' : deger} onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))} placeholder="Buraya İsmi Yazınız..." className="flex-1 text-left outline-none bg-amber-50 border-2 border-amber-300 py-3 px-4 font-black text-amber-900 rounded-lg shadow-inner text-sm" autoFocus />
+                            <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-slate-700 hover:bg-red-600 text-white px-4 py-3 rounded-lg text-sm font-black shadow-md transition-colors">✕</button>
                         </div>
                     );
                 }
 
                 return (
-                    <select
-                        value={deger || ''}
-                        onChange={(e) => raporDetayGuncelle(alan, e.target.value)}
-                        className="w-full text-center outline-none bg-slate-50 border-2 border-slate-300 py-1 font-black text-slate-800 rounded text-[10px] md:text-[11px] ml-2 cursor-pointer shadow-sm focus:border-blue-500 transition-colors"
-                    >
-                        <option value="" disabled>-- SEÇ --</option>
-                        <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                    <select value={deger || ''} onChange={(e) => raporDetayGuncelle(alan, e.target.value)} className="w-full text-left outline-none bg-slate-950 border border-slate-600 py-4 px-4 font-black text-blue-400 rounded-lg text-sm mt-1 cursor-pointer shadow-inner appearance-none transition-colors focus:border-blue-500 focus:bg-slate-900">
+                        <option value="" disabled>-- LÜTFEN SEÇİM YAPINIZ --</option>
+                        <option value="YENI_KAYIT">✍️ LİSTEDE YOK (KENDİM YAZACAĞIM)</option>
                         {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
                     </select>
                 );
             };
 
-            // A4 SAYFA TASARIMI İÇİN YARDIMCI BİLEŞENLER
+            // 🔥 2. A4 BASKI MODU (PDF) YARDIMCILARI 🔥
+            const renderHakemSeciciA4 = (deger: string) => <span className="w-full text-[11px] font-black ml-2 block text-slate-800">{temizHakem(deger)}</span>;
+
             const RenderA4Header = () => {
                 const katAdi = String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR');
                 let ustBaslik = "GELİŞİM LİGLERİ";
                 let sagLogo = "/gelisim-logo.png";
-
                 if (katAdi.includes('KADIN') || katAdi.includes('KIZ')) {
-                    // Kadınlar Ligi Akıllı Logo ve Başlık Seçici
-                    if (katAdi.includes('SÜPER')) {
-                        ustBaslik = "KADINLAR SÜPER LİGİ";
-                        sagLogo = "/kadin-super.png";
-                    } else if (katAdi.includes('1. LİG') || katAdi.includes('1.LİG') || katAdi.includes('BİRİNCİ')) {
-                        ustBaslik = "KADINLAR 1. LİGİ";
-                        sagLogo = "/kadin-1.png";
-                    } else if (katAdi.includes('2. LİG') || katAdi.includes('2.LİG') || katAdi.includes('İKİNCİ')) {
-                        ustBaslik = "KADINLAR 2. LİGİ";
-                        sagLogo = "/kadin-2.png";
-                    } else if (katAdi.includes('3. LİG') || katAdi.includes('3.LİG') || katAdi.includes('ÜÇÜNCÜ')) {
-                        ustBaslik = "KADINLAR 3. LİGİ";
-                        sagLogo = "/kadin-3.png";
-                    } else {
-                        ustBaslik = "KADIN LİGLERİ";
-                        sagLogo = "/kadin-logo.png"; // Kategori tam belli değilse genel kadın logosu
-                    }
+                    if (katAdi.includes('SÜPER')) { ustBaslik = "KADINLAR SÜPER LİGİ"; sagLogo = "/kadin-super.png"; } 
+                    else if (katAdi.includes('1. LİG') || katAdi.includes('1.LİG') || katAdi.includes('BİRİNCİ')) { ustBaslik = "KADINLAR 1. LİGİ"; sagLogo = "/kadin-1.png"; } 
+                    else if (katAdi.includes('2. LİG') || katAdi.includes('2.LİG') || katAdi.includes('İKİNCİ')) { ustBaslik = "KADINLAR 2. LİGİ"; sagLogo = "/kadin-2.png"; } 
+                    else if (katAdi.includes('3. LİG') || katAdi.includes('3.LİG') || katAdi.includes('ÜÇÜNCÜ')) { ustBaslik = "KADINLAR 3. LİGİ"; sagLogo = "/kadin-3.png"; } 
+                    else { ustBaslik = "KADIN LİGLERİ"; sagLogo = "/kadin-logo.png"; }
                 }
-                // PGL tamamen sistemden sökülüp atıldı!
                 return (
                     <div className="flex items-center justify-between mb-4 pb-2 shrink-0">
                         <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
@@ -2047,8 +2034,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 );
             };
 
-            // isEk prop'u geldiğinde skor kutularını kaldırır, sadece takım adını bırakır
-            // isEk (Ek Belge) kuralı çalışırsa skorları atar, başlıkları birbirine yaklaştırıp küçültür
             const RenderA4MatchInfo = ({ isEk = false }: { isEk?: boolean }) => (
                 <>
                     <div className={`border border-black font-bold ${isEk ? 'mb-2 text-[10px]' : 'mb-4 text-xs'}`}>
@@ -2070,11 +2055,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         <div className="border-2 border-black text-xs font-bold mb-6">
                             <div className="grid grid-cols-6 border-b border-black">
                                 <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">EV SAHİBİ TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.ev_sahibi)}</span></div>
-                                <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (evSkor || '-') : (mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-')}</div></div>
+                                <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</div></div>
                             </div>
                             <div className="grid grid-cols-6">
                                 <div className="col-span-5 border-r border-black p-2 flex gap-2 items-center"><span className="w-40 text-slate-600">MİSAFİR TAKIM ADI</span> <span className="text-sm uppercase">{turkceBuyukHarf(mac.misafir_takim)}</span></div>
-                                <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac.misafir_skor !== null ? mac.misafir_skor : '-')}</div></div>
+                                <div className="col-span-1 grid grid-cols-2 bg-slate-100"><div className="flex items-center justify-center border-r border-slate-300 text-[10px] text-slate-600 font-bold">SKOR</div><div className="flex items-center justify-center text-xl font-black">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</div></div>
                             </div>
                         </div>
                     ) : (
@@ -2104,14 +2089,186 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     </div>
                 </div>
             );
+
+            // ==========================================================
+            // 🔥 AKIŞ AYIRICI (OTONOM GİRİŞ MODU VEYA PDF BASKI MODU) 🔥
+            // ==========================================================
+
+            if (prefix === 'aktif') {
+                return (
+                    <div id={`aktif-form-${mac?.id}`} className="w-full max-w-2xl bg-slate-900 p-4 md:p-6 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] font-sans text-slate-200 mx-auto flex flex-col gap-6 animate-fade-in-up border-2 border-slate-700">
+                        <div className="text-center border-b border-slate-700 pb-4">
+                            <span className="text-4xl block mb-2">📱</span>
+                            <h3 className="text-lg md:text-xl font-black text-white tracking-widest uppercase mb-1">MÜSABAKA VERİ GİRİŞ MERKEZİ</h3>
+                            <p className="text-blue-400 font-bold text-sm tracking-widest">{turkceBuyukHarf(mac.ev_sahibi)} <span className="text-slate-500">vs</span> {turkceBuyukHarf(mac.misafir_takim)}</p>
+                        </div>
+
+                        {/* 1. GÖREVLİ PERSONELLER */}
+                        <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                            <h4 className="text-emerald-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">🧑‍⚖️</span> GÖREVLİ PERSONELLER</h4>
+                            <div className="space-y-5">
+                                <div><label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Orta Hakem (Zorunlu)</label>{renderHakemSeciciMobil('hakem', 'hakem', safeRaporDetay?.hakem)}</div>
+                                {hakemModu !== 'tek_hakem' && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                        <div><label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-widest">1. Yardımcı Hakem</label>{renderHakemSeciciMobil('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div>
+                                        <div><label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-widest">2. Yardımcı Hakem</label>{renderHakemSeciciMobil('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div>
+                                    </div>
+                                )}
+                                {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
+                                    <div><label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-widest">4. Hakem</label>{renderHakemSeciciMobil('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div>
+                                )}
+                                {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
+                                    <div><label className="block text-[11px] font-bold text-amber-400 mb-1 uppercase tracking-widest">Müsabaka Gözlemcisi</label>{renderHakemSeciciMobil('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 2. GÜVENLİK VE SAĞLIK (TÜM LİGLER İÇİN) */}
+                        <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                            <h4 className="text-red-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">🏥</span> GÜVENLİK VE SAĞLIK</h4>
+                            <div className="space-y-6">
+                                <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-sm">
+                                    <label className="block text-sm font-bold text-white mb-3 text-center">Güvenlik Görevlisi (Emniyet) Var Mı?</label>
+                                    <div className="flex gap-4">
+                                        <button type="button" onClick={() => raporDetayGuncelle('guvenlik', 'var')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all tracking-widest ${safeRaporDetay?.guvenlik === 'var' ? 'bg-emerald-600 text-white shadow-lg border border-emerald-400' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>VAR</button>
+                                        <button type="button" onClick={() => raporDetayGuncelle('guvenlik', 'yok')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all tracking-widest ${safeRaporDetay?.guvenlik === 'yok' ? 'bg-red-600 text-white shadow-lg border border-red-400' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>YOK</button>
+                                    </div>
+                                    {safeRaporDetay?.guvenlik === 'var' && (
+                                        <div className="mt-4 space-y-3 animate-fade-in-down">
+                                            <input type="text" value={safeRaporDetay?.guvenlik_amiri || ''} onChange={(e) => raporDetayGuncelle('guvenlik_amiri', turkceBuyukHarf(e.target.value))} placeholder="Güvenlik Amiri Adı Soyadı (Opsiyonel)" className="w-full bg-slate-950 border border-slate-600 py-3 px-4 rounded-lg text-sm font-bold text-white focus:border-blue-500 outline-none" />
+                                            <input type="text" value={safeRaporDetay?.guvenlik_telefon || ''} onChange={(e) => raporDetayGuncelle('guvenlik_telefon', e.target.value)} placeholder="Amir Telefon No (Opsiyonel)" className="w-full bg-slate-950 border border-slate-600 py-3 px-4 rounded-lg text-sm font-bold text-white focus:border-blue-500 outline-none" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-sm">
+                                    <label className="block text-sm font-bold text-white mb-3 text-center">Sağlık Memuru (Görevli) Var Mı?</label>
+                                    <div className="flex gap-4">
+                                        <button type="button" onClick={() => raporDetayGuncelle('saglik', 'var')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all tracking-widest ${safeRaporDetay?.saglik === 'var' ? 'bg-emerald-600 text-white shadow-lg border border-emerald-400' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>VAR</button>
+                                        <button type="button" onClick={() => raporDetayGuncelle('saglik', 'yok')} className={`flex-1 py-4 rounded-lg font-black text-sm transition-all tracking-widest ${safeRaporDetay?.saglik === 'yok' ? 'bg-red-600 text-white shadow-lg border border-red-400' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>YOK</button>
+                                    </div>
+                                    {safeRaporDetay?.saglik === 'var' && (
+                                        <div className="mt-4 space-y-3 animate-fade-in-down">
+                                            <input type="text" value={safeRaporDetay?.saglik_adi || ''} onChange={(e) => raporDetayGuncelle('saglik_adi', turkceBuyukHarf(e.target.value))} placeholder="Sağlıkçı Adı Soyadı (Opsiyonel)" className="w-full bg-slate-950 border border-slate-600 py-3 px-4 rounded-lg text-sm font-bold text-white focus:border-blue-500 outline-none" />
+                                            <input type="text" value={safeRaporDetay?.saglik_telefon || ''} onChange={(e) => raporDetayGuncelle('saglik_telefon', e.target.value)} placeholder="Sağlıkçı Telefon No (Opsiyonel)" className="w-full bg-slate-950 border border-slate-600 py-3 px-4 rounded-lg text-sm font-bold text-white focus:border-blue-500 outline-none" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. GELİŞİM LİGİ ÖZEL SORULARI (DEV BUTONLAR) */}
+                        {raporTuru === 'gelisim' && (
+                            <>
+                                <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                                    <h4 className="text-blue-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">📋</span> I. ORGANİZASYON</h4>
+                                    {gelisimOrganizasyon.map(soru => renderMobilOtonomCheckbox(soru.text, safeRaporDetay?.gelisim_sorular?.[soru.id], (v) => gelisimGuncelle(soru.id, v)))}
+                                    <div className="mt-4">
+                                        <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-widest pl-1">Müsabaka Sonu Değerlendirmesi</label>
+                                        <textarea value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} onChange={(e) => gelisimGuncelle('degerlendirme', e.target.value)} className="w-full bg-slate-950 border border-slate-600 text-white p-4 rounded-xl outline-none focus:border-blue-500 min-h-[100px] text-sm" placeholder="Buraya yazınız..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                                    <h4 className="text-blue-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">⚙️</span> II. TEKNİK HUSUSLAR</h4>
+                                    <div className="bg-slate-900 p-4 rounded-xl border border-amber-900/50 mb-6 text-xs md:text-sm font-bold text-amber-400 text-center shadow-sm">Aşağıdaki tesis malzemeleri standartlara uygun mudur?</div>
+                                    {gelisimTeknik.map(soru => renderMobilOtonomCheckbox(soru.text, safeRaporDetay?.gelisim_sorular?.[soru.id], (v) => gelisimGuncelle(soru.id, v)))}
+                                    <div className="border-t border-slate-700 my-6 pt-6"></div>
+                                    {renderMobilOtonomCheckbox("b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?", safeRaporDetay?.gelisim_sorular?.isim_listeleri, (v) => gelisimGuncelle('isim_listeleri', v))}
+                                    {renderMobilOtonomCheckbox("c) Takımlar koyu ve açık renk forma setlerini getirdi mi?", safeRaporDetay?.gelisim_sorular?.forma_setleri, (v) => gelisimGuncelle('forma_setleri', v))}
+                                    {renderMobilOtonomCheckbox("d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?", safeRaporDetay?.gelisim_sorular?.wc_hijyen, (v) => gelisimGuncelle('wc_hijyen', v))}
+                                </div>
+
+                                <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                                    <h4 className="text-blue-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">🛡️</span> III. GÜVENLİK DETAYLARI</h4>
+                                    <div className="mb-6 bg-slate-900 p-4 rounded-xl border border-slate-700">
+                                        <label className="block text-xs font-bold text-slate-300 mb-3 uppercase tracking-widest">a) Misafir takım geliş ve gidişleri nasıl sağlandı?</label>
+                                        <input type="text" value={safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''} onChange={(e) => gelisimGuncelle('misafir_gelis_gidis', e.target.value)} className="w-full bg-slate-950 border border-slate-600 text-white p-4 rounded-lg outline-none focus:border-blue-500 text-sm font-bold placeholder:text-slate-600" placeholder="Kısaca açıklayınız..." />
+                                    </div>
+                                    {renderMobilOtonomCheckbox("b) Her iki takım yöneticilerine soyunma odalarına ve koridorlara girebilecek kişiler konusundaki kısıtlamaları ve akreditasyon kartı mecburiyeti hatırlatıldı mı?", safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama, (v) => gelisimGuncelle('soyunma_odasi_kisitlama', v))}
+                                    {renderMobilOtonomCheckbox("c) Misafir takım yöneticileri için tribünde uygun yer ayrıldı mı?", safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer, (v) => gelisimGuncelle('misafir_tribun_yer', v))}
+                                    <div className="mt-6 bg-slate-900 p-4 rounded-xl border border-slate-700 flex flex-col items-center">
+                                        <label className="block text-xs font-bold text-slate-300 mb-3 uppercase tracking-widest text-center">d) Müsabakada görevli Resmi Güvenlik Sayısı</label>
+                                        <div className="flex items-center gap-3 w-full max-w-[200px]">
+                                            <input type="number" value={safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || ''} onChange={(e) => gelisimGuncelle('guvenlik_sayisi', e.target.value)} className="w-full bg-slate-950 border border-slate-600 text-white p-4 rounded-lg outline-none focus:border-blue-500 text-2xl font-black text-center" placeholder="0" />
+                                            <span className="text-slate-400 font-bold">KİŞİ</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                                    <h4 className="text-blue-400 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">⚠️</span> IV. İŞLETİMSEL EKSİKLİKLER</h4>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-3 items-center"><span className="bg-slate-700 text-white w-8 h-8 flex items-center justify-center rounded font-black shrink-0">1</span><input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''} onChange={(e) => gelisimGuncelle('isletimsel_1', e.target.value)} placeholder="Eksiklik 1..." className="w-full bg-slate-900 border border-slate-600 p-3.5 rounded-lg text-sm text-white font-bold focus:border-blue-500 outline-none" /></div>
+                                        <div className="flex gap-3 items-center"><span className="bg-slate-700 text-white w-8 h-8 flex items-center justify-center rounded font-black shrink-0">2</span><input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''} onChange={(e) => gelisimGuncelle('isletimsel_2', e.target.value)} placeholder="Eksiklik 2..." className="w-full bg-slate-900 border border-slate-600 p-3.5 rounded-lg text-sm text-white font-bold focus:border-blue-500 outline-none" /></div>
+                                        <div className="flex gap-3 items-center"><span className="bg-slate-700 text-white w-8 h-8 flex items-center justify-center rounded font-black shrink-0">3</span><input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''} onChange={(e) => gelisimGuncelle('isletimsel_3', e.target.value)} placeholder="Eksiklik 3..." className="w-full bg-slate-900 border border-slate-600 p-3.5 rounded-lg text-sm text-white font-bold focus:border-blue-500 outline-none" /></div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                                    <label className="block text-xs font-black text-amber-400 mb-2 uppercase tracking-widest">Olumlu Bulunmayan Diğer Hususlar</label>
+                                    <textarea value={safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''} onChange={(e) => gelisimGuncelle('olumsuz_diger', e.target.value)} className="w-full bg-slate-900 border border-slate-600 text-white p-4 rounded-xl outline-none focus:border-blue-500 min-h-[100px] text-sm" placeholder="Varsa buraya yazabilirsiniz..."></textarea>
+                                </div>
+                            </>
+                        )}
+
+                        {/* 4. İHRAÇLAR MODÜLÜ */}
+                        <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                            <h4 className="text-red-500 font-black text-sm md:text-base mb-5 border-b border-slate-700 pb-3 flex items-center gap-2 uppercase tracking-widest"><span className="text-xl">🛑</span> İHRAÇLAR (KIRMIZI KART)</h4>
+                            <div className="space-y-8">
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 bg-slate-900 p-3 rounded-lg border border-slate-700">
+                                        <h5 className="font-black text-white text-xs uppercase tracking-widest">EV SAHİBİ İHRAÇLARI</h5>
+                                        <button type="button" onClick={() => ihracSatirEkle('ev')} className="text-emerald-400 font-black text-xs hover:text-white bg-emerald-900/50 px-4 py-2 rounded shadow transition-colors">+ İHRAÇ EKLE</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {ihracEvListesi.map((ih: any, idx: number) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input type="text" value={ih.forma} onChange={(e) => ihracGuncelle('ev', idx, 'forma', turkceBuyukHarf(e.target.value))} placeholder="No" className="w-16 bg-slate-950 border border-slate-600 text-white font-black text-center rounded-lg py-3 text-sm focus:border-red-500 outline-none" />
+                                                <input type="text" value={ih.isim} onChange={(e) => ihracGuncelle('ev', idx, 'isim', turkceBuyukHarf(e.target.value))} placeholder="Adı Soyadı" className="flex-1 bg-slate-950 border border-slate-600 text-white font-bold rounded-lg px-3 py-3 text-sm uppercase focus:border-red-500 outline-none" />
+                                                <input type="text" value={ih.lisans} onChange={(e) => ihracGuncelle('ev', idx, 'lisans', turkceBuyukHarf(e.target.value))} placeholder="Lisans No" className="w-24 bg-slate-950 border border-slate-600 text-slate-300 text-center rounded-lg px-1 py-3 text-[10px] sm:text-xs focus:border-red-500 outline-none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 bg-slate-900 p-3 rounded-lg border border-slate-700">
+                                        <h5 className="font-black text-white text-xs uppercase tracking-widest">MİSAFİR İHRAÇLARI</h5>
+                                        <button type="button" onClick={() => ihracSatirEkle('mis')} className="text-emerald-400 font-black text-xs hover:text-white bg-emerald-900/50 px-4 py-2 rounded shadow transition-colors">+ İHRAÇ EKLE</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {ihracMisListesi.map((ih: any, idx: number) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input type="text" value={ih.forma} onChange={(e) => ihracGuncelle('mis', idx, 'forma', turkceBuyukHarf(e.target.value))} placeholder="No" className="w-16 bg-slate-950 border border-slate-600 text-white font-black text-center rounded-lg py-3 text-sm focus:border-red-500 outline-none" />
+                                                <input type="text" value={ih.isim} onChange={(e) => ihracGuncelle('mis', idx, 'isim', turkceBuyukHarf(e.target.value))} placeholder="Adı Soyadı" className="flex-1 bg-slate-950 border border-slate-600 text-white font-bold rounded-lg px-3 py-3 text-sm uppercase focus:border-red-500 outline-none" />
+                                                <input type="text" value={ih.lisans} onChange={(e) => ihracGuncelle('mis', idx, 'lisans', turkceBuyukHarf(e.target.value))} placeholder="Lisans No" className="w-24 bg-slate-950 border border-slate-600 text-slate-300 text-center rounded-lg px-1 py-3 text-[10px] sm:text-xs focus:border-red-500 outline-none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 5. OLAYLAR KUTUSU */}
+                        <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                            <label className="block text-xs font-black text-amber-500 mb-3 uppercase tracking-widest flex items-center gap-2"><span className="text-lg">📢</span> MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR</label>
+                            <p className="text-[10px] text-slate-400 mb-4 font-bold bg-slate-900 p-3 rounded border border-slate-800">Yönetici, Teknik Adamlar, Futbolcular, Kulüp görevlileri vb. kişilerin eylemleri ayrı ayrı detaylı yazılacaktır.</p>
+                            <textarea value={safeRaporDetay?.tff_not || ''} onChange={(e: any) => raporDetayGuncelle('tff_not', e.target.value)} className="w-full bg-slate-950 border border-slate-600 text-white p-5 rounded-xl outline-none focus:border-blue-500 min-h-[180px] font-sans text-sm leading-relaxed" placeholder="Yaşanan tüm olayların detaylarını buraya yazabilirsiniz..."></textarea>
+                        </div>
+
+                        {/* 6. GELİŞİM LİGİ KAMERA (RESİM/PDF) YÜKLEME ALANI ZATEN YUKARIDA (GELİŞİM LİGİ İSE) ÇIKIYORDU, YERİ AYNEN KORUNDU */}
+                    </div>
+                );
+            }
+
+            // ==========================================================
+            // 🔥 BURADAN SONRASI ARŞİV VE PDF İNDİRME İÇİN "A4 BEYAZ KAĞIT" GÖRÜNÜMÜ 🔥
+            // ==========================================================
+
             return (
                 <div id={`${prefix}-form-${mac?.id}`} className="min-w-[700px] w-full bg-white p-6 border-2 border-black relative font-sans text-black shadow-sm mx-auto flex flex-col gap-6 mobile-zoom">
                     <style dangerouslySetInnerHTML={{ __html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }` }} />
 
-                    {/* ========================================================== */}
                     {/* ANA TFF RAPORU (SAYFA 1 ve 2) */}
-                    {/* ========================================================== */}
-
                     {raporTuru === 'amator' && (
                         <div className="border-[3px] border-double border-slate-600 p-4 bolunmez">
                             <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 relative">
@@ -2128,12 +2285,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs text-right truncate w-3/4 text-black">{turkceBuyukHarf(mac?.saha || '-')}</span></div></div>
                                 <div className="grid grid-cols-4 border-b border-dashed border-black border-r border-l-0">
                                     <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">EV SAHİBİ:</span> <span className="font-bold text-xs truncate text-black">{turkceBuyukHarf(mac?.ev_sahibi || '-')}</span></div></div>
-                                    <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{prefix === 'aktif' ? (evSkor || '-') : (mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-')}</span></div>
+                                    <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="text-[10px] font-bold mb-1">SKOR</span><span className="font-black text-lg text-black">{mac?.ev_sahibi_skor !== null ? mac?.ev_sahibi_skor : '-'}</span></div>
                                 </div>
                                 <div className="p-2 border-b border-dashed border-black flex justify-between items-center"><span className="text-[10px] font-bold w-12">KATEGORİ:</span> <span className="font-bold text-[10px] text-right truncate w-2/3 text-black">{turkceBuyukHarf(mac?.kategori_adi || '-')}</span></div>
                                 <div className="grid grid-cols-4 border-b border-black border-r border-l-0">
                                     <div className="col-span-3 p-2 flex flex-col justify-center border-r border-dashed border-black"><div className="flex gap-2"><span className="text-[10px] font-bold w-12">MİSAFİR:</span> <span className="font-bold text-xs truncate text-black">{turkceBuyukHarf(mac?.misafir_takim || '-')}</span></div></div>
-                                    <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{prefix === 'aktif' ? (misafirSkor || '-') : (mac?.misafir_skor !== null ? mac?.misafir_skor : '-')}</span></div>
+                                    <div className="col-span-1 p-2 flex flex-col items-center justify-center bg-slate-100/30 border-r-0"><span className="font-black text-lg text-black">{mac?.misafir_skor !== null ? mac?.misafir_skor : '-'}</span></div>
                                 </div>
                                 <div className="flex flex-col border-b border-black">
                                     <div className="p-2 flex justify-between items-center border-b border-dashed border-black"><span className="text-[10px] font-bold">TARİH:</span> <span className="font-bold text-xs text-black">{guvenliTarih(mac?.tarih)}</span></div>
@@ -2148,34 +2305,33 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     <div className="border-r border-black flex flex-col">
                                         <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between">
                                             <span className="text-[10px] font-bold w-20">HAKEM</span>
-                                            {renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}
+                                            {renderHakemSeciciA4(safeRaporDetay?.hakem)}
                                         </div>
 
                                         {hakemModu !== 'tek_hakem' && (
                                             <>
-                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div>
-                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div>
+                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {renderHakemSeciciA4(safeRaporDetay?.y_hakem_1)}</div>
+                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {renderHakemSeciciA4(safeRaporDetay?.y_hakem_2)}</div>
                                             </>
                                         )}
 
                                         {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                                            <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div>
+                                            <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {renderHakemSeciciA4(safeRaporDetay?.hakem_4)}</div>
                                         )}
 
                                         {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
-                                            <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div>
+                                            <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {renderHakemSeciciA4(safeRaporDetay?.gozlemci)}</div>
                                         )}
                                     </div>
-
                                 </div>
                                 <div className="flex flex-col">
                                     <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between h-1/2">
                                         <span className="text-[10px] font-bold w-24">SAĞLIK MEMURU</span>
-                                        {prefix === 'aktif' ? (<select value={safeRaporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 ml-2 cursor-pointer text-center rounded border border-slate-300"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' || safeRaporDetay?.saglik_adi === 'VAR' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' || safeRaporDetay?.saglik_adi === 'YOK' ? 'YOK' : '')}</span>)}
+                                        <span className="w-full text-xs font-black ml-2 text-center inline-block">{safeRaporDetay?.saglik === 'var' || safeRaporDetay?.saglik_adi === 'VAR' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' || safeRaporDetay?.saglik_adi === 'YOK' ? 'YOK' : '')}</span>
                                     </div>
                                     <div className="flex p-1.5 items-center justify-between h-1/2">
                                         <span className="text-[10px] font-bold w-24">GÜVENLİK</span>
-                                        {prefix === 'aktif' ? (<select value={safeRaporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 ml-2 cursor-pointer text-center rounded border border-slate-300"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' || safeRaporDetay?.guvenlik_amiri === 'VAR' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' || safeRaporDetay?.guvenlik_amiri === 'YOK' ? 'YOK' : '')}</span>)}
+                                        <span className="w-full text-xs font-black ml-2 text-center inline-block">{safeRaporDetay?.guvenlik === 'var' || safeRaporDetay?.guvenlik_amiri === 'VAR' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' || safeRaporDetay?.guvenlik_amiri === 'YOK' ? 'YOK' : '')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -2191,27 +2347,21 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 {Array.from({ length: maxSatir }).map((_, idx: number) => (
                                     <div key={`ihrac-${idx}`} className="grid grid-cols-2 text-center text-[11px] border-b border-dashed border-black last:border-b-0 group relative">
                                         <div className="grid grid-cols-12 border-r border-black relative">
-                                            <div className="col-span-2 p-1 border-r border-dashed border-black">{prefix === 'aktif' ? <input type="text" value={ihracEvListesi[idx]?.forma || ''} onChange={(e: any) => ihracGuncelle('ev', idx, 'forma', turkceBuyukHarf(e.target.value))} className="w-full text-center outline-none bg-slate-50 border border-slate-200 py-1 font-bold text-slate-800 rounded-sm" placeholder="-" /> : <span className="w-full text-center font-bold text-slate-800 block">{ihracEvListesi[idx]?.forma || ''}</span>}</div>
-                                            <div className="col-span-7 p-1 border-r border-dashed border-black">{prefix === 'aktif' ? <input type="text" value={ihracEvListesi[idx]?.isim || ''} onChange={(e: any) => ihracGuncelle('ev', idx, 'isim', turkceBuyukHarf(e.target.value))} className="w-full text-left outline-none bg-slate-50 border border-slate-200 px-1 font-bold text-slate-800 rounded-sm" placeholder="" /> : <span className="w-full text-left font-bold text-slate-800 px-1 block">{ihracEvListesi[idx]?.isim || ''}</span>}</div>
-                                            <div className="col-span-3 p-1">{prefix === 'aktif' ? <input type="text" value={ihracEvListesi[idx]?.lisans || ''} onChange={(e: any) => ihracGuncelle('ev', idx, 'lisans', turkceBuyukHarf(e.target.value))} className="w-full text-center outline-none bg-slate-50 border border-slate-200 py-1 font-bold text-slate-800 rounded-sm" placeholder="" /> : <span className="w-full text-center font-bold text-slate-800 block">{ihracEvListesi[idx]?.lisans || ''}</span>}</div>
+                                            <div className="col-span-2 p-1 border-r border-dashed border-black"><span className="w-full text-center font-bold text-slate-800 block">{ihracEvListesi[idx]?.forma || ''}</span></div>
+                                            <div className="col-span-7 p-1 border-r border-dashed border-black"><span className="w-full text-left font-bold text-slate-800 px-1 block">{ihracEvListesi[idx]?.isim || ''}</span></div>
+                                            <div className="col-span-3 p-1"><span className="w-full text-center font-bold text-slate-800 block">{ihracEvListesi[idx]?.lisans || ''}</span></div>
                                         </div>
                                         <div className="grid grid-cols-12 relative">
-                                            <div className="col-span-2 p-1 border-r border-dashed border-black">{prefix === 'aktif' ? <input type="text" value={ihracMisListesi[idx]?.forma || ''} onChange={(e: any) => ihracGuncelle('mis', idx, 'forma', turkceBuyukHarf(e.target.value))} className="w-full text-center outline-none bg-slate-50 border border-slate-200 py-1 font-bold text-slate-800 rounded-sm" placeholder="-" /> : <span className="w-full text-center font-bold text-slate-800 block">{ihracMisListesi[idx]?.forma || ''}</span>}</div>
-                                            <div className="col-span-7 p-1 border-r border-dashed border-black">{prefix === 'aktif' ? <input type="text" value={ihracMisListesi[idx]?.isim || ''} onChange={(e: any) => ihracGuncelle('mis', idx, 'isim', turkceBuyukHarf(e.target.value))} className="w-full text-left outline-none bg-slate-50 border border-slate-200 px-1 font-bold text-slate-800 rounded-sm" placeholder="" /> : <span className="w-full text-left font-bold text-slate-800 px-1 block">{ihracMisListesi[idx]?.isim || ''}</span>}</div>
-                                            <div className="col-span-3 p-1">{prefix === 'aktif' ? <input type="text" value={ihracMisListesi[idx]?.lisans || ''} onChange={(e: any) => ihracGuncelle('mis', idx, 'lisans', turkceBuyukHarf(e.target.value))} className="w-full text-center outline-none bg-slate-50 border border-slate-200 py-1 font-bold text-slate-800 rounded-sm" placeholder="" /> : <span className="w-full text-center font-bold text-slate-800 block">{ihracMisListesi[idx]?.lisans || ''}</span>}</div>
+                                            <div className="col-span-2 p-1 border-r border-dashed border-black"><span className="w-full text-center font-bold text-slate-800 block">{ihracMisListesi[idx]?.forma || ''}</span></div>
+                                            <div className="col-span-7 p-1 border-r border-dashed border-black"><span className="w-full text-left font-bold text-slate-800 px-1 block">{ihracMisListesi[idx]?.isim || ''}</span></div>
+                                            <div className="col-span-3 p-1"><span className="w-full text-center font-bold text-slate-800 block">{ihracMisListesi[idx]?.lisans || ''}</span></div>
                                         </div>
                                     </div>
                                 ))}
-                                {prefix === 'aktif' && (
-                                    <div className="grid grid-cols-2 text-center border-t border-black bg-slate-50 tff-no-print" data-html2canvas-ignore>
-                                        <button onClick={() => ihracSatirEkle('ev')} className="p-1.5 border-r border-black text-blue-600 font-bold text-xs hover:bg-blue-100">+ Ev Sahibi İhraç Ekle</button>
-                                        <button onClick={() => ihracSatirEkle('mis')} className="p-1.5 text-blue-600 font-bold text-xs hover:bg-blue-100">+ Misafir İhraç Ekle</button>
-                                    </div>
-                                )}
                             </div>
                             <div className="mb-8 text-black">
                                 <h3 className="font-bold text-xs text-center border-b border-black pb-1 mb-2 tracking-wide">SEYİRCİ TAŞKINLIKLARI, YÖNETİCİ VE FUTBOLCULARIN HAREKET VE TUTUMLARI</h3>
-                                {prefix === 'aktif' ? (<textarea value={safeRaporDetay?.tff_not || ''} onChange={(e: any) => raporDetayGuncelle('tff_not', e.target.value)} className="w-full outline-none bg-slate-50 font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-slate-300 p-3 shadow-inner rounded-md" placeholder="Olayların detaylarını, varsa zamanı ve numaralarıyla birlikte yazınız..."></textarea>) : (<div className="w-full font-serif text-sm leading-relaxed min-h-[150px] border border-dashed border-slate-300 p-3 rounded-md whitespace-pre-wrap">{safeRaporDetay?.tff_not || mac.rapor_notu || ''}</div>)}
+                                <div className="w-full font-serif text-sm leading-relaxed min-h-[150px] border border-dashed border-slate-300 p-3 rounded-md whitespace-pre-wrap">{safeRaporDetay?.tff_not || mac.rapor_notu || ''}</div>
                             </div>
                             <div className="flex justify-between items-end px-4 mt-8 pt-4 text-black">
                                 <div className="text-xs font-bold">Rapor düzenlenme tarihi: <span className="ml-2 border-b border-dotted border-black px-2 pb-0.5">{raporTarihi}</span></div>
@@ -2228,103 +2378,152 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             <h3 className="font-bold text-sm mb-1">GÖREVLİLER</h3>
                             <div className="border border-black text-xs font-bold mb-6">
                                 <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                                <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}</div></div>
-
+                                <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSeciciA4(safeRaporDetay?.hakem)}</div></div>
                                 {hakemModu !== 'tek_hakem' && (
                                     <>
-                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div></div>
-                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div></div>
+                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1 flex items-center">{renderHakemSeciciA4(safeRaporDetay?.y_hakem_1)}</div></div>
+                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1 flex items-center">{renderHakemSeciciA4(safeRaporDetay?.y_hakem_2)}</div></div>
                                     </>
                                 )}
-
                                 {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                                    <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div></div>
+                                    <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSeciciA4(safeRaporDetay?.hakem_4)}</div></div>
                                 )}
-
                                 {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
-                                    <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div></div>
+                                    <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1 flex items-center">{renderHakemSeciciA4(safeRaporDetay?.gozlemci)}</div></div>
                                 )}
                             </div>
 
                             <div className="border border-black text-xs font-bold mb-6 w-2/3">
                                 <div className="flex border-b border-black">
                                     <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">GÜVENLİK GÖREVLİSİ (VAR MI?)</div>
-                                    <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 cursor-pointer text-center rounded border border-slate-200"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black text-center inline-block">{safeRaporDetay?.guvenlik === 'var' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' ? 'YOK' : '')}</span>)}</div>
+                                    <div className="w-1/2 flex items-center justify-center p-1 gap-4"><span className="w-full text-xs font-black text-center inline-block">{safeRaporDetay?.guvenlik === 'var' ? 'VAR' : (safeRaporDetay?.guvenlik === 'yok' ? 'YOK' : '')}</span></div>
                                 </div>
                                 {safeRaporDetay?.guvenlik === 'var' && (
                                     <>
-                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ GÜVENLİK AMİRİ ADI SOYADI</div><div className="w-1/2 p-1.5">{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.guvenlik_amiri || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_amiri', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-white border border-slate-300 px-2 py-1 rounded font-black placeholder:text-slate-300 placeholder:font-normal" placeholder="Ad Soyad yazınız..." /> : <span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.guvenlik_amiri)}</span>}</div></div>
-                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ GÜVENLİK AMİRİ TELEFON</div><div className="w-1/2 p-1.5">{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.guvenlik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_telefon', e.target.value)} className="w-full outline-none bg-white border border-slate-300 px-2 py-1 rounded font-black placeholder:text-slate-300 placeholder:font-normal" placeholder="Telefon numarası..." /> : <span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.guvenlik_telefon)}</span>}</div></div>
+                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ GÜVENLİK AMİRİ ADI SOYADI</div><div className="w-1/2 p-1.5"><span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.guvenlik_amiri)}</span></div></div>
+                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ GÜVENLİK AMİRİ TELEFON</div><div className="w-1/2 p-1.5"><span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.guvenlik_telefon)}</span></div></div>
                                     </>
                                 )}
-
                                 <div className="flex border-b border-black">
                                     <div className="w-1/2 border-r border-black p-1.5 bg-slate-50">SAĞLIK MEMURU (VAR MI?)</div>
-                                    <div className="w-1/2 flex items-center justify-center p-1 gap-4">{prefix === 'aktif' ? (<select value={safeRaporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-100 py-1 font-black text-slate-800 cursor-pointer text-center rounded border border-slate-300"><option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option></select>) : (<span className="w-full text-xs font-black text-center inline-block">{safeRaporDetay?.saglik === 'var' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' ? 'YOK' : '')}</span>)}</div>
+                                    <div className="w-1/2 flex items-center justify-center p-1 gap-4"><span className="w-full text-xs font-black text-center inline-block">{safeRaporDetay?.saglik === 'var' ? 'VAR' : (safeRaporDetay?.saglik === 'yok' ? 'YOK' : '')}</span></div>
                                 </div>
                                 {safeRaporDetay?.saglik === 'var' && (
                                     <>
-                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ SAĞLIK MEMURU ADI SOYADI</div><div className="w-1/2 p-1.5">{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.saglik_adi || ''} onChange={(e: any) => raporDetayGuncelle('saglik_adi', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-white border border-slate-300 px-2 py-1 rounded font-black placeholder:text-slate-300 placeholder:font-normal" placeholder="Ad Soyad yazınız..." /> : <span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.saglik_adi)}</span>}</div></div>
-                                        <div className="flex bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ SAĞLIK MEMURU TELEFON</div><div className="w-1/2 p-1.5">{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.saglik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('saglik_telefon', e.target.value)} className="w-full outline-none bg-white border border-slate-300 px-2 py-1 rounded font-black placeholder:text-slate-300 placeholder:font-normal" placeholder="Telefon numarası..." /> : <span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.saglik_telefon)}</span>}</div></div>
+                                        <div className="flex border-b border-black bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ SAĞLIK MEMURU ADI SOYADI</div><div className="w-1/2 p-1.5"><span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.saglik_adi)}</span></div></div>
+                                        <div className="flex bg-slate-50/50"><div className="w-1/2 border-r border-black p-1.5 text-[10px] text-slate-700">↳ SAĞLIK MEMURU TELEFON</div><div className="w-1/2 p-1.5"><span className="w-full text-xs font-black text-left inline-block">{temizHakem(safeRaporDetay?.saglik_telefon)}</span></div></div>
                                     </>
                                 )}
                             </div>
 
-                            <div className="bg-slate-100 p-2 font-black text-sm mb-2">I) ORGANİZASYON :</div>
-                            <div className="mb-4 text-xs font-medium space-y-1">
-                                <p className="mb-2">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
-                                {gelisimOrganizasyon.map((soru: any) => renderGelisimCheckbox(soru.text, safeRaporDetay?.gelisim_sorular?.[soru.id], (val: any) => gelisimGuncelle(soru.id, val), soru.id, prefix === 'aktif'))}
-                                <p className="mt-4 mb-1">(b) Müsabaka sonu değerlendirmesi</p>
-                                {prefix === 'aktif' ? <textarea value={safeRaporDetay?.gelisim_sorular?.degerlendirme || ''} onChange={(e: any) => gelisimGuncelle('degerlendirme', e.target.value)} className="w-full border border-slate-300 bg-white p-2 outline-none resize-none h-10 rounded"></textarea> : <div className="w-full border-b border-dashed border-black min-h-[40px]">{safeRaporDetay?.gelisim_sorular?.degerlendirme || ''}</div>}
+                            <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">I) ORGANİZASYON :</div>
+                            <div className="text-[10px] font-medium shrink-0">
+                                <p className="mb-1 font-bold">(a) Saha Komiserinin oyun alanına gidişi ve oyun alanını kontrolü</p>
+                                {gelisimOrganizasyon.map((soru: any) => (
+                                    <div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                        <span className="text-[10px] w-3/4">{soru.text}</span>
+                                        <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.[soru.id] === 'evet' ? 'X' : ''}</div></div>
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.[soru.id] === 'hayir' ? 'X' : ''}</div></div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <p className="mt-2 mb-1 font-bold">(b) Müsabaka sonu değerlendirmesi</p>
                             </div>
+                            <div className="w-full flex-1 min-h-[20px] pb-1 border-b border-dashed border-slate-300 text-[10px]">
+                                {safeRaporDetay?.gelisim_sorular?.degerlendirme || ''}
+                            </div>
+                        </div>
+                    )}
 
-                            <div className="bg-slate-100 p-2 font-black text-sm mb-2">II) TEKNİK HUSUSLAR :</div>
-                            <div className="mb-4 text-xs font-medium space-y-1">
-                                <p className="mb-2">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
-                                {gelisimTeknik.map((soru: any) => renderGelisimCheckbox(soru.text, safeRaporDetay?.gelisim_sorular?.[soru.id], (val: any) => gelisimGuncelle(soru.id, val), soru.id, prefix === 'aktif'))}
-                                <div className="mt-4 space-y-2">
-                                    {renderGelisimCheckbox("b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?", safeRaporDetay?.gelisim_sorular?.isim_listeleri, (val: any) => gelisimGuncelle('isim_listeleri', val), 'isim_listeleri', prefix === 'aktif')}
-                                    {renderGelisimCheckbox("c) Takımlar koyu ve açık renk forma setlerini getirdi mi?", safeRaporDetay?.gelisim_sorular?.forma_setleri, (val: any) => gelisimGuncelle('forma_setleri', val), 'forma_setleri', prefix === 'aktif')}
-                                    {renderGelisimCheckbox("d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?", safeRaporDetay?.gelisim_sorular?.wc_hijyen, (val: any) => gelisimGuncelle('wc_hijyen', val), 'wc_hijyen', prefix === 'aktif')}
+                    {/* DİNAMİK ELİT RAPOR (SAYFA 2) */}
+                    {raporTuru === 'gelisim' && (
+                        <div className="print-page flex flex-col relative">
+                            <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">II) TEKNİK HUSUSLAR :</div>
+                            <div className="mb-2 text-[10px] font-medium space-y-0.5 shrink-0">
+                                <p className="mb-1 font-bold">a) Aşağıdaki tesis / malzemeler standarlara uygun mudur? (dk. - 60'da kontrol edilecektir )</p>
+                                {gelisimTeknik.map((soru: any) => (
+                                    <div key={soru.id} className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                        <span className="text-[10px] w-3/4">{soru.text}</span>
+                                        <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.[soru.id] === 'evet' ? 'X' : ''}</div></div>
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.[soru.id] === 'hayir' ? 'X' : ''}</div></div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="mt-2 space-y-1">
+                                    <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                        <span className="text-[10px] w-3/4 font-bold">b) Her iki kulüp Müsabaka isim listelerinin, kulüp lisansları ile akreditasyon listelerinin kontrolleri yapılarak hakemlere teslimi denetlendi mi?</span>
+                                        <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.isim_listeleri === 'evet' ? 'X' : ''}</div></div>
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.isim_listeleri === 'hayir' ? 'X' : ''}</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                        <span className="text-[10px] w-3/4 font-bold">c) Takımlar koyu ve açık renk forma setlerini getirdi mi?</span>
+                                        <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.forma_setleri === 'evet' ? 'X' : ''}</div></div>
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.forma_setleri === 'hayir' ? 'X' : ''}</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                        <span className="text-[10px] w-3/4 font-bold">d) Stadyum WC'leri hijyenik mi? Temizliği yapılmış mı?</span>
+                                        <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.wc_hijyen === 'evet' ? 'X' : ''}</div></div>
+                                            <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.wc_hijyen === 'hayir' ? 'X' : ''}</div></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-100 p-2 font-black text-sm mb-2">III) GÜVENLİK KONULARI :</div>
-                            <div className="mb-4 text-xs font-medium space-y-2">
-                                <div className="flex flex-col border-b border-dashed border-slate-300 pb-2"><span>a) Misafir takım geliş ve gidişleri nasıl sağlandı ?</span>{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''} onChange={(e: any) => gelisimGuncelle('misafir_gelis_gidis', e.target.value)} className="w-full outline-none bg-white border border-slate-300 mt-1 p-1" /> : <span className="w-full border-b border-dotted border-black mt-1 block">{safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''}</span>}</div>
-                                {renderGelisimCheckbox("b) Her iki takım yöneticilerine soyunma odalarına ve koridorlara girebilecek kişiler konusundaki kısıtlamaları ve akreditasyon kartı mecburiyeti hatırlatıldı mı ?", safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama, (val: any) => gelisimGuncelle('soyunma_odasi_kisitlama', val), 'soyunma_odasi_kisitlama', prefix === 'aktif')}
-                                {renderGelisimCheckbox("c) Misafir takım yöneticileri için tribünde uygun yer ayrıldı mı ?", safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer, (val: any) => gelisimGuncelle('misafir_tribun_yer', val), 'misafir_tribun_yer', prefix === 'aktif')}
-                                <div className="flex items-center gap-2 border-b border-dashed border-slate-300 py-2"><span>d) Müsabakada görevli Resmi Güvenlik sayısı :</span>{prefix === 'aktif' ? <input type="number" value={safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || ''} onChange={(e: any) => gelisimGuncelle('guvenlik_sayisi', e.target.value)} className="w-16 border border-slate-300 bg-white text-center outline-none p-1" /> : <span className="font-bold border-b border-black w-16 text-center inline-block">{safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || '-'}</span>}<span>Kişi</span></div>
+                            <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">III) GÜVENLİK KONULARI :</div>
+                            <div className="mb-2 text-[10px] font-medium space-y-1 shrink-0">
+                                <div className="flex items-center gap-2 border-b border-dotted border-slate-400 pb-1"><span className="font-bold whitespace-nowrap">a) Misafir takım geliş ve gidişleri nasıl sağlandı ?</span><span className="flex-1 text-[10px] inline-block">{safeRaporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''}</span></div>
+                                <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                    <span className="text-[10px] w-3/4 font-bold">b) Her iki takım yöneticilerine soyunma odalarına ve koridorlara girebilecek kişiler konusundaki kısıtlamaları ve akreditasyon kartı mecburiyeti hatırlatıldı mı ?</span>
+                                    <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                        <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama === 'evet' ? 'X' : ''}</div></div>
+                                        <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.soyunma_odasi_kisitlama === 'hayir' ? 'X' : ''}</div></div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-dotted border-slate-400 py-0.5">
+                                    <span className="text-[10px] w-3/4 font-bold">c) Misafir takım yöneticileri için tribünde uygun yer ayrıldı mı ?</span>
+                                    <div className="flex gap-4 w-1/4 justify-end pr-2">
+                                        <div className="flex items-center gap-1 text-[10px] pointer-events-none">Evet <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer === 'evet' ? 'X' : ''}</div></div>
+                                        <div className="flex items-center gap-1 text-[10px] pointer-events-none">Hayır <div className="w-4 h-4 border border-black flex items-center justify-center text-xs font-bold bg-white text-black">{safeRaporDetay?.gelisim_sorular?.misafir_tribun_yer === 'hayir' ? 'X' : ''}</div></div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 border-b border-dotted border-slate-400 py-1"><span className="font-bold">d) Müsabakada görevli Resmi Güvenlik sayısı :</span><span className="font-bold w-12 text-center inline-block">{safeRaporDetay?.gelisim_sorular?.guvenlik_sayisi || '-'}</span><span>Kişi</span></div>
                             </div>
 
-                            <div className="bg-slate-100 p-2 font-black text-sm mb-2">IV) İŞLETİMSEL EKSİKLİK :</div>
-                            <div className="mb-4 text-xs font-medium space-y-1">
-                                <p>Sahadaki eksikliklerin tespit edilerek yazılması,</p>
-                                <div className="flex items-center gap-2"><span>1-</span>{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_1', e.target.value)} className="flex-1 outline-none bg-white border border-slate-300 p-1" /> : <span className="flex-1 border-b border-dotted border-black">{safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''}</span>}</div>
-                                <div className="flex items-center gap-2"><span>2-</span>{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_2', e.target.value)} className="flex-1 outline-none bg-white border border-slate-300 p-1" /> : <span className="flex-1 border-b border-dotted border-black">{safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''}</span>}</div>
-                                <div className="flex items-center gap-2"><span>3-</span>{prefix === 'aktif' ? <input type="text" value={safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_3', e.target.value)} className="flex-1 outline-none bg-white border border-slate-300 p-1" /> : <span className="flex-1 border-b border-dotted border-black">{safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''}</span>}</div>
+                            <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">IV) İŞLETİMSEL EKSİKLİK :</div>
+                            <div className="mb-2 text-[10px] font-medium space-y-0.5 shrink-0">
+                                <p className="font-bold">Sahadaki eksikliklerin tespit edilerek yazılması;</p>
+                                <div className="flex items-center gap-2"><span className="font-black">1-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_1 || ''}</span></div>
+                                <div className="flex items-center gap-2"><span className="font-black">2-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_2 || ''}</span></div>
+                                <div className="flex items-center gap-2"><span className="font-black">3-</span><span className="flex-1 pb-0.5">{safeRaporDetay?.gelisim_sorular?.isletimsel_3 || ''}</span></div>
                             </div>
 
-                            <div className="bg-slate-100 p-2 font-black text-sm mb-2">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
-                            {prefix === 'aktif' ? <textarea value={safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''} onChange={(e: any) => gelisimGuncelle('olumsuz_diger', e.target.value)} className="w-full border border-slate-300 bg-white p-2 outline-none resize-none min-h-[50px] mb-4 text-xs"></textarea> : <div className="w-full border-b border-dashed border-black min-h-[50px] mb-4 text-xs whitespace-pre-wrap">{safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''}</div>}
+                            <div className="bg-slate-100 p-1 font-black text-xs mb-1 shrink-0 border border-slate-300">OLUMLU BULUNMAYAN DİĞER HUSUSLAR :</div>
+                            <div className="w-full border-b border-slate-300 mb-2 px-1 text-[10px] whitespace-pre-wrap min-h-[20px] shrink-0">
+                                {safeRaporDetay?.gelisim_sorular?.olumsuz_diger || ''}
+                            </div>
 
-                            <div className="mb-4">
-                                <h3 className="font-bold text-xs uppercase mb-1">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
-                                <p className="text-[10px] mb-1">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
-                                {prefix === 'aktif' ? (<textarea value={safeRaporDetay?.tff_not || ''} onChange={(e: any) => raporDetayGuncelle('tff_not', e.target.value)} className="w-full outline-none bg-slate-50 font-serif text-sm leading-relaxed resize-none overflow-hidden min-h-[150px] border border-slate-300 p-3 shadow-inner rounded-md" placeholder="Olayların detaylarını, varsa zamanı ve numaralarıyla birlikte yazınız..."></textarea>) : (<div className="w-full font-serif text-sm leading-relaxed min-h-[150px] border border-dashed border-slate-300 p-3 rounded-md whitespace-pre-wrap">{safeRaporDetay?.tff_not || mac.rapor_notu || ''}</div>)}
+                            <div className="flex-1 flex flex-col min-h-[60px]">
+                                <h3 className="font-black text-xs uppercase mb-1 bg-slate-100 p-1 border border-slate-300">MÜSABAKA ÖNCESİ, DEVAMI VE BİTİMİNDEKİ OLAYLAR:</h3>
+                                <p className="text-[9px] mb-1 font-bold text-slate-500">(Yönetici,Teknik Adamlar,Futbolcular,Kulüp görevlileri vb.kişilerin eylemleri ayrı ayrı detaylı bir şekilde yazılacaktır.)</p>
+                                <div className="w-full flex-1 p-1 text-[11px] font-serif leading-normal whitespace-pre-wrap min-h-[60px]">
+                                    {safeRaporDetay?.tff_not || mac.rapor_notu || 'Herhangi bir olay gerçekleşmedi.'}
+                                </div>
                             </div>
 
                             <RenderA4Footer />
                         </div>
                     )}
 
-                    {/* ========================================================== */}
                     {/* EK RAPORLAR (AMATÖR VEYA DİNAMİK ARAYA GİREN GELİŞİM EK RAPORLARI) */}
-                    {/* ========================================================== */}
                     {ekRaporlarListesi.map((ekRapor: any, index: number) => (
                         <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
-                            {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
-
                             {raporTuru === 'amator' ? (
                                 <div className="flex flex-col items-center mb-8 border-b-[3px] border-double border-red-600 pb-4 text-center">
                                     <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
@@ -2350,23 +2549,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
                             <div className="mb-6">
                                 <h3 className="font-bold text-sm bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
-                                {prefix === 'aktif' ? <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full outline-none border border-slate-300 bg-slate-50 min-h-[200px] p-4 text-sm text-black rounded" placeholder="Buraya olayla ilgili detaylı ek raporunuzu yazabilirsiniz..."></textarea> : <div className="w-full min-h-[200px] p-4 border border-dashed border-black whitespace-pre-wrap">{ekRapor.text}</div>}
+                                <div className="w-full min-h-[200px] p-4 border border-dashed border-black whitespace-pre-wrap">{ekRapor.text}</div>
                             </div>
 
                             <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
                                 <h3 className="font-bold text-sm mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
-
                                 {ekRaporFotolar[ekRapor.id] ? (
                                     <img src={ekRaporFotolar[ekRapor.id]} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
                                 ) : (
-                                    <div className="text-slate-400 text-center tff-no-print"><span className="text-4xl block mb-2">📸</span><p className="text-sm font-bold">Kanıt Fotoğrafı Yükle</p></div>
-                                )}
-
-                                {prefix === 'aktif' && (
-                                    <label className="tff-no-print absolute bottom-4 right-4 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded text-xs font-bold shadow-md transition-colors">
-                                        {ekRaporFotolar[ekRapor.id] ? 'Fotoğrafı Değiştir' : 'Görsel Seç'}
-                                        <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(ekRapor.id, e)} />
-                                    </label>
+                                    <div className="text-slate-400 text-center tff-no-print"><span className="text-4xl block mb-2">📸</span><p className="text-sm font-bold">Kanıt Fotoğrafı Yok</p></div>
                                 )}
                             </div>
 
@@ -2380,22 +2571,11 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         </div>
                     ))}
 
-                    {prefix === 'aktif' && (
-                        <div className="tff-no-print flex justify-center mt-4 border-b-2 border-slate-800 pb-8">
-                            <button onClick={ekRaporEkle} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all text-sm flex items-center justify-center gap-2 border border-slate-600">
-                                <span className="text-lg">📸</span> + EK RAPOR İLAVE ET
-                            </button>
-                        </div>
-                    )}
-
-                    {/* ========================================================== */}
                     {/* GELİŞİM LİGİ - YAZDIRILABİLİR EK EVRAKLAR (DİNAMİK TAM SAYFA) */}
-                    {/* ========================================================== */}
                     {raporTuru === 'gelisim' && Object.keys(gelisimPrintFotolar).length > 0 && (
                         <>
                             {(() => {
                                 const ekSayfalar = [];
-
                                 if (gelisimPrintFotolar['gelisim_ev_esame']) ekSayfalar.push({ id: 'ev_esame', url: gelisimPrintFotolar['gelisim_ev_esame'], baslik: 'EV SAHİBİ TAKIM MÜSABAKA ESAME LİSTESİ' });
                                 if (gelisimPrintFotolar['gelisim_ev_teknik']) ekSayfalar.push({ id: 'ev_teknik', url: gelisimPrintFotolar['gelisim_ev_teknik'], baslik: 'EV SAHİBİ TAKIM TEKNİK EKİP KADROSU' });
                                 if (gelisimPrintFotolar['gelisim_ev_foto']) ekSayfalar.push({ id: 'ev_foto', url: gelisimPrintFotolar['gelisim_ev_foto'], baslik: 'EV SAHİBİ TAKIM FOTOĞRAF ÇEKİM İZNİ' });
@@ -2416,14 +2596,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 ));
                             })()}
 
-                            {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ (ESKİ SİSTEM 4'LÜ GRID) 🔥 */}
+                            {/* SAĞLIK VE SAHA GÖREVLİLERİ (ESKİ SİSTEM 4'LÜ GRID) */}
                             {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
                                 <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
                                     <RenderA4Header />
                                     <RenderA4MatchInfo isEk={true} />
-
                                     <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
-
                                     <div className="flex-1 grid grid-cols-2 gap-4 content-start">
                                         {gelisimPrintFotolar['gelisim_saglik'] && (
                                             <div className="border border-slate-300 p-2 text-center bg-slate-50">
@@ -2455,71 +2633,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             )}
                         </>
                     )}
-
-                    {/* 🔥 YENİ GELİŞİM LİGİ FOTOĞRAF YÜKLEME ALANI (SADECE KOMİSER VERİ GİRİŞ EKRANI İÇİN) 🔥 */}
-                    {prefix === 'aktif' && raporTuru === 'gelisim' && (
-                        <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 tff-no-print">
-                            <div className="flex items-center gap-3 border-b-2 border-slate-800 pb-3 mb-6">
-                                <span className="text-3xl">📸</span>
-                                <div>
-                                    <h3 className="font-black text-lg tracking-widest text-slate-800">
-                                        {String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR').includes('KADIN') || String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR').includes('KIZ') ? 'KADIN FUTBOL LİGLERİ' : 'GELİŞİM LİGİ'} RESMİ EVRAKLARI
-                                    </h3>
-                                    <p className="text-xs text-red-600 font-bold">Lütfen takım esamelerini ve teknik kadro listelerini okunaklı şekilde yükleyiniz. (Zorunludur)</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-8">
-                                {/* EV SAHİBİ */}
-                                <div>
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3 bg-blue-100 p-2 rounded border border-blue-200">
-                                        <h4 className="font-black text-sm text-blue-800 tracking-widest uppercase">🏠 EV SAHİBİ TAKIM: {turkceBuyukHarf(mac?.ev_sahibi)}</h4>
-                                        <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded shadow text-[10px] font-black tracking-widest flex items-center gap-1 transition-transform hover:scale-105">
-                                            <span>⚡ AKILLI PDF (2 SAYFA) YÜKLE</span>
-                                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('ev', e)} />
-                                        </label>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                        <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_ev_esame" />
-                                        <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_ev_teknik" />
-                                        <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_ev_foto" />
-                                        <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_ev_yayin" />
-                                    </div>
-                                </div>
-
-                                {/* MİSAFİR */}
-                                <div>
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3 bg-amber-100 p-2 rounded border border-amber-200">
-                                        <h4 className="font-black text-sm text-amber-800 tracking-widest uppercase">🚌 MİSAFİR TAKIM: {turkceBuyukHarf(mac?.misafir_takim)}</h4>
-                                        <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded shadow text-[10px] font-black tracking-widest flex items-center gap-1 transition-transform hover:scale-105">
-                                            <span>⚡ AKILLI PDF (2 SAYFA) YÜKLE</span>
-                                            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('mis', e)} />
-                                        </label>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                        <RenderGelisimUpload title="1. Esame Listesi (ZORUNLU)" imgKey="gelisim_mis_esame" />
-                                        <RenderGelisimUpload title="2. Teknik Kadro Listesi (ZORUNLU)" imgKey="gelisim_mis_teknik" />
-                                        <RenderGelisimUpload title="3. Fotoğraf Çekim İzni" imgKey="gelisim_mis_foto" />
-                                        <RenderGelisimUpload title="4. Canlı Yayın İzni" imgKey="gelisim_mis_yayin" />
-                                    </div>
-                                </div>
-
-                                {/* SAĞLIK VE SAHA */}
-                                <div>
-                                    <h4 className="font-black text-sm bg-emerald-100 text-emerald-800 p-2 rounded border border-emerald-200 mb-3 tracking-widest uppercase">🏥 SAĞLIK VE SAHA GÖREVLİLERİ (Opsiyonel)</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                        <RenderGelisimUpload title="Doktor / Sağlıkçı (ATT) Kartı" imgKey="gelisim_saglik" />
-                                        <RenderGelisimUpload title="1. Sedyeci Kartı" imgKey="gelisim_sedyeci1" />
-                                        <RenderGelisimUpload title="2. Sedyeci Kartı" imgKey="gelisim_sedyeci2" />
-                                  <RenderGelisimUpload title="Saha Tanzim Görevlisi" imgKey="gelisim_saha_gor" />
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              )}
-          </div>
-      );
-  }
+                </div>
+            );
+        };
 
   // ==========================================
   // ANA EKRAN YÖNLENDİRİCİSİ (RENDER AKIŞI)
