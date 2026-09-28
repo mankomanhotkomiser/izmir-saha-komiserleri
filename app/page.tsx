@@ -2588,13 +2588,19 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200">
 
                                 {zorunluMazeret && (
-                                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-xl shadow-sm">
-                                        <h3 className="text-red-800 font-black text-sm md:text-base flex items-center gap-2">
-                                            <span className="text-xl">⚠️</span> ZORUNLU İŞLEM
-                                        </h3>
-                                        <p className="text-red-700 text-xs md:text-sm mt-1 font-medium">
-                                            Sisteme giriş yapabilmek ve görev alabilmek için önümüzdeki haftanın müsaitlik durumunu bildirmeniz zorunludur. Lütfen aşağıdaki seçeneklerden birini işaretleyerek kaydediniz.
-                                        </p>
+                                    <div className="bg-red-600 text-white p-6 md:p-8 mb-8 rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.6)] border-4 border-red-800 text-center animate-pulse relative overflow-hidden">
+                                        <div className="absolute -top-10 -right-10 text-9xl opacity-20">🚨</div>
+                                        <span className="text-6xl md:text-7xl block mb-4 drop-shadow-lg">🛑</span>
+                                        <h2 className="text-2xl md:text-4xl font-black tracking-widest uppercase mb-3 drop-shadow-md">SİSTEM KİLİTLİ!</h2>
+                                        <h3 className="text-lg md:text-xl font-bold tracking-wider text-red-200 mb-4">GÖREV İÇİN MAZERET BİLDİRİMİ ZORUNLUDUR</h3>
+                                        <div className="bg-red-900/50 p-4 rounded-xl border border-red-500/50">
+                                            <p className="font-bold text-sm md:text-base leading-relaxed text-white mb-2">
+                                                Sisteme giriş yapabilmek ve görev kartlarınızı görebilmek için önümüzdeki haftanın müsaitlik/mazeret durumunu bildirmeniz <u>mecburidir.</u>
+                                            </p>
+                                            <p className="text-[11px] md:text-xs font-bold text-red-300 tracking-widest uppercase">
+                                                (Lütfen şimdi seçiminizi yapıp kaydedin. Salı günü saat 23:59'a kadar sistem açık kalacaktır, fikriniz değişirse o zamana kadar tekrar güncelleyebilirsiniz.)
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
@@ -2681,6 +2687,23 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     {renderOrtakHeader(false)}
                     <div className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-6">
                         {sifreUyariGoster && (<div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse"><div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm tracking-wide">GÜVENLİK UYARISI</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div><button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs tracking-widest w-full sm:w-auto">ŞİFREMİ DEĞİŞTİR</button></div>)}
+                        
+                        {/* 🔥 MÜSAİTLİK PENCERESİ HATIRLATICISI 🔥 */}
+                        {isMazeretWindowOpen() && !zorunluMazeret && (
+                            <div className="bg-purple-900 border-2 border-purple-500 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-down">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-4xl animate-bounce">📢</span>
+                                    <div className="text-left">
+                                        <h4 className="text-purple-300 font-black text-sm md:text-base tracking-widest uppercase">MÜSAİTLİK PENCERESİ ŞU AN AÇIK!</h4>
+                                        <p className="text-purple-200 text-[10px] md:text-xs font-medium mt-1 leading-relaxed">Önümüzdeki hafta için mazeret formunu başarıyla doldurdunuz. Ancak <strong className="text-white">Salı 23:59'a kadar</strong> fikrinizi değiştirip güncelleyebilirsiniz.</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setAktifEkran('mazeretBildir')} className="bg-purple-600 hover:bg-purple-500 text-white font-black py-3 px-5 rounded-lg shadow-lg text-xs tracking-widest w-full sm:w-auto shrink-0 whitespace-nowrap border border-purple-400 transition-transform hover:scale-105">
+                                    GÜNCELLE
+                                </button>
+                            </div>
+                        )}
+
                         <div className="bg-slate-800 rounded-2xl shadow-xl p-6 mb-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 border-t-4 border-blue-500 relative overflow-hidden">
                             <div className="text-center md:text-left flex-1 relative z-10 w-full"><h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">{turkceBuyukHarf(seciliKomiser?.ad_soyad || 'KOMİSER')}</h2><div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2"><span className="bg-slate-700 text-blue-100 font-mono text-xs font-bold px-3 py-1.5 rounded-md border border-slate-600 shadow-sm">SİCİL NO: {seciliKomiser?.komiser_id || '-'}</span><span className="bg-blue-900/50 text-blue-200 text-xs font-bold px-3 py-1.5 rounded-md border border-blue-800 shadow-sm">BU SEZON: {Array.isArray(komiserMaclari) ? komiserMaclari.length : 0} GÖREV</span></div><div className="mt-5 space-y-3 animate-fade-in-down w-full">
     {(() => {
