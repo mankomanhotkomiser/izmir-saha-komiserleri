@@ -308,22 +308,24 @@ const getZaman = (mac: any) => {
 
 const siralamaFiltresi = (a: any, b: any) => getZaman(a) - getZaman(b);
 
-const isMazeretWindowOpen = () => {
+const isMazeretWindowOpen = (sehir: string) => {
     const now = new Date();
-    const day = now.getDay();  // 0: Pazar, 1: Pzt, 2: Salı, 3: Çarş, 4: Perş, 5: Cuma, 6: Cts
+    const day = now.getDay();  
     const hour = now.getHours();
 
-    // 1. Pazar Günü (Sadece saat 21:00 ve sonrası AÇIK)
-    if (day === 0 && hour >= 21) return true;
-    
-    // 2. Pazartesi Günü (Tüm gün 24 saat AÇIK)
-    if (day === 1) return true;
-    
-    // 3. Salı Günü (Gece 23:59'a kadar AÇIK. Saat 24:00 olduğunda otomatik kapanır)
-    if (day === 2) return true;
-
-    // Bunun dışındaki gün ve saatlerde KESİNLİKLE KAPALI
-    return false;
+    // 🟢 KOCAELİ KURALLARI (Sadece Pazar 21:00 sonrası ve Pazartesi tüm gün açık)
+    if (sehir === 'kocaeli') {
+        if (day === 0 && hour >= 21) return true;
+        if (day === 1) return true;
+        return false;
+    } 
+    // 🔵 İZMİR VE DİĞER ŞUBELER (Pazar 21:00'den Salı 23:59'a kadar açık)
+    else {
+        if (day === 0 && hour >= 21) return true;
+        if (day === 1) return true;
+        if (day === 2) return true;
+        return false;
+    }
 };
 
 const gelisimOrganizasyon = [
@@ -754,7 +756,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
     let isMounted = true;
     if (seciliKomiser && globalAktifHaftaNo > 0) {
         const checkZorunluMazeret = async () => {
-            if (isMazeretWindowOpen()) {
+            if (isMazeretWindowOpen(aktifSehir)) {
                 const hedefHafta = globalAktifHaftaNo + 1;
                 const { data, error } = await supabase
                     .from('mazeretler')
@@ -2568,7 +2570,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     {renderOrtakHeader(!zorunluMazeret)}
                     {mazeretKaydedildi ? (
                         <div className="flex-1 flex items-center justify-center p-4"><div className="bg-emerald-50 border-2 border-emerald-500 text-emerald-800 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-md w-full"><span className="text-6xl md:text-7xl block mb-5 drop-shadow-md">✅</span><h3 className="text-xl md:text-2xl font-black tracking-widest mb-3 text-emerald-900">BAŞARILI!</h3><p className="font-bold text-sm md:text-base leading-relaxed">Müsaitlik / Mazeret bildiriminiz İzmir Şube Yönetimine başarıyla iletilmiştir.</p><div className="mt-6 flex justify-center"><div className="w-8 h-8 border-4 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></div></div><p className="text-[10px] md:text-xs mt-3 text-emerald-600 font-bold tracking-widest">Sisteme Yönlendiriliyorsunuz...</p></div></div>
-                    ) : !isMazeretWindowOpen() ? (
+                    ) : !isMazeretWindowOpen(aktifSehir) ? (
                         // 🔥 EĞİTİCİ VE BİLGİLENDİRİCİ BEKLEME EKRANI 🔥
                         <div className="flex-1 flex items-center justify-center p-4">
                             <div className="bg-white border-2 border-slate-200 p-8 md:p-10 rounded-2xl text-center shadow-xl animate-fade-in-up max-w-lg w-full relative overflow-hidden">
@@ -2588,12 +2590,19 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     const nextWednesday = new Date(nextSunday);
                                     nextWednesday.setDate(nextSunday.getDate() + 3);
 
+                                    const kapanisGunu = new Date(nextSunday);
+                                    kapanisGunu.setDate(nextSunday.getDate() + (aktifSehir === 'kocaeli' ? 1 : 2));
+                                    
+                                    const kilitGunu = new Date(nextSunday);
+                                    kilitGunu.setDate(nextSunday.getDate() + (aktifSehir === 'kocaeli' ? 2 : 3));
+
                                     const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
                                     const pazarStr = `${nextSunday.getDate()} ${aylar[nextSunday.getMonth()]} Pazar`;
-                                    const saliStr = `${nextTuesday.getDate()} ${aylar[nextTuesday.getMonth()]} Salı`;
-                                    const carsambaStr = `${nextWednesday.getDate()} ${aylar[nextWednesday.getMonth()]} Çarşamba`;
+                                    const kapanisStr = `${kapanisGunu.getDate()} ${aylar[kapanisGunu.getMonth()]} ${aktifSehir === 'kocaeli' ? 'Pazartesi' : 'Salı'}`;
+                                    const kilitStr = `${kilitGunu.getDate()} ${aylar[kilitGunu.getMonth()]} ${aktifSehir === 'kocaeli' ? 'Salı' : 'Çarşamba'}`;
                                     
                                     const hedefHafta = globalAktifHaftaNo > 0 ? globalAktifHaftaNo : 1;
+                                    const baskanAdi = aktifSehir === 'kocaeli' ? 'Süleyman Karadaş' : 'Servet Kaya';
 
                                     return (
                                         <div className="text-sm md:text-base font-medium text-slate-600 leading-relaxed text-left space-y-4">
@@ -2601,12 +2610,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 {hedefHafta}. Hafta programı için mazeret bildirimi <br/><span className="text-lg text-blue-700">{pazarStr} saat 21:00'da</span><br/> aktif olacaktır.
                                             </p>
                                             <p>
-                                                Sistem <strong>{saliStr} saat 23:59'a kadar</strong> açık kalacaktır. Bu süre içerisinde dilediğiniz gibi müsait olduğunuz zamanları güncelleyebilirsiniz.
+                                                Sistem <strong>{kapanisStr} saat 23:59'a kadar</strong> açık kalacaktır. Bu süre içerisinde dilediğiniz gibi müsait olduğunuz zamanları güncelleyebilirsiniz.
                                             </p>
                                             <div className="bg-red-50 p-4 rounded-xl border border-red-100 mt-4">
                                                 <h4 className="font-black text-red-800 text-xs tracking-widest uppercase mb-1">⚠️ Önemli Bilgilendirme</h4>
                                                 <p className="text-red-700 text-xs leading-relaxed font-bold">
-                                                    {carsambaStr} saat 00:00'dan itibaren sistem otomatik olarak kilitlenecektir. Bu tarihten sonra yaşanacak acil durumlar için Başkan <u>Servet Kaya</u> ile iletişime geçmeniz gerekecektir.
+                                                    {kilitStr} saat 00:00'dan itibaren sistem otomatik olarak kilitlenecektir. Bu tarihten sonra yaşanacak acil durumlar için Başkan <u>{baskanAdi}</u> ile iletişime geçmeniz gerekecektir.
                                                 </p>
                                             </div>
                                         </div>
@@ -2633,7 +2642,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 Sisteme giriş yapabilmek ve görev kartlarınızı görebilmek için önümüzdeki haftanın müsaitlik/mazeret durumunu bildirmeniz <u>mecburidir.</u>
                                             </p>
                                             <p className="text-[11px] md:text-xs font-bold text-red-300 tracking-widest uppercase">
-                                                (Lütfen şimdi seçiminizi yapıp kaydedin. Salı günü saat 23:59'a kadar sistem açık kalacaktır, fikriniz değişirse o zamana kadar tekrar güncelleyebilirsiniz.)
+                                                (Lütfen şimdi seçiminizi yapıp kaydedin. {aktifSehir === 'kocaeli' ? 'Pazartesi' : 'Salı'} günü saat 23:59'a kadar sistem açık kalacaktır, fikriniz değişirse o zamana kadar tekrar güncelleyebilirsiniz.)
                                             </p>
                                         </div>
                                     </div>
@@ -2782,13 +2791,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         {sifreUyariGoster && (<div className="bg-red-50 border border-red-200 p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse"><div className="flex items-center gap-3"><span className="text-2xl">⚠️</span><div className="text-left"><h4 className="text-red-800 font-black text-sm tracking-wide">GÜVENLİK UYARISI</h4><p className="text-red-700 text-xs font-medium">Sisteme varsayılan şifre (1923) ile giriş yaptınız. Lütfen şifrenizi güncelleyin.</p></div></div><button onClick={() => setSifreDegistirAcik(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow-sm text-xs tracking-widest w-full sm:w-auto">ŞİFREMİ DEĞİŞTİR</button></div>)}
                         
                         {/* 🔥 MÜSAİTLİK PENCERESİ HATIRLATICISI 🔥 */}
-                        {isMazeretWindowOpen() && !zorunluMazeret && (
+                        {isMazeretWindowOpen(aktifSehir) && !zorunluMazeret && (
                             <div className="bg-gradient-to-br from-red-600 to-red-900 border-2 border-red-400 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-down">
                                 <div className="flex items-center gap-4">
                                     <span className="text-4xl animate-bounce drop-shadow-md">📢</span>
                                     <div className="text-left">
                                         <h4 className="text-white font-black text-sm md:text-base tracking-widest uppercase drop-shadow-sm">MÜSAİTLİK PENCERESİ ŞU AN AÇIK!</h4>
-                                        <p className="text-red-100 text-[10px] md:text-xs font-medium mt-1 leading-relaxed">Önümüzdeki hafta için formunuzu başarıyla doldurdunuz. <strong className="text-white bg-red-950/50 px-1.5 py-0.5 rounded border border-red-800">Salı 23:59'a kadar</strong> fikrinizi değiştirip güncelleyebilirsiniz.</p>
+                                        <p className="text-red-100 text-[10px] md:text-xs font-medium mt-1 leading-relaxed">Önümüzdeki hafta için formunuzu başarıyla doldurdunuz. <strong className="text-white bg-red-950/50 px-1.5 py-0.5 rounded border border-red-800">{aktifSehir === 'kocaeli' ? 'Pazartesi' : 'Salı'} 23:59'a kadar</strong> fikrinizi değiştirip güncelleyebilirsiniz.</p>
                                     </div>
                                 </div>
                                 <button onClick={() => { setAktifEkran('mazeretBildir'); }} className="bg-white hover:bg-slate-100 text-red-800 font-black py-3 px-5 rounded-lg shadow-lg text-xs tracking-widest w-full sm:w-auto shrink-0 whitespace-nowrap border border-red-200 transition-transform hover:scale-105">
