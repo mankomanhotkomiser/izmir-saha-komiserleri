@@ -563,6 +563,31 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const [mazeretKaydedildi, setMazeretKaydedildi] = useState(false)
   const [kompleYokum, setKompleYokum] = useState(false)
   const [mazeretTipi, setMazeretTipi] = useState<'yok' | 'full' | 'secmeli' | null>(null)
+  
+  // 🔥 YENİ: MAZERET GEÇMİŞİ HAFIZASI 🔥
+  const [mevcutMazeret, setMevcutMazeret] = useState<any | null>(null)
+  const [mazeretDuzenleModu, setMazeretDuzenleModu] = useState(false)
+
+  const mazeretiGuncellemeyeBasla = () => {
+      if (mevcutMazeret) {
+          setMazeretTipi(mevcutMazeret.detaylar?.mod || 'yok');
+          setKompleYokum(mevcutMazeret.komple_yok);
+          setGenelMerkez(mevcutMazeret.detaylar?.genelMerkez ?? true);
+          setGenelDeplasman(mevcutMazeret.detaylar?.genelDeplasman ?? false);
+          if (mevcutMazeret.detaylar?.gunler) { setGunler(mevcutMazeret.detaylar.gunler); }
+          setMazeretNotu(mevcutMazeret.aciklama || '');
+      }
+      setMazeretDuzenleModu(true);
+  };
+
+  const mazeretiSifirla = () => {
+      setMazeretTipi(null); setKompleYokum(false); setGenelMerkez(true); setGenelDeplasman(false); setMazeretNotu('');
+      setGunler({
+        cuma: { ...defaultGunDurumu }, cumartesi: { ...defaultGunDurumu }, pazar: { ...defaultGunDurumu },
+        pazartesi: { ...defaultGunDurumu }, sali: { ...defaultGunDurumu }, carsamba: { ...defaultGunDurumu }, persembe: { ...defaultGunDurumu }
+      });
+      setMazeretDuzenleModu(true);
+  };
   const [genelMerkez, setGenelMerkez] = useState(true)
   const [genelDeplasman, setGenelDeplasman] = useState(false)
   const [acikStatu, setAcikStatu] = useState<any | null>(null) 
@@ -732,18 +757,26 @@ const [kucukHeader, setKucukHeader] = useState(false);
             if (isMazeretWindowOpen()) {
                 const hedefHafta = globalAktifHaftaNo + 1;
                 const { data, error } = await supabase
-          .from('mazeretler')
-          .select('id')
-          .eq('komiser_id', seciliKomiser.komiser_id)
-          .eq('hafta_no', hedefHafta)
-          .eq('sehir', aktifSehir);
+                    .from('mazeretler')
+                    .select('*')
+                    .eq('komiser_id', seciliKomiser.komiser_id)
+                    .eq('hafta_no', hedefHafta)
+                    .eq('sehir', aktifSehir);
                 
                 if (isMounted) {
-                    if (!error && (!data || data.length === 0)) { setZorunluMazeret(true); } 
-                    else { setZorunluMazeret(false); }
+                    if (!error && data && data.length > 0) { 
+                        setZorunluMazeret(false); 
+                        setMevcutMazeret(data[0]);
+                        setMazeretDuzenleModu(false);
+                    } 
+                    else { 
+                        setZorunluMazeret(true); 
+                        setMevcutMazeret(null);
+                        setMazeretDuzenleModu(true);
+                    }
                 }
             } else {
-                if (isMounted) setZorunluMazeret(false);
+                if (isMounted) { setZorunluMazeret(false); setMevcutMazeret(null); }
             }
         };
         checkZorunluMazeret();
@@ -1118,6 +1151,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
       await supabase.from('mazeretler').delete().match({ komiser_id: seciliKomiser?.komiser_id || '', hafta_no: hedefHafta });
       const { error } = await supabase.from('mazeretler').insert([payload]);
       if (!error) {
+        setMevcutMazeret(payload);
+        setMazeretDuzenleModu(false);
         setMazeretKaydedildi(true); 
         setZorunluMazeret(false); 
         setTimeout(() => { setAktifEkran('dashboard'); setMazeretKaydedildi(false); }, 3000); 
@@ -2605,11 +2640,69 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 )}
 
                                 <div className="text-center md:text-left border-b border-slate-100 pb-4 mb-6"><h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">MÜSAİTLİK VE MAZERET BİLDİRİMİ</h2><p className="text-sm md:text-base font-bold text-slate-500 mt-2">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta için görev alma durumunuzu belirtiniz.</p></div>
-                                <div className="space-y-4 mb-8"><button onClick={() => { setMazeretTipi('yok'); setKompleYokum(true); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'yok' ? 'border-red-400 bg-red-50 text-red-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">⛔</span> TÜM HAFTA MAZERETLİYİM (GÖREV İSTEMİYORUM)</button><button onClick={() => { setMazeretTipi('full'); setKompleYokum(false); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'full' ? 'border-blue-400 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">✅</span> TÜM HAFTA MÜSAİTİM (MERKEZ/DEPLASMAN UYAR)</button><button onClick={() => { setMazeretTipi('secmeli'); setKompleYokum(false); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'secmeli' ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">📅</span> SADECE SEÇTİĞİM GÜNLER VE SAATLER MÜSAİTİM</button></div>
-                                {mazeretTipi === 'full' && (<div className="bg-blue-50 p-6 rounded-xl mb-8 border border-blue-200 animate-fade-in-down shadow-sm"><h4 className="font-black text-blue-900 mb-4 text-sm tracking-widest">HANGİ BÖLGELERDE GÖREV ALABİLİRSİNİZ?</h4><div className="flex gap-6"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={(e: any) => setGenelMerkez(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">MERKEZ</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={(e: any) => setGenelDeplasman(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">DEPLASMAN</span></label></div></div>)}
-                                {mazeretTipi === 'secmeli' && (<div className="mb-8 animate-fade-in-down space-y-3"><h4 className="font-black text-slate-700 mb-4 text-sm tracking-widest px-2">MÜSAİT OLDUĞUNUZ GÜNLERİ SEÇİNİZ</h4>{renderGunSatiri('cuma', 'CUMA')}{renderGunSatiri('cumartesi', 'CUMARTESİ')}{renderGunSatiri('pazar', 'PAZAR')}{renderGunSatiri('pazartesi', 'PAZARTESİ')}{renderGunSatiri('sali', 'SALI')}{renderGunSatiri('carsamba', 'ÇARŞAMBA')}{renderGunSatiri('persembe', 'PERŞEMBE')}</div>)}
-                                <div className="mb-8"><label className="block text-xs font-black text-slate-500 tracking-widest mb-3">SİSTEM NOTU (OPSİYONEL)</label><textarea value={mazeretNotu} onChange={(e: any) => setMazeretNotu(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none min-h-[120px] font-medium text-sm text-slate-700 bg-slate-50 transition-colors" placeholder="Varsa şube yönetimine iletmek istediğiniz özel bir not..."></textarea></div>
-                                <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor || (!mazeretTipi && !kompleYokum)} className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:hover:bg-slate-800 text-white font-black py-5 rounded-xl shadow-sm tracking-widest transition-transform hover:scale-[1.01] flex items-center justify-center gap-2">{mazeretKaydediliyor ? '⚙️ İŞLENİYOR...' : '🚀 BİLDİRİMİ GÖNDER'}</button>
+                                
+                                {/* 🔥 YENİ: OKUMA (ÖZET) MODU 🔥 */}
+                                {mevcutMazeret && !mazeretDuzenleModu ? (
+                                    <div className="animate-fade-in-up">
+                                        <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 md:p-8 text-center shadow-inner mb-6 relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500"></div>
+                                            <span className="text-5xl block mb-4">📋</span>
+                                            <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest mb-4">KAYITLI BİLDİRİMİNİZ</h3>
+                                            
+                                            {mevcutMazeret.detaylar?.mod === 'yok' && <div className="inline-block bg-red-100 text-red-800 font-black text-lg px-6 py-3 rounded-xl border border-red-200 shadow-sm">⛔ TÜM HAFTA MAZERETLİ</div>}
+                                            {mevcutMazeret.detaylar?.mod === 'full' && (
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="inline-block bg-blue-100 text-blue-800 font-black text-lg px-6 py-3 rounded-xl border border-blue-200 shadow-sm">✅ TÜM HAFTA MÜSAİT</div>
+                                                    <div className="flex gap-2 mt-2">
+                                                        {mevcutMazeret.detaylar.genelMerkez && <span className="bg-slate-800 text-white text-xs font-bold px-3 py-1 rounded">MERKEZ</span>}
+                                                        {mevcutMazeret.detaylar.genelDeplasman && <span className="bg-slate-800 text-white text-xs font-bold px-3 py-1 rounded">DEPLASMAN</span>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {mevcutMazeret.detaylar?.mod === 'secmeli' && (
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="inline-block bg-amber-100 text-amber-800 font-black text-lg px-6 py-3 rounded-xl border border-amber-200 shadow-sm">📅 KISMİ (SEÇMELİ) MÜSAİT</div>
+                                                    <p className="text-xs text-slate-500 font-bold max-w-sm mx-auto">Sadece seçtiğiniz gün ve saat dilimlerinde görev alacaksınız.</p>
+                                                </div>
+                                            )}
+
+                                            {mevcutMazeret.aciklama && (
+                                                <div className="mt-6 bg-white border border-slate-200 p-4 rounded-lg text-left shadow-sm">
+                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sistem Notunuz:</span>
+                                                    <p className="text-sm font-medium text-slate-700 italic">"{mevcutMazeret.aciklama}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <button onClick={mazeretiGuncellemeyeBasla} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-md tracking-widest transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
+                                                <span className="text-xl">✏️</span> BİLGİLERİMİ GÜNCELLE
+                                            </button>
+                                            <button onClick={mazeretiSifirla} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-4 rounded-xl shadow-sm tracking-widest transition-colors flex items-center justify-center gap-2 text-sm border border-slate-300">
+                                                <span className="text-xl">🔄</span> FORMU SIFIRLA
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* 🔥 DÜZENLEME MODU VEYA İLK GİRİŞ 🔥 */
+                                    <div className="animate-fade-in-down">
+                                        <div className="space-y-4 mb-8"><button onClick={() => { setMazeretTipi('yok'); setKompleYokum(true); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'yok' ? 'border-red-400 bg-red-50 text-red-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">⛔</span> TÜM HAFTA MAZERETLİYİM (GÖREV İSTEMİYORUM)</button><button onClick={() => { setMazeretTipi('full'); setKompleYokum(false); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'full' ? 'border-blue-400 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">✅</span> TÜM HAFTA MÜSAİTİM (MERKEZ/DEPLASMAN UYAR)</button><button onClick={() => { setMazeretTipi('secmeli'); setKompleYokum(false); } } className={`w-full p-5 md:p-6 rounded-xl border-2 font-black text-left tracking-wide transition-all ${mazeretTipi === 'secmeli' ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}><span className="text-xl mr-2">📅</span> SADECE SEÇTİĞİM GÜNLER VE SAATLER MÜSAİTİM</button></div>
+                                        {mazeretTipi === 'full' && (<div className="bg-blue-50 p-6 rounded-xl mb-8 border border-blue-200 animate-fade-in-down shadow-sm"><h4 className="font-black text-blue-900 mb-4 text-sm tracking-widest">HANGİ BÖLGELERDE GÖREV ALABİLİRSİNİZ?</h4><div className="flex gap-6"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelMerkez} onChange={(e: any) => setGenelMerkez(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">MERKEZ</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={genelDeplasman} onChange={(e: any) => setGenelDeplasman(e.target.checked)} className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" /><span className="font-bold text-slate-800 text-base">DEPLASMAN</span></label></div></div>)}
+                                        {mazeretTipi === 'secmeli' && (<div className="mb-8 animate-fade-in-down space-y-3"><h4 className="font-black text-slate-700 mb-4 text-sm tracking-widest px-2">MÜSAİT OLDUĞUNUZ GÜNLERİ SEÇİNİZ</h4>{renderGunSatiri('cuma', 'CUMA')}{renderGunSatiri('cumartesi', 'CUMARTESİ')}{renderGunSatiri('pazar', 'PAZAR')}{renderGunSatiri('pazartesi', 'PAZARTESİ')}{renderGunSatiri('sali', 'SALI')}{renderGunSatiri('carsamba', 'ÇARŞAMBA')}{renderGunSatiri('persembe', 'PERŞEMBE')}</div>)}
+                                        <div className="mb-8"><label className="block text-xs font-bold text-slate-500 tracking-widest mb-3">SİSTEM NOTU (OPSİYONEL)</label><textarea value={mazeretNotu} onChange={(e: any) => setMazeretNotu(e.target.value)} className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none min-h-[120px] font-medium text-sm text-slate-700 bg-slate-50 transition-colors" placeholder="Varsa şube yönetimine iletmek istediğiniz özel bir not..."></textarea></div>
+                                        
+                                        <div className="flex gap-3">
+                                            {mevcutMazeret && (
+                                                <button onClick={() => setMazeretDuzenleModu(false)} className="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-5 rounded-xl shadow-sm tracking-widest transition-colors text-xs border border-slate-300">
+                                                    İPTAL
+                                                </button>
+                                            )}
+                                            <button onClick={mazeretKaydet} disabled={mazeretKaydediliyor || (!mazeretTipi && !kompleYokum)} className={`${mevcutMazeret ? 'w-2/3' : 'w-full'} bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:hover:bg-slate-800 text-white font-black py-5 rounded-xl shadow-md tracking-widest transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2`}>
+                                                {mazeretKaydediliyor ? '⚙️ İŞLENİYOR...' : (mevcutMazeret ? '💾 GÜNCELLE' : '🚀 BİLDİRİMİ GÖNDER')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -2690,16 +2783,16 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         
                         {/* 🔥 MÜSAİTLİK PENCERESİ HATIRLATICISI 🔥 */}
                         {isMazeretWindowOpen() && !zorunluMazeret && (
-                            <div className="bg-purple-900 border-2 border-purple-500 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-down">
+                            <div className="bg-gradient-to-br from-red-600 to-red-900 border-2 border-red-400 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-down">
                                 <div className="flex items-center gap-4">
-                                    <span className="text-4xl animate-bounce">📢</span>
+                                    <span className="text-4xl animate-bounce drop-shadow-md">📢</span>
                                     <div className="text-left">
-                                        <h4 className="text-purple-300 font-black text-sm md:text-base tracking-widest uppercase">MÜSAİTLİK PENCERESİ ŞU AN AÇIK!</h4>
-                                        <p className="text-purple-200 text-[10px] md:text-xs font-medium mt-1 leading-relaxed">Önümüzdeki hafta için mazeret formunu başarıyla doldurdunuz. Ancak <strong className="text-white">Salı 23:59'a kadar</strong> fikrinizi değiştirip güncelleyebilirsiniz.</p>
+                                        <h4 className="text-white font-black text-sm md:text-base tracking-widest uppercase drop-shadow-sm">MÜSAİTLİK PENCERESİ ŞU AN AÇIK!</h4>
+                                        <p className="text-red-100 text-[10px] md:text-xs font-medium mt-1 leading-relaxed">Önümüzdeki hafta için formunuzu başarıyla doldurdunuz. <strong className="text-white bg-red-950/50 px-1.5 py-0.5 rounded border border-red-800">Salı 23:59'a kadar</strong> fikrinizi değiştirip güncelleyebilirsiniz.</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setAktifEkran('mazeretBildir')} className="bg-purple-600 hover:bg-purple-500 text-white font-black py-3 px-5 rounded-lg shadow-lg text-xs tracking-widest w-full sm:w-auto shrink-0 whitespace-nowrap border border-purple-400 transition-transform hover:scale-105">
-                                    GÜNCELLE
+                                <button onClick={() => { setAktifEkran('mazeretBildir'); }} className="bg-white hover:bg-slate-100 text-red-800 font-black py-3 px-5 rounded-lg shadow-lg text-xs tracking-widest w-full sm:w-auto shrink-0 whitespace-nowrap border border-red-200 transition-transform hover:scale-105">
+                                    GÖZAT / GÜNCELLE
                                 </button>
                             </div>
                         )}
