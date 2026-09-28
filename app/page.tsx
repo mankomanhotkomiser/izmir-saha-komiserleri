@@ -697,7 +697,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
   const skorSecenekleri = Array.from({ length: 31 }, (_, i) => String(i));
   const sifreUyariGoster = seciliKomiser?.sifre === '1923';
-  const mazeretAcik = isMazeretWindowOpen();
+  const mazeretAcik = isMazeretWindowOpen(aktifSehir);
 
   // İstatistikler için
   let amatorCount = 0; let profCount = 0; let gelisimCount = 0; let kadinCount = 0;
