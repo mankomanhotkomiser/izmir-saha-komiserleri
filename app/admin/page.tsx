@@ -2169,7 +2169,8 @@ useEffect(() => {
   }
 
   const gosterilenMaclar = goruntulenenHafta ? (haftalikGruplar[goruntulenenHafta] || []) : [];
-  const isArsiv = goruntulenenHafta !== globalAktifHaftaNo;
+  // 🔥 DÜZELTME: Sadece geçmiş haftalar arşivdir. Gelecek haftalar tam erişime açıktır! 🔥
+  const isArsiv = goruntulenenHafta !== null && goruntulenenHafta < globalAktifHaftaNo;
 
   const emniyetlikMaclar = gosterilenMaclar.filter(m => m.skor_girildi && m.olay_durumu === 'emniyetlik_olay' && m.mac_durumu !== 'iptal_edildi')
   const teknikMaclar = gosterilenMaclar.filter(m => m.skor_girildi && (m.olay_durumu === 'teknik_olay' || m.olay_durumu === 'hava_muhalefeti' || m.olay_durumu === 'saha_sorunu') && m.mac_durumu !== 'iptal_edildi')
