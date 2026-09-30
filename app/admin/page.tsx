@@ -419,6 +419,7 @@ useEffect(() => {
 
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
   const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
+  const [otomatikYenile, setOtomatikYenile] = useState(true) // 🔥 YENİ: RADAR KONTROLÜ 🔥
   
   const [tumStatuler, setTumStatuler] = useState<any[]>([])
   const [genelTalimat, setGenelTalimat] = useState('')
@@ -645,7 +646,8 @@ useEffect(() => {
 
   useEffect(() => {
       let radar: any;
-      if (girisYapildi) {
+      // 🔥 Eğer Radar Açıksa (otomatikYenile true ise) 30 saniyede bir tarar 🔥
+      if (girisYapildi && otomatikYenile) {
           radar = setInterval(() => {
               veriGetir(true); 
           }, 30000); 
@@ -654,7 +656,7 @@ useEffect(() => {
           if (radar) clearInterval(radar); 
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [girisYapildi]);
+  }, [girisYapildi, otomatikYenile]);
 
   const komiserIsmiBul = (id: any) => {
     if (!id || id === 'null' || id === '') return 'Atanmamış';
@@ -2293,8 +2295,9 @@ useEffect(() => {
                 <p className="text-slate-400 text-[10px] md:text-xs font-mono mt-0.5">TFF YÖNETİM ({globalAktifHaftaNo}. HAFTA)</p>
               </div>
             </div>
-            {/* MOBİL İÇİN HIZLI ÇIKIŞ/YENİLE (Sağ üste sıkıştırılmış) */}
+            {/* MOBİL İÇİN HIZLI ÇIKIŞ/YENİLE VE RADAR */}
             <div className="flex items-center gap-1 md:hidden">
+                <button onClick={() => setOtomatikYenile(!otomatikYenile)} className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-colors border shadow-inner ${otomatikYenile ? 'bg-blue-900/40 text-blue-400 border-blue-800/50' : 'bg-red-900/50 text-red-400 border-red-800/50 animate-pulse'}`}>{otomatikYenile ? '📡' : '⏸️'}</button>
                 <button onClick={() => veriGetir(false)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors">🔄</button>
                 <button onClick={() => { localStorage.removeItem('aktifAdminKodu'); localStorage.removeItem('aktifAdminSifre'); window.location.href = '/'; }} className="bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors">ÇIKIŞ</button>
             </div>
@@ -2307,7 +2310,10 @@ useEffect(() => {
              <button onClick={() => { setSistemYonetimModalAcik(true); setManuelMacKodu(otomatikMacKoduBul()); }} className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg">⚙️ SİSTEM</button>
              <button onClick={mukerrerleriTemizle} className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 px-3 py-1.5 rounded-md text-[10px] md:text-xs font-black tracking-widest transition-colors shadow-lg hidden md:block">🧹 TEMİZLE</button>
              
-             {/* MASAÜSTÜ İÇİN YENİLE VE ÇIKIŞ */}
+             {/* MASAÜSTÜ İÇİN RADAR, YENİLE VE ÇIKIŞ */}
+             <button onClick={() => setOtomatikYenile(!otomatikYenile)} className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors hidden md:flex items-center gap-1 border shadow-inner ${otomatikYenile ? 'bg-blue-900/40 text-blue-400 border-blue-800/50 hover:bg-blue-800/60' : 'bg-red-900/50 text-red-400 border-red-800/50 hover:bg-red-800/60 animate-pulse'}`}>
+                 {otomatikYenile ? '📡 RADAR AÇIK' : '⏸️ RADARI DURDUR'}
+             </button>
              <button onClick={() => veriGetir(false)} className="shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded text-xs font-bold transition-colors hidden md:block">🔄 YENİLE</button>
              <button onClick={() => { localStorage.removeItem('aktifAdminKodu'); localStorage.removeItem('aktifAdminSifre'); window.location.href = '/'; }} className="shrink-0 bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-1.5 rounded-md text-xs font-black tracking-widest transition-colors hidden md:block">ÇIKIŞ YAP</button>
           </div>
