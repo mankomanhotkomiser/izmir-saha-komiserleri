@@ -3193,31 +3193,36 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                             </div>
 
                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                                                                                    <label className="block text-[10px] text-emerald-400 font-bold mb-2">SAĞLIK GÖREVLİSİ (VAR MI?)</label>
-                                                                                    <select value={raporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
-                                                                                        <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
-                                                                                    </select>
-                                                                                    {raporDetay?.saglik === 'var' && (
-                                                                                        <div className="mt-3 space-y-2 animate-fade-in-down">
-                                                                                            <input type="text" value={raporDetay?.saglik_adi || ''} onChange={(e: any) => raporDetayGuncelle('saglik_adi', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Sağlıkçı Adı Soyadı" />
-                                                                                            <input type="text" value={raporDetay?.saglik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('saglik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
+                                                                                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                            <label className="block text-[10px] text-slate-400 font-bold mb-2">HAKEM</label>
+                                                                                            {renderKaranlikHakemSecici('hakem', 'hakem', raporDetay?.hakem)}
                                                                                         </div>
-                                                                                    )}
-                                                                                </div>
-                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                                                                                    <label className="block text-[10px] text-blue-400 font-bold mb-2">EMNİYET GÜCÜ (VAR MI?)</label>
-                                                                                    <select value={raporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
-                                                                                        <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
-                                                                                    </select>
-                                                                                    {raporDetay?.guvenlik === 'var' && (
-                                                                                        <div className="mt-3 space-y-2 animate-fade-in-down">
-                                                                                            <input type="text" value={raporDetay?.guvenlik_amiri || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_amiri', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Güvenlik Amiri Adı" />
-                                                                                            <input type="text" value={raporDetay?.guvenlik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
+                                                                                        {String(getHakemGosterimModu(mac.kategori_adi)) !== 'tek_hakem' && (
+                                                                                            <>
+                                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                                    <label className="block text-[10px] text-slate-400 font-bold mb-2">1. YARDIMCI HAKEM</label>
+                                                                                                    {renderKaranlikHakemSecici('hakem', 'y_hakem_1', raporDetay?.y_hakem_1)}
+                                                                                                </div>
+                                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                                    <label className="block text-[10px] text-slate-400 font-bold mb-2">2. YARDIMCI HAKEM</label>
+                                                                                                    {renderKaranlikHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
+                                                                                                </div>
+                                                                                            </>
+                                                                                        )}
+                                                                                        {/* 🔥 İŞTE EKSİK OLAN 4. HAKEM KUTUSU 🔥 */}
+                                                                                        {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_kutu') && (
+                                                                                            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                                <label className="block text-[10px] text-slate-400 font-bold mb-2">4. HAKEM</label>
+                                                                                                {renderKaranlikHakemSecici('hakem', 'hakem_4', raporDetay?.hakem_4)}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'uc_ve_gozlemci') && (
+                                                                                            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                                <label className="block text-[10px] text-purple-400 font-bold mb-2">GÖZLEMCİ</label>
+                                                                                                {renderKaranlikHakemSecici('gozlemci', 'gozlemci', raporDetay?.gozlemci)}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
 
                                                                             <div className="mb-6 bg-slate-900 p-3 rounded-lg border border-slate-800">
                                                                                             <label className="block text-[10px] text-amber-400 font-bold mb-2">SİSTEM NOTU / MÜSABAKA OLAYLARI</label>
