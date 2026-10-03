@@ -71,10 +71,14 @@ const getHakemGosterimModu = (kategori: any) => {
     if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('PAF')) return 'dort_ve_gozlemci';
     
     if (isGelisim) {
-        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') ||
-            kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14')) return 'tek_hakem';
-        if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
+        // Gelişim liglerinde sadece U13 Tek Hakemdir
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        
+        // 🔥 U14, U15, U16 Gelişim Ligleri 3 Hakem (Triyo) çıkar 🔥
+        if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
+            kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
             kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
+            
         if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
             kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
     }
