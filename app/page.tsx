@@ -3464,6 +3464,38 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                                 </div>
                                                                             )}
 
+                                                                            {/* 🔥 DARK UI EK RAPORLAR ALANI 🔥 */}
+                                                                            {((raporDetay && Array.isArray(raporDetay.ek_raporlar)) ? raporDetay.ek_raporlar : []).map((ekRapor: any, index: number) => {
+                                                                                const f1 = ekRaporFotolar[`${ekRapor.id}_1`] || ekRaporFotolar[ekRapor.id] || ekRapor.foto_url_1 || ekRapor.foto_url;
+                                                                                const f2 = ekRaporFotolar[`${ekRapor.id}_2`] || ekRapor.foto_url_2;
+                                                                                return (
+                                                                                    <div key={ekRapor.id} className="mb-6 bg-slate-900 p-4 rounded-lg border border-indigo-500 relative animate-fade-in-down">
+                                                                                        <button onClick={() => ekRaporSil(ekRapor.id)} className="absolute top-2 right-2 bg-red-900/50 hover:bg-red-800 text-red-200 px-2 py-1 rounded text-[9px] font-bold border border-red-800 transition-colors z-10">✕ SİL</button>
+                                                                                        <h5 className="font-black text-[10px] text-indigo-400 tracking-widest uppercase mb-3 border-b border-slate-800 pb-2">EK RAPOR (EK-{index + 1})</h5>
+                                                                                        
+                                                                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                                                                            <label className={`cursor-pointer w-full py-3 rounded-lg text-[9px] font-black tracking-widest flex flex-col items-center justify-center gap-1 transition-all ${f1 ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-lg">📸</span>
+                                                                                                <span>1. FOTO (ZORUNLU) {f1 ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(`${ekRapor.id}_1`, e)} />
+                                                                                            </label>
+                                                                                            <label className={`cursor-pointer w-full py-3 rounded-lg text-[9px] font-black tracking-widest flex flex-col items-center justify-center gap-1 transition-all ${f2 ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-lg">📸</span>
+                                                                                                <span>2. FOTO (OPSİYONEL) {f2 ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFotoYukle(`${ekRapor.id}_2`, e)} />
+                                                                                            </label>
+                                                                                        </div>
+                                                                                        <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full outline-none bg-slate-800 text-indigo-100 font-medium text-xs leading-relaxed resize-none min-h-[80px] border border-slate-700 p-3 rounded-md" placeholder="Ek rapor detaylarını yazınız..."></textarea>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+
+                                                                            <div className="mb-6 flex justify-center">
+                                                                                <button onClick={ekRaporEkle} className="bg-indigo-900/40 hover:bg-indigo-800/80 text-indigo-300 font-bold py-3 px-6 rounded-lg shadow-md transition-all text-[10px] flex items-center justify-center gap-2 border border-indigo-700/50 tracking-widest">
+                                                                                    <span className="text-lg">➕</span> YENİ EK RAPOR İLAVE ET
+                                                                                </button>
+                                                                            </div>
+
                                                                             <button onClick={() => setOnizlemeModu(true)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-transform hover:scale-105 text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest border border-blue-400">
                                                                                             <span className="text-xl">📄</span> {raporTurunuBelirle(mac.kategori_adi) === 'gelisim' ? 'GELİŞİM VERİLERİNİ ONAYLA VE A4 ÖNİZLE' : 'GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE'}
                                                                                         </button>
