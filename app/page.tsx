@@ -78,6 +78,7 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     return true; 
 };
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
+// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const kat = turkceBuyukHarf(kategori);
@@ -87,17 +88,20 @@ const getHakemGosterimModu = (kategori: any) => {
     const isKadinlar = kat.includes('KADIN') && !isKizlar;
     const isBAL = kat.includes('BAL') || kat.includes('BÖLGESEL');
     
-    // 1. BAL LİGİ
+    // 1. BAL LİGİ (Yarı Prof)
     if (isBAL) return 'dort_ve_gozlemci';
     
     // 2. KADINLAR LİGLERİ
     if (isKadinlar) {
-        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci';
-        return 'uc_ve_gozlemci';
+        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci'; // Süper Lig'de 4 Hakem
+        return 'uc_ve_gozlemci'; // 1, 2, 3. Lig'de 3 Hakem + Gözlemci
     }
     
     // 3. KIZLAR LİGLERİ
     if (isKizlar) {
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15')) return 'uc_hakem';
+        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17')) return 'uc_ve_gozlemci'; // Gözlemci var
         return 'uc_hakem';
     }
     
@@ -106,14 +110,14 @@ const getHakemGosterimModu = (kategori: any) => {
         return 'dort_ve_gozlemci';
     }
     
-    // 5. GELİŞİM LİGLERİ
+    // 5. GELİŞİM LİGLERİ (Erkekler)
     if (isGelisim) {
-        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem'; // Gözlemci Yok
         if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
             kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
-            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
+            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem'; // 3 Hakem, Gözlemci YOK
         if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
-            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
+            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('ELİT')) return 'dort_ve_gozlemci'; // 4 Hakem + Gözlemci
     }
     
     // 6. YEREL AMATÖR LİGLER
@@ -121,12 +125,12 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
         kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
         kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
-        return 'tek_hakem';
+        return 'tek_hakem'; // Gözlemci ve 4. Hakem yok
     }
     
     if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
         kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
-        return 'uc_hakem';
+        return 'uc_hakem'; // 3 hakem, Gözlemci yok
     }
     
     if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
@@ -134,7 +138,7 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
         kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
         kat.includes('SÜPER AMATÖR')) {
-        return 'uc_ve_gozlemci';
+        return 'uc_ve_gozlemci'; // 3 Hakem + Gözlemci
     }
     
     return 'dort_kutu';
