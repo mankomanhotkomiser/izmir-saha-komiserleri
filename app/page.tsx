@@ -1252,10 +1252,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
       
       const yeniFotolar = {...ekRaporFotolar};
       delete yeniFotolar[id];
+      delete yeniFotolar[`${id}_1`];
+      delete yeniFotolar[`${id}_2`];
       setEkRaporFotolar(yeniFotolar);
 
       const yeniDosyalar = {...ekRaporDosyalar};
       delete yeniDosyalar[id];
+      delete yeniDosyalar[`${id}_1`];
+      delete yeniDosyalar[`${id}_2`];
       setEkRaporDosyalar(yeniDosyalar);
   }
   
@@ -1766,10 +1770,18 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             const publicUrl = publicUrlData.publicUrl;
 
                             if (key.startsWith('gelisim_')) { yeniGelisimFotolar[key] = publicUrl; }
-                            else {
-                                const idx = guncelEkRaporlar.findIndex((r: any) => String(r.id) === String(key));
-                                if (idx !== -1) { guncelEkRaporlar[idx].foto_url = publicUrl; }
-                            }
+                                else {
+                                    let baseId = key;
+                                    let isFoto2 = false;
+                                    if (key.endsWith('_1')) { baseId = key.replace('_1', ''); }
+                                    else if (key.endsWith('_2')) { baseId = key.replace('_2', ''); isFoto2 = true; }
+                                    
+                                    const idx = guncelEkRaporlar.findIndex((r: any) => String(r.id) === String(baseId));
+                                    if (idx !== -1) { 
+                                        if (isFoto2) { guncelEkRaporlar[idx].foto_url_2 = publicUrl; }
+                                        else { guncelEkRaporlar[idx].foto_url = publicUrl; }
+                                    }
+                                }
                         }
                     }
                 }
@@ -2439,73 +2451,86 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     {/* ========================================================== */}
                     {/* EK RAPORLAR (AMATÖR VEYA DİNAMİK ARAYA GİREN GELİŞİM EK RAPORLARI) */}
                     {/* ========================================================== */}
-                    {ekRaporlarListesi.map((ekRapor: any, index: number) => (
-                        <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
-                            {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-xs font-bold border border-red-200 transition-colors">🗑️ Bu Ek Raporu Sil</button>}
+                    {ekRaporlarListesi.map((ekRapor: any, index: number) => {
+                                                        const f1 = ekRaporFotolar[`${ekRapor.id}_1`] || ekRaporFotolar[ekRapor.id] || ekRapor.foto_url_1 || ekRapor.foto_url;
+                                                        const f2 = ekRaporFotolar[`${ekRapor.id}_2`] || ekRapor.foto_url_2;
+                                                        
+                                                        return (
+                                                        <div key={ekRapor.id} className="border-[3px] border-double border-slate-600 p-4 md:p-8 bg-white text-black font-sans relative mt-8 page-break-before-always bolunmez">
+                                                            {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-[10px] font-bold border border-red-200 transition-colors z-10">🗑️ Bu Ek Raporu Sil</button>}
 
-                            {raporTuru === 'amator' ? (
-                                <div className="flex flex-col items-center mb-8 border-b-[3px] border-double border-red-600 pb-4 text-center">
-                                    <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
-                                    <h2 className="font-extrabold text-xl md:text-2xl tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                                    <h3 className="font-bold text-lg md:text-xl mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between mb-8 border-b-2 border-red-600 pb-4">
-                                    <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-                                    <div className="text-center flex flex-col items-center justify-center w-2/4">
-                                        <h2 className="font-extrabold text-xl md:text-2xl tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                                        <h3 className="font-bold text-lg md:text-xl mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
-                                    </div>
-                                    <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
-                                </div>
-                            )}
+                                                            {raporTuru === 'amator' ? (
+                                                                <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 text-center">
+                                                                    <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-12 md:h-16 w-auto mb-2 drop-shadow-md" />
+                                                                    <h2 className="font-extrabold text-lg md:text-2xl tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                                                    <h3 className="font-bold text-base md:text-xl mt-1 md:mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-between mb-6 border-b-2 border-red-600 pb-4">
+                                                                    <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-12 md:h-16 w-auto drop-shadow-md" /></div>
+                                                                    <div className="text-center flex flex-col items-center justify-center w-2/4">
+                                                                        <h2 className="font-extrabold text-sm md:text-xl tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                                                        <h3 className="font-bold text-xs md:text-lg mt-1 md:mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                                                                    </div>
+                                                                    <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-12 md:h-16 w-auto drop-shadow-md" /></div>
+                                                                </div>
+                                                            )}
 
-                            <div className="flex border-b border-black text-sm font-bold mb-6">
-                                <div className="w-1/2 border-r border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span>{turkceBuyukHarf(mac?.ev_sahibi)} - {turkceBuyukHarf(mac?.misafir_takim)}</span></div>
-                                <div className="w-1/4 border-r border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
-                                <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
-                            </div>
+                                                            <div className="flex flex-col md:flex-row border-b border-black text-[10px] md:text-sm font-bold mb-6">
+                                                                <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="truncate">{turkceBuyukHarf(mac?.ev_sahibi)} - {turkceBuyukHarf(mac?.misafir_takim)}</span></div>
+                                                                <div className="w-full md:w-1/4 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
+                                                                <div className="w-full md:w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
+                                                            </div>
 
-                            <div className="mb-6">
-                                <h3 className="font-bold text-sm bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
-                                {prefix === 'aktif' ? <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full outline-none border border-slate-300 bg-slate-50 min-h-[200px] p-4 text-sm text-black rounded" placeholder="Buraya olayla ilgili detaylı ek raporunuzu yazabilirsiniz..."></textarea> : <div className="w-full min-h-[200px] p-4 border border-dashed border-black whitespace-pre-wrap">{ekRapor.text}</div>}
-                            </div>
+                                                            {/* 🔥 YENİ: İKİLİ FOTOĞRAF ALANI (ÜSTTE) 🔥 */}
+                                                            <div className="grid grid-cols-2 gap-2 md:gap-4 mb-6">
+                                                                <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
+                                                                    <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">1. FOTOĞRAFLI KANIT</h3>
+                                                                    {f1 ? (
+                                                                        <img src={f1 as string} crossOrigin="anonymous" alt={`Ek Kanıt 1`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                                                                    ) : (
+                                                                        <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">1. Görsel (Varsa)</p></div>
+                                                                    )}
+                                                                    {prefix === 'aktif' && (
+                                                                        <label className="tff-no-print absolute bottom-1 right-1 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-2 py-1 md:px-3 md:py-1.5 rounded text-[8px] md:text-xs font-bold shadow-md transition-colors">
+                                                                            {f1 ? 'Değiştir' : 'Seç'}
+                                                                            <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(`${ekRapor.id}_1`, e)} />
+                                                                        </label>
+                                                                    )}
+                                                                </div>
 
-                            <div className="mb-8 border border-dashed border-black p-4 min-h-[300px] flex flex-col items-center justify-center relative">
-                                <h3 className="font-bold text-sm mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
+                                                                <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
+                                                                    <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">2. FOTOĞRAFLI KANIT</h3>
+                                                                    {f2 ? (
+                                                                        <img src={f2 as string} crossOrigin="anonymous" alt={`Ek Kanıt 2`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                                                                    ) : (
+                                                                        <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">2. Görsel (Opsiyonel)</p></div>
+                                                                    )}
+                                                                    {prefix === 'aktif' && (
+                                                                        <label className="tff-no-print absolute bottom-1 right-1 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-2 py-1 md:px-3 md:py-1.5 rounded text-[8px] md:text-xs font-bold shadow-md transition-colors">
+                                                                            {f2 ? 'Değiştir' : 'Seç'}
+                                                                            <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(`${ekRapor.id}_2`, e)} />
+                                                                        </label>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
-                                {ekRaporFotolar[ekRapor.id] ? (
-                                    <img src={ekRaporFotolar[ekRapor.id]} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[400px] object-contain shadow-sm border border-slate-200" />
-                                ) : (
-                                    <div className="text-slate-400 text-center tff-no-print"><span className="text-4xl block mb-2">📸</span><p className="text-sm font-bold">Kanıt Fotoğrafı Yükle</p></div>
-                                )}
+                                                            {/* 🔥 YENİ: YAZI ALANI (ALTTA) 🔥 */}
+                                                            <div className="mb-6">
+                                                                <h3 className="font-bold text-xs md:text-sm bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
+                                                                {prefix === 'aktif' ? <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full outline-none border border-slate-300 bg-slate-50 min-h-[150px] p-3 md:p-4 text-xs md:text-sm text-black rounded" placeholder="Buraya olayla ilgili detaylı ek raporunuzu yazabilirsiniz..."></textarea> : <div className="w-full min-h-[150px] p-3 md:p-4 border border-dashed border-black whitespace-pre-wrap text-xs md:text-sm">{ekRapor.text}</div>}
+                                                            </div>
 
-                                {prefix === 'aktif' && (
-                                    <label className="tff-no-print absolute bottom-4 right-4 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded text-xs font-bold shadow-md transition-colors">
-                                        {ekRaporFotolar[ekRapor.id] ? 'Fotoğrafı Değiştir' : 'Görsel Seç'}
-                                        <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(ekRapor.id, e)} />
-                                    </label>
-                                )}
-                            </div>
-
-                            <div className="flex justify-between items-end mt-12">
-                                <div className="text-center w-1/3">
-                                    <div className="font-serif text-2xl text-slate-800 -mb-2 italic opacity-80" style={{ fontFamily: "'Brush Script MT', cursive" }}>{komiserIlkIsim}</div>
-                                    <div className="font-bold text-sm border-b border-black px-4 pb-1 text-black">{komiserTamIsim}</div>
-                                    <div className="text-[10px] font-bold mt-1 text-black">SAHA KOMİSERİ</div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {prefix === 'aktif' && (
-                        <div className="tff-no-print flex justify-center mt-4 border-b-2 border-slate-800 pb-8">
-                            <button onClick={ekRaporEkle} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all text-sm flex items-center justify-center gap-2 border border-slate-600">
-                                <span className="text-lg">📸</span> + EK RAPOR İLAVE ET
-                            </button>
-                        </div>
-                    )}
-
+                                                            <div className="flex justify-between items-end mt-8">
+                                                                <div className="text-center w-1/3">
+                                                                    <div className="font-serif text-xl md:text-2xl text-slate-800 -mb-2 italic opacity-80" style={{ fontFamily: "'Brush Script MT', cursive" }}>{komiserIlkIsim}</div>
+                                                                    <div className="font-bold text-xs md:text-sm border-b border-black px-2 md:px-4 pb-1 text-black">{komiserTamIsim}</div>
+                                                                    <div className="text-[8px] md:text-[10px] font-bold mt-1 text-black">SAHA KOMİSERİ</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )})}
+                                
                     {/* ========================================================== */}
                     {/* GELİŞİM LİGİ - YAZDIRILABİLİR EK EVRAKLAR (DİNAMİK TAM SAYFA) */}
                     {/* ========================================================== */}
