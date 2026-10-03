@@ -3366,8 +3366,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                             )}
 
                                                                             <button onClick={() => setOnizlemeModu(true)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-transform hover:scale-105 text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest border border-blue-400">
-                                                                                <span className="text-xl">📄</span> {<span className="text-xl">📄</span> {raporTurunuBelirle(mac.kategori_adi) === 'gelisim' ? 'GELİŞİM VERİLERİNİ ONAYLA VE A4 ÖNİZLE' : 'GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE'} === 'gelisim' ? 'GELİŞİM VERİLERİNİ ONAYLA VE A4 ÖNİZLE' : 'GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE'}
-                                                                            </button>
+                                                                                            <span className="text-xl">📄</span> {raporTurunuBelirle(mac.kategori_adi) === 'gelisim' ? 'GELİŞİM VERİLERİNİ ONAYLA VE A4 ÖNİZLE' : 'GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE'}
+                                                                                        </button>
                                                                         </div>
                                                                     );
                                                                 })()
