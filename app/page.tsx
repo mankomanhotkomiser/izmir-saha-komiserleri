@@ -2009,7 +2009,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 ? Object.keys(ekRaporFotolar).filter((k: string) => k.startsWith('gelisim_')).reduce((obj: any, key: string) => { obj[key] = ekRaporFotolar[key]; return obj; }, {})
                 : (safeRaporDetay.gelisim_fotolar || {});
             // 🔥 KLAVYE SORUNUNU ÇÖZEN, HIZLI "SKOR KUTUSU" STİLİ HAKEM SEÇİCİ 🔥
-            const renderHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
+            const renderKaranlikHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
                 const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
 
                 if (prefix !== 'aktif') {
@@ -2187,22 +2187,22 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     <div className="border-r border-black flex flex-col">
                                         <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between">
                                             <span className="text-[10px] font-bold w-20">HAKEM</span>
-                                            {renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}
+                                            {renderKaranlikHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}
                                         </div>
 
                                         {hakemModu !== 'tek_hakem' && (
                                             <>
-                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div>
-                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div>
+                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">1.YRD.HAKEM</span> {renderKaranlikHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div>
+                                                <div className="flex border-b border-dashed border-black p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">2.YRD.HAKEM</span> {renderKaranlikHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div>
                                             </>
                                         )}
 
                                         {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                                            <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div>
+                                            <div className="flex p-1.5 items-center justify-between border-b border-dashed border-black"><span className="text-[10px] font-bold w-20">4.HAKEM</span> {renderKaranlikHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div>
                                         )}
 
                                         {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
-                                            <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div>
+                                            <div className="flex p-1.5 items-center justify-between"><span className="text-[10px] font-bold w-20">GÖZLEMCİ</span> {renderKaranlikHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div>
                                         )}
                                     </div>
 
@@ -2267,21 +2267,21 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             <h3 className="font-bold text-sm mb-1">GÖREVLİLER</h3>
                             <div className="border border-black text-xs font-bold mb-6">
                                 <div className="flex border-b border-black bg-slate-100"><div className="w-1/3 border-r border-black p-1.5">GÖREVİ</div><div className="w-2/3 p-1.5">ADI SOYADI</div></div>
-                                <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}</div></div>
+                                <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderKaranlikHakemSecici('hakem', 'hakem', safeRaporDetay?.hakem)}</div></div>
 
                                 {hakemModu !== 'tek_hakem' && (
                                     <>
-                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div></div>
-                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div></div>
+                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 1</div><div className="w-2/3 p-1 flex items-center">{renderKaranlikHakemSecici('hakem', 'y_hakem_1', safeRaporDetay?.y_hakem_1)}</div></div>
+                                        <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">YARDIMCI HAKEM 2</div><div className="w-2/3 p-1 flex items-center">{renderKaranlikHakemSecici('hakem', 'y_hakem_2', safeRaporDetay?.y_hakem_2)}</div></div>
                                     </>
                                 )}
 
                                 {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu') && (
-                                    <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div></div>
+                                    <div className="flex border-b border-black"><div className="w-1/3 border-r border-black p-1.5">4.HAKEM</div><div className="w-2/3 p-1 flex items-center">{renderKaranlikHakemSecici('hakem', 'hakem_4', safeRaporDetay?.hakem_4)}</div></div>
                                 )}
 
                                 {(hakemModu === 'dort_ve_gozlemci' || hakemModu === 'dort_kutu' || hakemModu === 'uc_ve_gozlemci') && (
-                                    <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1 flex items-center">{renderHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div></div>
+                                    <div className="flex"><div className="w-1/3 border-r border-black p-1.5">GÖZLEMCİ</div><div className="w-2/3 p-1 flex items-center">{renderKaranlikHakemSecici('gozlemci', 'gozlemci', safeRaporDetay?.gozlemci)}</div></div>
                                 )}
                             </div>
 
@@ -3004,7 +3004,25 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
                                     const pDetay = parseDetay(mac.tff_rapor_detaylari);
                                     const detayliGonderilmis = pDetay?.detayli_kaydedildi === true;
-                                    
+                                    const renderKaranlikHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
+                                        const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
+                                        const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
+                                        if (elleGirModu) {
+                                            return (
+                                                <div className="flex gap-1 w-full items-center">
+                                                    <input type="text" value={deger === 'YENI_KAYIT' ? '' : deger} onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))} placeholder="İsim yazınız..." className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded shadow-inner text-xs" autoFocus />
+                                                    <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-bold shadow-sm">✕</button>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <select value={deger || ''} onChange={(e) => raporDetayGuncelle(alan, e.target.value)} className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded text-xs cursor-pointer shadow-sm focus:border-blue-500 transition-colors">
+                                                <option value="" disabled>-- SEÇ --</option>
+                                                <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                                                {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
+                                            </select>
+                                        );
+                                    };
                                     let borderClass = 'border-slate-200';
                                     if (!raporGonderilmis) { borderClass = 'border-slate-300 hover:border-slate-400'; } 
                                     else if (detayliGoster && !detayliGonderilmis) { borderClass = 'border-red-400'; } 
@@ -3148,24 +3166,24 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                         <label className="block text-[10px] text-slate-400 font-bold mb-2">HAKEM</label>
-                        {renderHakemSecici('hakem', 'hakem', raporDetay?.hakem)}
+                        {renderKaranlikHakemSecici('hakem', 'hakem', raporDetay?.hakem)}
                     </div>
                     {String(getHakemGosterimModu(mac.kategori_adi)) !== 'tek_hakem' && (
                         <>
                             <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                                 <label className="block text-[10px] text-slate-400 font-bold mb-2">1. YARDIMCI HAKEM</label>
-                                {renderHakemSecici('hakem', 'y_hakem_1', raporDetay?.y_hakem_1)}
+                                {renderKaranlikHakemSecici('hakem', 'y_hakem_1', raporDetay?.y_hakem_1)}
                             </div>
                             <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                                 <label className="block text-[10px] text-slate-400 font-bold mb-2">2. YARDIMCI HAKEM</label>
-                                {renderHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
+                                {renderKaranlikHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
                             </div>
                         </>
                     )}
                     {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'uc_ve_gozlemci') && (
                         <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                             <label className="block text-[10px] text-purple-400 font-bold mb-2">GÖZLEMCİ</label>
-                            {renderHakemSecici('gozlemci', 'gozlemci', raporDetay?.gozlemci)}
+                            {renderKaranlikHakemSecici('gozlemci', 'gozlemci', raporDetay?.gozlemci)}
                         </div>
                     )}
                 </div>
