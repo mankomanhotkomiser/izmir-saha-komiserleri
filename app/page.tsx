@@ -79,6 +79,7 @@ const detayliRaporGosterilirMi = (kategori: any) => {
 };
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
+// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
     const kat = turkceBuyukHarf(kategori);
@@ -100,8 +101,8 @@ const getHakemGosterimModu = (kategori: any) => {
     // 3. KIZLAR LİGLERİ
     if (isKizlar) {
         if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
-        if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15')) return 'uc_hakem';
-        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17')) return 'uc_ve_gozlemci'; // Gözlemci var
+        if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15')) return 'uc_hakem'; // Gözlemci Yok
+        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17')) return 'uc_ve_gozlemci'; // Gözlemci var, 4. Hakem YOK
         return 'uc_hakem';
     }
     
@@ -138,7 +139,7 @@ const getHakemGosterimModu = (kategori: any) => {
         kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
         kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
         kat.includes('SÜPER AMATÖR')) {
-        return 'uc_ve_gozlemci'; // 3 Hakem + Gözlemci
+        return 'uc_ve_gozlemci'; // 3 Hakem + Gözlemci (4. Hakem YOK)
     }
     
     return 'dort_kutu';
@@ -2459,43 +2460,49 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 ));
                             })()}
 
-                            {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ (ESKİ SİSTEM 4'LÜ GRID) 🔥 */}
-                            {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
-                                <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
-                                    <RenderA4Header />
-                                    <RenderA4MatchInfo isEk={true} />
+                            {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ A4 ÇIKTISI 🔥 */}
+                                                                {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_att'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
+                                                                    <div className="border-[3px] border-double border-slate-600 p-4 md:p-6 bg-white text-black font-sans mt-8 page-break-before-always bolunmez h-[1100px] flex flex-col">
+                                                                        <RenderA4Header />
+                                                                        <RenderA4MatchInfo isEk={true} />
 
-                                    <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
+                                                                        <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded">SAĞLIK VE SAHA GÖREVLİLERİ KARTLARI</h3>
 
-                                    <div className="flex-1 grid grid-cols-2 gap-4 content-start">
-                                        {gelisimPrintFotolar['gelisim_saglik'] && (
-                                            <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                                <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4>
-                                                <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                            </div>
-                                        )}
-                                        {gelisimPrintFotolar['gelisim_sedyeci1'] && (
-                                            <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                                <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
-                                                <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                            </div>
-                                        )}
-                                        {gelisimPrintFotolar['gelisim_sedyeci2'] && (
-                                            <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                                <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
-                                                <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                            </div>
-                                        )}
-                                        {gelisimPrintFotolar['gelisim_saha_gor'] && (
-                                            <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                                <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
-                                                <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <RenderA4Footer />
-                                </div>
-                            )}
+                                                                        <div className="flex-1 grid grid-cols-2 gap-4 content-start">
+                                                                            {gelisimPrintFotolar['gelisim_saglik'] && (
+                                                                                <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                                                                    <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR KARTI</h4>
+                                                                                    <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                                                                </div>
+                                                                            )}
+                                                                            {gelisimPrintFotolar['gelisim_att'] && (
+                                                                                <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                                                                    <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">ATT KARTI</h4>
+                                                                                    <img src={gelisimPrintFotolar['gelisim_att'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                                                                </div>
+                                                                            )}
+                                                                            {gelisimPrintFotolar['gelisim_sedyeci1'] && (
+                                                                                <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                                                                    <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
+                                                                                    <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                                                                </div>
+                                                                            )}
+                                                                            {gelisimPrintFotolar['gelisim_sedyeci2'] && (
+                                                                                <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                                                                    <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
+                                                                                    <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                                                                </div>
+                                                                            )}
+                                                                            {gelisimPrintFotolar['gelisim_saha_gor'] && (
+                                                                                <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                                                                    <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
+                                                                                    <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <RenderA4Footer />
+                                                                    </div>
+                                                                )}
                         </>
                     )}
 
@@ -3230,29 +3237,90 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                                                 </h4>
                                                                                                 
                                                                                                 {/* AKILLI PDF / EVRAK YÜKLEME */}
-                                                                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                                                                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                                                                                                    {/* EV SAHİBİ */}
                                                                                                     <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
                                                                                                         <h5 className="font-black text-xs text-blue-400 tracking-widest uppercase mb-3">🏠 EV SAHİBİ: {turkceBuyukHarf(mac?.ev_sahibi)}</h5>
-                                                                                                        <label className="cursor-pointer w-full bg-blue-900/50 hover:bg-blue-800 text-blue-300 border border-blue-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all">
+                                                                                                        <label className="cursor-pointer w-full bg-blue-900/50 hover:bg-blue-800 text-blue-300 border border-blue-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all mb-3">
                                                                                                             <span>⚡ AKILLI PDF (ESAME+TEKNİK) YÜKLE</span>
                                                                                                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('ev', e)} />
                                                                                                         </label>
-                                                                                                        <div className="mt-3 grid grid-cols-2 gap-2">
-                                                                                                            <span className={`text-[9px] text-center py-1.5 rounded font-bold ${ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-500'}`}>ESAME {ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? '✅' : '❌'}</span>
-                                                                                                            <span className={`text-[9px] text-center py-1.5 rounded font-bold ${ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-500'}`}>TEKNİK {ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? '✅' : '❌'}</span>
+                                                                                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 ESAME ÇEK {ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_esame', e)} />
+                                                                                                            </label>
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 TEKNİK ÇEK {ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_teknik', e)} />
+                                                                                                            </label>
+                                                                                                        </div>
+                                                                                                        <div className="grid grid-cols-2 gap-2">
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_yayin'] || ekRaporDosyalar['gelisim_ev_yayin'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📹 YAYIN İZNİ {ekRaporFotolar['gelisim_ev_yayin'] || ekRaporDosyalar['gelisim_ev_yayin'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_yayin', e)} />
+                                                                                                            </label>
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_foto'] || ekRaporDosyalar['gelisim_ev_foto'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 FOTO İZNİ {ekRaporFotolar['gelisim_ev_foto'] || ekRaporDosyalar['gelisim_ev_foto'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_foto', e)} />
+                                                                                                            </label>
                                                                                                         </div>
                                                                                                     </div>
 
+                                                                                                    {/* MİSAFİR */}
                                                                                                     <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
                                                                                                         <h5 className="font-black text-xs text-amber-400 tracking-widest uppercase mb-3">🚌 MİSAFİR: {turkceBuyukHarf(mac?.misafir_takim)}</h5>
-                                                                                                        <label className="cursor-pointer w-full bg-amber-900/50 hover:bg-amber-800 text-amber-300 border border-amber-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all">
+                                                                                                        <label className="cursor-pointer w-full bg-amber-900/50 hover:bg-amber-800 text-amber-300 border border-amber-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all mb-3">
                                                                                                             <span>⚡ AKILLI PDF (ESAME+TEKNİK) YÜKLE</span>
                                                                                                             <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('mis', e)} />
                                                                                                         </label>
-                                                                                                        <div className="mt-3 grid grid-cols-2 gap-2">
-                                                                                                            <span className={`text-[9px] text-center py-1.5 rounded font-bold ${ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-500'}`}>ESAME {ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? '✅' : '❌'}</span>
-                                                                                                            <span className={`text-[9px] text-center py-1.5 rounded font-bold ${ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-500'}`}>TEKNİK {ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? '✅' : '❌'}</span>
+                                                                                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 ESAME ÇEK {ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_esame', e)} />
+                                                                                                            </label>
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 TEKNİK ÇEK {ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_teknik', e)} />
+                                                                                                            </label>
                                                                                                         </div>
+                                                                                                        <div className="grid grid-cols-2 gap-2">
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_yayin'] || ekRaporDosyalar['gelisim_mis_yayin'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📹 YAYIN İZNİ {ekRaporFotolar['gelisim_mis_yayin'] || ekRaporDosyalar['gelisim_mis_yayin'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_yayin', e)} />
+                                                                                                            </label>
+                                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_foto'] || ekRaporDosyalar['gelisim_mis_foto'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                                📸 FOTO İZNİ {ekRaporFotolar['gelisim_mis_foto'] || ekRaporDosyalar['gelisim_mis_foto'] ? '✅' : ''}
+                                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_foto', e)} />
+                                                                                                            </label>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                {/* SAĞLIKÇI VE SAHA GÖREVLİLERİ (YENİ) */}
+                                                                                                <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 mb-6">
+                                                                                                    <h5 className="font-black text-[10px] text-emerald-400 tracking-widest uppercase mb-3 border-b border-slate-800 pb-2">🏥 SAĞLIK VE SAHA GÖREVLİLERİ</h5>
+                                                                                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                                                                        <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_saglik'] || ekRaporDosyalar['gelisim_saglik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                            <span className="text-sm">👨‍⚕️</span>
+                                                                                                            <span>DOKTOR KARTI {ekRaporFotolar['gelisim_saglik'] || ekRaporDosyalar['gelisim_saglik'] ? '✅' : ''}</span>
+                                                                                                            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_saglik', e)} />
+                                                                                                        </label>
+                                                                                                        <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_att'] || ekRaporDosyalar['gelisim_att'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                            <span className="text-sm">🚑</span>
+                                                                                                            <span>ATT KARTI {ekRaporFotolar['gelisim_att'] || ekRaporDosyalar['gelisim_att'] ? '✅' : ''}</span>
+                                                                                                            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_att', e)} />
+                                                                                                        </label>
+                                                                                                        <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_sedyeci1'] || ekRaporDosyalar['gelisim_sedyeci1'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                            <span className="text-sm">🦽</span>
+                                                                                                            <span>1. SEDYECİ {ekRaporFotolar['gelisim_sedyeci1'] || ekRaporDosyalar['gelisim_sedyeci1'] ? '✅' : ''}</span>
+                                                                                                            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_sedyeci1', e)} />
+                                                                                                        </label>
+                                                                                                        <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_sedyeci2'] || ekRaporDosyalar['gelisim_sedyeci2'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                            <span className="text-sm">🦽</span>
+                                                                                                            <span>2. SEDYECİ {ekRaporFotolar['gelisim_sedyeci2'] || ekRaporDosyalar['gelisim_sedyeci2'] ? '✅' : ''}</span>
+                                                                                                            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_sedyeci2', e)} />
+                                                                                                        </label>
                                                                                                     </div>
                                                                                                 </div>
 
