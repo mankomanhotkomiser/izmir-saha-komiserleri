@@ -1428,22 +1428,96 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
   const tffTutanakIndir = async (mac: any, prefix: string = 'tff') => {
       const element = document.getElementById(`${prefix}-form-${mac.id}`);
-      if (element) {
-          try {
-              const style = document.createElement('style');
-              style.innerHTML = '.tff-no-print { display: none !important; }';
-              document.head.appendChild(style);
+      if (!element) {
+          alert("Rapor ekranda bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+          return;
+      }
 
-              const fullWidth = element.scrollWidth;
-              const fullHeight = element.scrollHeight;
-
-              const dataURL = await toPng(element, {
-                  backgroundColor: '#ffffff', pixelRatio: 2, cacheBust: true, width: fullWidth, height: fullHeight,
-                  style: { fontFamily: 'sans-serif', transform: 'scale(1)', transformOrigin: 'top left', margin: '0' }
+      try {
+          // 🔥 YÜKSEK ÇÖZÜNÜRLÜKLÜ VE KÜÇÜK BOYUTLU (VEKTÖREL) PDF MOTORU 🔥
+          // Input, textarea ve select değerlerini klonlanacak HTML'e kazıyoruz ki print ekranında boş çıkmasın
+          const inputs = element.querySelectorAll('input');
+          inputs.forEach((input: any) => { input.setAttribute('value', input.value); });
+          
+          const textareas = element.querySelectorAll('textarea');
+          textareas.forEach((ta: any) => { ta.innerHTML = ta.value; });
+          
+          const selects = element.querySelectorAll('select');
+          selects.forEach((sel: any) => {
+              const options = sel.querySelectorAll('option');
+              options.forEach((opt: any) => {
+                  if (opt.value === sel.value) opt.setAttribute('selected', 'selected');
+                  else opt.removeAttribute('selected');
               });
-              const link = document.createElement('a'); link.href = dataURL; link.download = `TFF_Raporu_${mac.ev_sahibi}_vs_${mac.misafir_takim}.png`;
-              document.body.appendChild(link); link.click(); document.body.removeChild(link); document.head.removeChild(style);
-          } catch (err) { alert("Resmi Tutanak indirilirken cihazınızdan kaynaklı bir sorun oluştu."); }
+          });
+
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) {
+              alert("Lütfen tarayıcınızın 'Açılır Pencere' (Pop-up) engelleyicisini kapatın.");
+              return;
+          }
+
+          const reportHtml = element.outerHTML;
+          const doc = printWindow.document;
+
+          doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>TFF_Raporu_${turkceBuyukHarf(mac.ev_sahibi)}_vs_${turkceBuyukHarf(mac.misafir_takim)}</title>
+            <meta charset="utf-8">
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                @media print {
+                    @page { margin: 8mm; size: A4 portrait; }
+                    body { 
+                        -webkit-print-color-adjust: exact !important; 
+                        print-color-adjust: exact !important; 
+                        background-color: white !important; 
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .tff-no-print { display: none !important; }
+                    /* Mobil görünüm zoomu printte iptal edilir, A4'e tam oturur */
+                    .mobile-zoom { zoom: 1 !important; transform: none !important; } 
+                }
+                body { font-family: Arial, sans-serif; background: #ffffff; color: #000000; }
+                .border-black { border-color: #000000 !important; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid black; padding: 4px; }
+                
+                /* Gelişim Ligi sayfalarını bölmek için mükemmel komut */
+                .page-break-before-always { page-break-before: always; }
+                
+                /* Kutu içindeki yazıları vektörel ve temiz göstermek için */
+                textarea, input, select { 
+                    border: none !important; 
+                    background: transparent !important; 
+                    resize: none !important; 
+                    outline: none !important;
+                    box-shadow: none !important;
+                    appearance: none !important;
+                    -webkit-appearance: none !important;
+                }
+            </style>
+        </head>
+        <body>
+            <div style="width: 100%; max-width: 800px; margin: 0 auto; background: white;">
+                ${reportHtml}
+            </div>
+            <script>
+                // Resimlerin (Gelişim Ligi esamelerinin vb.) yüklenmesi için çok kısa bir bekleme
+                setTimeout(function() {
+                    window.print();
+                    window.close();
+                }, 1200);
+            </script>
+        </body>
+        </html>
+    `);
+          doc.close();
+      } catch (err) {
+          alert("Resmi Tutanak PDF ekranı hazırlanırken bir sorun oluştu.");
       }
   };
 
