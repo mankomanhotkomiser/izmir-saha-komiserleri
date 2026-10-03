@@ -33,10 +33,29 @@ const parseDetay = (raw: any) => {
 
 const getAnaKategori = (kategori: any) => {
     if (!kategori) return 'amator';
-    const kat = turkceBuyukHarf(kategori);
-    if ((kat.includes('SÜPER LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('1. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('2. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || (kat.includes('3. LİG') && !kat.includes('AMATÖR') && !kat.includes('KADIN')) || kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI')) return 'profesyonel';
-    if (kat.includes('KADIN') || kat.includes('KIZ')) return 'kadin';
-    if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('PAF') || kat.includes('TFF U')) return 'gelisim';
+    // Tüm boşlukları yok edip birleşik kelime gibi arıyoruz
+    const temizKat = turkceBuyukHarf(kategori).replace(/\s+/g, '');
+    
+    // Önce Kadın ve Gelişim liglerini süz
+    if (temizKat.includes('KADIN') || temizKat.includes('KIZ')) return 'kadin';
+    if (temizKat.includes('GELİŞİM') || temizKat.includes('AKADEMİ') || temizKat.includes('ELİT') || temizKat.includes('PAF') || temizKat.includes('TFFU')) return 'gelisim';
+    
+    // Sonra Profesyonelleri süz (İçinde Amatör geçmiyorsa)
+    if (!temizKat.includes('AMATÖR')) {
+        if (temizKat.includes('SÜPERLİG') || 
+            temizKat.includes('1.LİG') || 
+            temizKat.includes('2.LİG') || 
+            temizKat.includes('3.LİG') || 
+            temizKat.includes('ZİRAAT') || 
+            temizKat.includes('TÜRKİYEKUPASI') ||
+            temizKat.includes('ZTK') || // Zonguldak-Trabzon-Kastamonu :)
+            temizKat.includes('TRENDYOL') ||
+            temizKat.includes('NESİNE') ||
+            temizKat.includes('TFFSÜPER')) {
+            return 'profesyonel';
+        }
+    }
+    
     return 'amator';
 }
 
@@ -161,15 +180,17 @@ const isBordroKategori = (kategoriAdi: string) => {
     if (!kategoriAdi) return false;
     const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
 
-    // 1. TFF KONTROLÜ - EN KESİN FİLTRE (TFF U15, TFF U19 GİREMEZ!)
+    // 1. TFF KONTROLÜ - EN KESİN FİLTRE
     // Eğer içinde TFF geçiyorsa, SADECE ağır abiler (Prof Ligler) geçebilir.
     if (kat.includes('TFF')) {
         const isProf = kat.includes('SÜPER') || 
                        kat.includes('1. LİG') || kat.includes('1.LİG') ||
                        kat.includes('2. LİG') || kat.includes('2.LİG') ||
-                       kat.includes('3. LİG') || kat.includes('3.LİG');
+                       kat.includes('3. LİG') || kat.includes('3.LİG') ||
+                       kat.includes('ZTK') || kat.includes('ZİRAAT') || kat.includes('KUPA') ||
+                       kat.includes('TRENDYOL') || kat.includes('NESİNE');
         if (!isProf) {
-            return false; // TFF yazıyor ama profesyonel değil (örn: TFF U15), anında REDDET!
+            return false; // TFF yazıyor ama profesyonel değil (örn: TFF U19 Gelişim), REDDET!
         }
     }
 
