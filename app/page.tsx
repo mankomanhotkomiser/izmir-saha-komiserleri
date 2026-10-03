@@ -207,43 +207,50 @@ const getAyYil = (tarihMetni: any) => {
     } catch (e) { return null; }
 }
 
+// 🔥 BORDRO FİLTRESİ: KİMLER HAKEDİŞ ALACAK? (GÜNCELLENDİ) 🔥
 const isBordroKategori = (kategoriAdi: string) => {
-      if (!kategoriAdi) return false;
-      
-      // SÜPER ZEKA DOKUNUŞU: Kategori adındaki TÜM BOŞLUKLARI siliyoruz. 
-      const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
+    if (!kategoriAdi) return false;
+    const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
 
-      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Gelişim, Akademi, Paf, Kadın/Kız Ligleri)
-      const yasakliKelimeler = [
-          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'
-      ];
-      
-      for (let i = 0; i < yasakliKelimeler.length; i++) {
-          if (kat.includes(yasakliKelimeler[i])) return false;
-      }
+    // 1. TFF KONTROLÜ - EN KESİN FİLTRE
+    if (kat.includes('TFF')) {
+        const isProf = kat.includes('SÜPER') || 
+                       kat.includes('1. LİG') || kat.includes('1.LİG') ||
+                       kat.includes('2. LİG') || kat.includes('2.LİG') ||
+                       kat.includes('3. LİG') || kat.includes('3.LİG');
+        if (!isProf) {
+            return false; // TFF yazıyor ama profesyonel değil (örn: TFF U19 Gelişim), REDDET!
+        }
+    }
 
-      // 2. BORDROYA GİRMESİNE İZİN VERİLEN AĞIR TOPLAR (Profesyonel, Amatör, İzmir ve Yerel U Ligleri)
-      if (
-          kat.includes('SÜPERLİG') || 
-          kat.includes('1.LİG') || 
-          kat.includes('2.LİG') || 
-          kat.includes('3.LİG') || 
-          kat.includes('BAL') || 
-          kat.includes('BÖLGESEL') || 
-          kat.includes('AMATÖR') || 
-          kat.includes('İZMİR') || 
-          kat.includes('KUPA') ||
-          kat.includes('ZİRAAT') ||
-          kat.includes('PROFESYONEL') ||
-          kat.includes('U1') || // U19, U18, U17, ..., U10 (Yerel Ligler)
-          kat.includes('U2') || // U21 vb.
-          kat.includes('U-')
-      ) {
-          return true;
-      }
+    // 2. KESİNLİKLE BORDRO DIŞI KALACAK KELİMELER
+    const yasakliKelimeler = [
+        'GELİŞİM', 'AKADEMİ', 'ELİT', 'PAF', 
+        'KADIN', 'KIZ', 'KADINLAR', 'KIZLAR'
+    ];
+    
+    for (let i = 0; i < yasakliKelimeler.length; i++) {
+        if (kat.includes(yasakliKelimeler[i])) return false; 
+    }
 
-      return false; 
-  };
+    // 3. İZİN VERİLENLER
+    const izinliKelimeler = [
+        'SÜPER', '1. LİG', '1.LİG', '2. LİG', '2.LİG', '3. LİG', '3.LİG',
+        'BAL', 'BÖLGESEL', 'AMATÖR', 'KUPA', 'ZTK', 'TÜRKİYE KUPASI',
+        'İZMİR', 'KOCAELİ', 'HATAY', 'YALOVA', 'İSTANBUL', 'ANKARA',
+        'U19', 'U 19', 'U-19', 'U18', 'U 18', 'U-18',
+        'U17', 'U 17', 'U-17', 'U16', 'U 16', 'U-16',
+        'U15', 'U 15', 'U-15', 'U14', 'U 14', 'U-14',
+        'U13', 'U 13', 'U-13', 'U12', 'U 12', 'U-12',
+        'U11', 'U 11', 'U-11', 'U10', 'U 10', 'U-10'
+    ];
+
+    for (let i = 0; i < izinliKelimeler.length; i++) {
+        if (kat.includes(izinliKelimeler[i])) return true;
+    }
+
+    return false; 
+};
 
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
