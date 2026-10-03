@@ -3167,6 +3167,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                                 <span className="text-xl">⚡</span> MÜSABAKA BİLGİ GİRİŞ PANELİ
                                                                             </h4>
                                                                             
+                                                                            {/* HAKEM VE GÖZLEMCİ BLOĞU */}
                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                                                                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                                                                                     <label className="block text-[10px] text-slate-400 font-bold mb-2">HAKEM</label>
@@ -3198,6 +3199,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                                 )}
                                                                             </div>
 
+                                                                            {/* SAĞLIK VE EMNİYET BLOĞU */}
                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                                                                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
                                                                                     <label className="block text-[10px] text-emerald-400 font-bold mb-2">SAĞLIK GÖREVLİSİ (VAR MI?)</label>
