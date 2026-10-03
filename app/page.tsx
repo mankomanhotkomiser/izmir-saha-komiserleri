@@ -3229,16 +3229,173 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
                                                                             <div className="mb-6 bg-slate-900 p-3 rounded-lg border border-slate-800">
                                                                                 <label className="block text-[10px] text-amber-400 font-bold mb-2">SİSTEM NOTU / MÜSABAKA OLAYLARI</label>
-                                                                                <textarea
-                                                                                    value={raporDetay?.tff_not || raporNotu}
-                                                                                    onChange={(e: any) => { handleHizliNotChange(e.target.value); raporDetayGuncelle('tff_not', e.target.value); }}
-                                                                                    className="w-full outline-none bg-slate-800 text-amber-300 font-serif text-xs leading-relaxed resize-none min-h-[100px] border border-slate-700 p-3 rounded-md" 
-                                                                                    placeholder="Olayların detaylarını buraya yazabilirsiniz..."
-                                                                                ></textarea>
-                                                                            </div>
+                                                                               {/* 🔥 GELİŞİM LİGİ ÖZEL ARAYÜZÜ (DARK UI) 🔥 */}
+                                                                            {raporTurunuBelirle(mac.kategori_adi) === 'gelisim' && (
+                                                                                <div className="mt-8 border-t border-slate-800 pt-6 animate-fade-in-down">
+                                                                                    <h4 className="font-black text-purple-400 border-b border-slate-800 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest uppercase">
+                                                                                        <span className="text-xl">📋</span> GELİŞİM LİGİ ORGANİZASYON VE EVRAKLAR
+                                                                                    </h4>
+                                                                                    
+                                                                                    {/* AKILLI PDF / EVRAK YÜKLEME */}
+                                                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                                                                                        {/* EV SAHİBİ */}
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
+                                                                                            <h5 className="font-black text-xs text-blue-400 tracking-widest uppercase mb-3">🏠 EV SAHİBİ: {turkceBuyukHarf(mac?.ev_sahibi)}</h5>
+                                                                                            <label className="cursor-pointer w-full bg-blue-900/50 hover:bg-blue-800 text-blue-300 border border-blue-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all mb-3">
+                                                                                                <span>⚡ AKILLI PDF (ESAME+TEKNİK) YÜKLE</span>
+                                                                                                <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('ev', e)} />
+                                                                                            </label>
+                                                                                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 ESAME ÇEK {ekRaporFotolar['gelisim_ev_esame'] || ekRaporDosyalar['gelisim_ev_esame'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_esame', e)} />
+                                                                                                </label>
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 TEKNİK ÇEK {ekRaporFotolar['gelisim_ev_teknik'] || ekRaporDosyalar['gelisim_ev_teknik'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_teknik', e)} />
+                                                                                                </label>
+                                                                                            </div>
+                                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_yayin'] || ekRaporDosyalar['gelisim_ev_yayin'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📹 YAYIN İZNİ {ekRaporFotolar['gelisim_ev_yayin'] || ekRaporDosyalar['gelisim_ev_yayin'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_yayin', e)} />
+                                                                                                </label>
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_ev_foto'] || ekRaporDosyalar['gelisim_ev_foto'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 FOTO İZNİ {ekRaporFotolar['gelisim_ev_foto'] || ekRaporDosyalar['gelisim_ev_foto'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_ev_foto', e)} />
+                                                                                                </label>
+                                                                                            </div>
+                                                                                        </div>
 
-                                                                            <button onClick={() => setOnizlemeModu(true)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest border border-blue-400">
+                                                                                        {/* MİSAFİR */}
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
+                                                                                            <h5 className="font-black text-xs text-amber-400 tracking-widest uppercase mb-3">🚌 MİSAFİR: {turkceBuyukHarf(mac?.misafir_takim)}</h5>
+                                                                                            <label className="cursor-pointer w-full bg-amber-900/50 hover:bg-amber-800 text-amber-300 border border-amber-700 py-3 rounded-lg text-[10px] font-black tracking-widest flex items-center justify-center gap-2 transition-all mb-3">
+                                                                                                <span>⚡ AKILLI PDF (ESAME+TEKNİK) YÜKLE</span>
+                                                                                                <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleAkilliPdfYukle('mis', e)} />
+                                                                                            </label>
+                                                                                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 ESAME ÇEK {ekRaporFotolar['gelisim_mis_esame'] || ekRaporDosyalar['gelisim_mis_esame'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_esame', e)} />
+                                                                                                  </label>
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 TEKNİK ÇEK {ekRaporFotolar['gelisim_mis_teknik'] || ekRaporDosyalar['gelisim_mis_teknik'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_teknik', e)} />
+                                                                                                </label>
+                                                                                            </div>
+                                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_yayin'] || ekRaporDosyalar['gelisim_mis_yayin'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📹 YAYIN İZNİ {ekRaporFotolar['gelisim_mis_yayin'] || ekRaporDosyalar['gelisim_mis_yayin'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_yayin', e)} />
+                                                                                                </label>
+                                                                                                <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors ${ekRaporFotolar['gelisim_mis_foto'] || ekRaporDosyalar['gelisim_mis_foto'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                    📸 FOTO İZNİ {ekRaporFotolar['gelisim_mis_foto'] || ekRaporDosyalar['gelisim_mis_foto'] ? '✅' : ''}
+                                                                                                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_mis_foto', e)} />
+                                                                                                </label>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {/* SAĞLIKÇI VE SAHA GÖREVLİLERİ (YENİ) */}
+                                                                                    <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 mb-6">
+                                                                                        <h5 className="font-black text-[10px] text-emerald-400 tracking-widest uppercase mb-3 border-b border-slate-800 pb-2">🏥 SAĞLIK VE SAHA GÖREVLİLERİ</h5>
+                                                                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_saglik'] || ekRaporDosyalar['gelisim_saglik'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-sm">👨‍⚕️</span>
+                                                                                                <span>DOKTOR KARTI {ekRaporFotolar['gelisim_saglik'] || ekRaporDosyalar['gelisim_saglik'] ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_saglik', e)} />
+                                                                                            </label>
+                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_att'] || ekRaporDosyalar['gelisim_att'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-sm">🚑</span>
+                                                                                                <span>ATT KARTI {ekRaporFotolar['gelisim_att'] || ekRaporDosyalar['gelisim_att'] ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_att', e)} />
+                                                                                            </label>
+                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_sedyeci1'] || ekRaporDosyalar['gelisim_sedyeci1'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-sm">🦽</span>
+                                                                                                <span>1. SEDYECİ {ekRaporFotolar['gelisim_sedyeci1'] || ekRaporDosyalar['gelisim_sedyeci1'] ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_sedyeci1', e)} />
+                                                                                            </label>
+                                                                                            <label className={`cursor-pointer text-[9px] text-center py-2 rounded font-bold transition-colors flex flex-col items-center justify-center gap-1 ${ekRaporFotolar['gelisim_sedyeci2'] || ekRaporDosyalar['gelisim_sedyeci2'] ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
+                                                                                                <span className="text-sm">🦽</span>
+                                                                                                <span>2. SEDYECİ {ekRaporFotolar['gelisim_sedyeci2'] || ekRaporDosyalar['gelisim_sedyeci2'] ? '✅' : ''}</span>
+                                                                                                <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleFotoYukle('gelisim_sedyeci2', e)} />
+                                                                                            </label>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {/* KONTROLLER */}
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
+                                                                                            <h5 className="font-black text-[10px] text-slate-400 tracking-widest uppercase mb-3 border-b border-slate-800 pb-2">I) ORGANİZASYON KONTROLÜ</h5>
+                                                                                            <div className="space-y-1">
+                                                                                                {gelisimOrganizasyon.map((soru: any) => (
+                                                                                                    <div key={soru.id} className="flex justify-between items-center border-b border-slate-800 py-2">
+                                                                                                        <span className="text-[10px] text-slate-300 w-3/4 pr-2">{soru.text}</span>
+                                                                                                        <div className="flex gap-2 w-1/4 justify-end">
+                                                                                                            <button onClick={() => gelisimGuncelle(soru.id, 'evet')} className={`px-2 py-1 rounded text-[9px] font-black transition-colors ${raporDetay?.gelisim_sorular?.[soru.id] === 'evet' ? 'bg-emerald-600 text-white shadow-inner' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>EVET</button>
+                                                                                                            <button onClick={() => gelisimGuncelle(soru.id, 'hayir')} className={`px-2 py-1 rounded text-[9px] font-black transition-colors ${raporDetay?.gelisim_sorular?.[soru.id] === 'hayir' ? 'bg-red-600 text-white shadow-inner' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>HAYIR</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                            <div className="mt-3">
+                                                                                                <label className="block text-[9px] text-slate-400 font-bold mb-1">Müsabaka Sonu Değerlendirmesi</label>
+                                                                                                <input type="text" value={raporDetay?.gelisim_sorular?.degerlendirme || ''} onChange={(e: any) => gelisimGuncelle('degerlendirme', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-2 rounded text-xs font-medium focus:border-blue-500 transition-colors" placeholder="Eksiklik vb. varsa..." />
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800">
+                                                                                            <h5 className="font-black text-[10px] text-slate-400 tracking-widest uppercase mb-3 border-b border-slate-800 pb-2">II) TEKNİK HUSUSLAR (DK. -60)</h5>
+                                                                                            <div className="grid grid-cols-1 gap-x-4 gap-y-1 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
+                                                                                                {[...gelisimTeknik, 
+                                                                                                    {id: 'isim_listeleri', text: 'İsim/Akreditasyon Listeleri Teslim Edildi mi?'},
+                                                                                                    {id: 'forma_setleri', text: 'Açık ve Koyu Renk Forma Setleri Getirildi mi?'},
+                                                                                                    {id: 'wc_hijyen', text: "Stadyum WC'leri Hijyenik mi?"},
+                                                                                                    {id: 'soyunma_odasi_kisitlama', text: 'Soyunma Odası Akreditasyon Kısıtlaması Uyarıldı mı?'},
+                                                                                                    {id: 'misafir_tribun_yer', text: 'Misafir Yöneticilere Uygun Yer Ayrıldı mı?'}
+                                                                                                ].map((soru: any) => (
+                                                                                                    <div key={soru.id} className="flex justify-between items-center border-b border-slate-800 py-1.5">
+                                                                                                        <span className="text-[9px] text-slate-300 w-3/4 pr-2">{soru.text}</span>
+                                                                                                        <div className="flex gap-1 w-1/4 justify-end">
+                                                                                                            <button onClick={() => gelisimGuncelle(soru.id, 'evet')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-colors ${raporDetay?.gelisim_sorular?.[soru.id] === 'evet' ? 'bg-emerald-600 text-white shadow-inner' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>EVET</button>
+                                                                                                            <button onClick={() => gelisimGuncelle(soru.id, 'hayir')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-colors ${raporDetay?.gelisim_sorular?.[soru.id] === 'hayir' ? 'bg-red-600 text-white shadow-inner' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>HAYIR</button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {/* GÜVENLİK VE İŞLETİMSEL */}
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3">
+                                                                                            <div>
+                                                                                                <label className="block text-[10px] text-slate-400 font-bold mb-1">Misafir Takım Geliş Gidişi Nasıl Sağlandı?</label>
+                                                                                                <input type="text" value={raporDetay?.gelisim_sorular?.misafir_gelis_gidis || ''} onChange={(e: any) => gelisimGuncelle('misafir_gelis_gidis', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-2 rounded text-xs font-medium focus:border-blue-500 transition-colors" placeholder="Otobüs ile vb." />
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <label className="block text-[10px] text-slate-400 font-bold mb-1">Görevli Resmi Güvenlik Sayısı</label>
+                                                                                                <input type="number" value={raporDetay?.gelisim_sorular?.guvenlik_sayisi || ''} onChange={(e: any) => gelisimGuncelle('guvenlik_sayisi', e.target.value)} className="w-24 outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded text-xs font-medium text-center focus:border-blue-500 transition-colors" placeholder="Örn: 5" />
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-2">
+                                                                                            <label className="block text-[10px] text-slate-400 font-bold mb-1">İşletimsel Eksiklikler (Sahadaki Eksiklikler)</label>
+                                                                                            <input type="text" value={raporDetay?.gelisim_sorular?.isletimsel_1 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_1', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded text-[10px] focus:border-blue-500 transition-colors" placeholder="1. Eksiklik..." />
+                                                                                            <input type="text" value={raporDetay?.gelisim_sorular?.isletimsel_2 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_2', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded text-[10px] focus:border-blue-500 transition-colors" placeholder="2. Eksiklik..." />
+                                                                                            <input type="text" value={raporDetay?.gelisim_sorular?.isletimsel_3 || ''} onChange={(e: any) => gelisimGuncelle('isletimsel_3', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded text-[10px] focus:border-blue-500 transition-colors" placeholder="3. Eksiklik..." />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 mb-6">
+                                                                                        <label className="block text-[10px] text-slate-400 font-bold mb-2 uppercase">Olumlu Bulunmayan Diğer Hususlar (Gelişim Ligi)</label>
+                                                                                        <textarea value={raporDetay?.gelisim_sorular?.olumsuz_diger || ''} onChange={(e: any) => gelisimGuncelle('olumsuz_diger', e.target.value)} className="w-full outline-none bg-slate-800 text-slate-300 border border-slate-700 p-3 rounded text-xs min-h-[60px] resize-none focus:border-blue-500 transition-colors" placeholder="Varsa belirtiniz..."></textarea>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                                 <span>📄</span> GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE
+                                                                                
                                                                             </button>
                                                                         </div>
                                                                     );
