@@ -3004,25 +3004,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     const detayliGoster = detayliRaporGosterilirMi(mac.kategori_adi);
                                     const pDetay = parseDetay(mac.tff_rapor_detaylari);
                                     const detayliGonderilmis = pDetay?.detayli_kaydedildi === true;
-                                    const renderKaranlikHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
-                                        const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
-                                        const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
-                                        if (elleGirModu) {
-                                            return (
-                                                <div className="flex gap-1 w-full items-center">
-                                                    <input type="text" value={deger === 'YENI_KAYIT' ? '' : deger} onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))} placeholder="İsim yazınız..." className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded shadow-inner text-xs" autoFocus />
-                                                    <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-bold shadow-sm">✕</button>
-                                                </div>
-                                            );
-                                        }
-                                        return (
-                                            <select value={deger || ''} onChange={(e) => raporDetayGuncelle(alan, e.target.value)} className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded text-xs cursor-pointer shadow-sm focus:border-blue-500 transition-colors">
-                                                <option value="" disabled>-- SEÇ --</option>
-                                                <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
-                                                {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
-                                            </select>
-                                        );
-                                    };
+                                    
                                     let borderClass = 'border-slate-200';
                                     if (!raporGonderilmis) { borderClass = 'border-slate-300 hover:border-slate-400'; } 
                                     else if (detayliGoster && !detayliGonderilmis) { borderClass = 'border-red-400'; } 
@@ -3064,19 +3046,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                     onChange={(e: any) => {
                                                                         const val = e.target.value;
                                                                         setMacDurumu(val);
-
-                                                                        // 🔥 YENİ ANAYASA: AKILLI KİLİT MEKANİZMASI 🔥
-                                                                        // 1. OYNANDI seçildiyse, Hava ve Tesis seçilemez. Olaysız'a veya Teknik'e zorla.
                                                                         if (val === 'oynandi' && (olayDurumu === 'hava_muhalefeti' || olayDurumu === 'saha_sorunu')) {
                                                                             setOlayDurumu('olaysiz');
                                                                         }
-
-                                                                        // 2. YARIDA KALDI, OYNANMADI veya ÇIKMADI seçildiyse "OLAYSIZ" KESİNLİKLE seçilemez! 
-                                                                        // Eğer önceden Olaysız seçiliyse, sistemi korumak için otomatik "Teknik"e geçir.
                                                                         if ((val === 'yarida_kaldi' || val === 'oynanmadi' || val === 'takimlar_cikmadi') && olayDurumu === 'olaysiz') {
                                                                             setOlayDurumu('teknik_olay');
                                                                         }
-                                                                    } }
+                                                                    }}
                                                                     className={`w-full p-3 md:p-4 border-2 rounded-xl font-black text-sm md:text-base text-center appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${macDurumu === '' ? 'border-red-400 bg-red-50 text-red-700' : 'border-slate-200 text-slate-700 bg-white focus:border-slate-500'}`}
                                                                 >
                                                                     <option value="" disabled>-- MÜSABAKANIN DURUMUNU SEÇİNİZ --</option>
@@ -3089,19 +3065,18 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                 {macDurumu === 'oynandi' && (<div className="mt-5 bg-slate-50 p-4 border border-slate-200 rounded-xl flex items-center justify-between gap-3 w-full shadow-inner"><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{turkceBuyukHarf(mac?.ev_sahibi || '-')}</label><select value={evSkor} onChange={(e: any) => setEvSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`ev-${s}`} value={s}>{s}</option>)}</select></div><span className="text-2xl font-black text-slate-300">-</span><div className="flex-1 flex flex-col items-center justify-center min-w-0"><label className="block text-[10px] font-black text-slate-500 mb-2 w-full text-center truncate px-1 uppercase">{turkceBuyukHarf(mac?.misafir_takim || '-')}</label><select value={misafirSkor} onChange={(e: any) => setMisafirSkor(e.target.value)} className="w-20 h-14 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-slate-500 cursor-pointer appearance-none bg-white shadow-sm"><option value="" disabled>-</option>{skorSecenekleri.map((s: string) => <option key={`misafir-${s}`} value={s}>{s}</option>)}</select></div></div>)}
                                                                 {macDurumu === 'yarida_kaldi' && (<div className="mt-5 bg-red-50 p-5 border border-red-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🛑</span><p className="text-xs font-bold text-red-800 leading-relaxed">Müsabaka yarıda kaldığı veya tatil edildiği için skor kilitlenmiştir. <br />Lütfen sebebini ve (eğer varsa) o anki skoru aşağıdaki 'Sistem Notu' kısmına detaylıca yazınız.</p></div>)}
                                                                 {macDurumu === 'oynanmadi' && (<div className="mt-5 bg-slate-100 p-5 border border-slate-300 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🌧️</span><p className="text-xs font-bold text-slate-700 leading-relaxed">Müsabaka hiç başlamadığı (oynanmadığı) için skor kilitlenmiştir. <br />Lütfen oynanmama sebebini (Hava muhalefeti, tesis vb.) 'Sistem Notu' kısmına yazınız.</p></div>)}
-                                                                {macDurumu === 'takimlar_cikmadi' && (<div className="mt-5 bg-amber-50 p-5 border border-amber-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🏟️</span><p className="text-xs font-bold text-amber-800 leading-relaxed">Takımlar sahaya çıkmadığı için skor kilitlenmiştir. <br />Lütfen Sistem Notu kısmına hangi takımın gelmediğini belirtiniz.</p></div>)}
+                                                                {macDurumu === 'takimlar_cikmadi' && (<div className="mt-5 bg-amber-50 p-5 border border-amber-200 rounded-xl text-center shadow-sm"><span className="text-4xl block mb-2">🏟️️</span><p className="text-xs font-bold text-amber-800 leading-relaxed">Takımlar sahaya çıkmadığı için skor kilitlenmiştir. <br />Lütfen Sistem Notu kısmına hangi takımın gelmediğini belirtiniz.</p></div>)}
                                                             </div>
                                                             {getAnaKategori(mac.kategori_adi) !== 'profesyonel' && (
                                                                 <div>
                                                                     <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">SAHA OLAYLARI</label>
                                                                     <div className="grid grid-cols-3 gap-2 mb-2">
-                                                                        {/* OLAYSIZ KİLİDİ: Sadece Oynandı ise aktif */}
                                                                         <button
                                                                             onClick={() => { if (macDurumu === 'oynandi' || macDurumu === '') setOlayDurumu('olaysiz'); } }
                                                                             disabled={macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi'}
                                                                             title={(macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi') ? "Maç tamamlanmadıysa Olaysız seçilemez!" : ""}
                                                                             className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] 
-                                        ${(macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi') ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300')}`}
+                                                                            ${(macDurumu === 'yarida_kaldi' || macDurumu === 'oynanmadi' || macDurumu === 'takimlar_cikmadi') ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'olaysiz' ? 'bg-green-50 border-green-400 text-green-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300')}`}
                                                                         >
                                                                             <span className="text-[10px] md:text-sm text-center leading-none font-black uppercase">OLAYSIZ</span>
                                                                         </button>
@@ -3111,13 +3086,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                         <button onClick={() => setOlayDurumu('emniyetlik_olay')} className={`p-2 md:p-3 rounded-xl font-bold border-2 transition-all flex flex-col items-center justify-center min-h-[60px] ${olayDurumu === 'emniyetlik_olay' ? 'bg-red-50 border-red-400 text-red-900 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}><span className="text-[10px] md:text-sm mb-1 leading-none text-center font-black uppercase">EMNİYET</span><span className="text-[8px] md:text-[9px] font-bold text-center opacity-80 leading-none">(Kavga vb.)</span></button>
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-2">
-                                                                        {/* HAVA VE TESİS KİLİDİ: Sadece Oynanmadı veya Yarıda Kaldıysa aktif */}
                                                                         <button
                                                                             onClick={() => { if (macDurumu !== 'oynandi') setOlayDurumu('hava_muhalefeti'); } }
                                                                             disabled={macDurumu === 'oynandi'}
                                                                             title={macDurumu === 'oynandi' ? "Maç tamamlandıysa Hava Muhalefeti seçilemez!" : ""}
                                                                             className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider 
-                                        ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
+                                                                            ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'hava_muhalefeti' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
                                                                         >
                                                                             ☁️ HAVA MUHALEFETİ
                                                                         </button>
@@ -3127,7 +3101,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                             disabled={macDurumu === 'oynandi'}
                                                                             title={macDurumu === 'oynandi' ? "Maç tamamlandıysa Tesis Sorunu seçilemez!" : ""}
                                                                             className={`p-3 rounded-xl font-bold border-2 transition-all text-[10px] md:text-xs flex items-center justify-center gap-1.5 min-h-[44px] uppercase tracking-wider 
-                                        ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
+                                                                            ${macDurumu === 'oynandi' ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-300 text-slate-400 grayscale' : (olayDurumu === 'saha_sorunu' ? 'bg-slate-800 border-slate-900 text-white shadow-sm' : 'bg-white border-slate-300 text-slate-600 hover:border-slate-300')}`}
                                                                         >
                                                                             🏟️ TESİS SORUNU
                                                                         </button>
@@ -3136,122 +3110,143 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                             )}
                                                         </div>
 
-                                                        {!detayliGoster && (
-    <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5">
-                                                                        <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label>
-                                                                        <textarea
-                                                                            value={raporNotu}
-                                                                            onChange={(e: any) => handleHizliNotChange(e.target.value)}
-                                                                            className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`}
-                                                                            placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya oynanmama/yarıda kalma sebebinin detayını yazınız..."}
-                                                                        ></textarea>
-                                                                    </div>
-                                                        )}
+                                                        <div className="mt-5 md:mt-6 border-t border-slate-100 pt-5">
+                                                            <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2">SİSTEM NOTU / HIZLI RAPOR</label>
+                                                            <textarea
+                                                                value={raporNotu}
+                                                                onChange={(e: any) => handleHizliNotChange(e.target.value)}
+                                                                className={`w-full p-4 border-2 rounded-xl font-serif text-[11px] md:text-sm min-h-[80px] md:min-h-[100px] shadow-inner transition-colors ${olayDurumu !== 'olaysiz' && raporNotu === '' ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none'}`}
+                                                                placeholder={olayDurumu === 'olaysiz' && macDurumu === 'oynandi' ? "Şube Yönetimine iletmek istediğiniz not varsa buraya yazabilirsiniz..." : "Lütfen yaşanan olayın veya oynanmama/yarıda kalma sebebinin detayını yazınız..."}
+                                                            ></textarea>
+                                                        </div>
 
                                                         <button onClick={() => skorRaporunuGonder(mac.id, 'hizli')} disabled={skorKaydediliyor} className={`w-full text-white font-black py-4 rounded-xl shadow-sm transition-transform hover:scale-[1.01] text-xs md:text-sm tracking-widest mt-5 flex items-center justify-center gap-2 ${macDurumu === '' ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-900 disabled:opacity-70'}`}>
                                                             {skorKaydediliyor ? '⚙️ GÖNDERİLİYOR...' : (raporGonderilmis ? (detayliGoster ? '💾 HIZLI SKORU GÜNCELLE' : '💾 SKORU GÜNCELLE') : (detayliGoster ? '🚀 HIZLI SKORU İLET' : '🚀 YÖNETİME İLET'))}
                                                         </button>
                                                     </div>
+
                                                     {detayliGoster && (
-    <div className={`transition-all ${macDurumu === '' ? 'opacity-50 pointer-events-none' : ''}`}>
-        
-        {!onizlemeModu ? (
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6 shadow-2xl relative overflow-hidden animate-fade-in-down mt-4">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-                <h4 className="font-black text-blue-400 border-b border-slate-800 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest uppercase">
-                    <span className="text-xl">⚡</span> MÜSABAKA BİLGİ GİRİŞ PANELİ
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                        <label className="block text-[10px] text-slate-400 font-bold mb-2">HAKEM</label>
-                        {renderKaranlikHakemSecici('hakem', 'hakem', raporDetay?.hakem)}
-                    </div>
-                    {String(getHakemGosterimModu(mac.kategori_adi)) !== 'tek_hakem' && (
-                        <>
-                            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                                <label className="block text-[10px] text-slate-400 font-bold mb-2">1. YARDIMCI HAKEM</label>
-                                {renderKaranlikHakemSecici('hakem', 'y_hakem_1', raporDetay?.y_hakem_1)}
-                            </div>
-                            <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                                <label className="block text-[10px] text-slate-400 font-bold mb-2">2. YARDIMCI HAKEM</label>
-                                {renderKaranlikHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
-                            </div>
-                        </>
-                    )}
-                    {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'uc_ve_gozlemci') && (
-                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                            <label className="block text-[10px] text-purple-400 font-bold mb-2">GÖZLEMCİ</label>
-                            {renderKaranlikHakemSecici('gozlemci', 'gozlemci', raporDetay?.gozlemci)}
-                        </div>
-                    )}
-                </div>
+                                                        <div className={`transition-all ${macDurumu === '' ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                            {!onizlemeModu ? (
+                                                                (() => {
+                                                                    const renderKaranlikHakemSecici = (tip: 'hakem' | 'gozlemci', alan: string, deger: string) => {
+                                                                        const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
+                                                                        const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
+                                                                        if (elleGirModu) {
+                                                                            return (
+                                                                                <div className="flex gap-1 w-full items-center">
+                                                                                    <input type="text" value={deger === 'YENI_KAYIT' ? '' : deger} onChange={(e) => raporDetayGuncelle(alan, turkceBuyukHarf(e.target.value))} placeholder="İsim yazınız..." className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded shadow-inner text-xs" autoFocus />
+                                                                                    <button type="button" onClick={() => raporDetayGuncelle(alan, '')} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-bold shadow-sm">✕</button>
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            <select value={deger || ''} onChange={(e) => raporDetayGuncelle(alan, e.target.value)} className="w-full text-center outline-none bg-slate-800 border-2 border-slate-600 text-white py-2 font-black rounded text-xs cursor-pointer shadow-sm focus:border-blue-500 transition-colors">
+                                                                                <option value="" disabled>-- SEÇ --</option>
+                                                                                <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                                                                                {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
+                                                                            </select>
+                                                                        );
+                                                                    };
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                        <label className="block text-[10px] text-emerald-400 font-bold mb-2">SAĞLIK GÖREVLİSİ (VAR MI?)</label>
-                        <select value={raporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
-                            <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
-                        </select>
-                        {raporDetay?.saglik === 'var' && (
-                            <div className="mt-3 space-y-2 animate-fade-in-down">
-                                <input type="text" value={raporDetay?.saglik_adi || ''} onChange={(e: any) => raporDetayGuncelle('saglik_adi', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Sağlıkçı Adı Soyadı" />
-                                <input type="text" value={raporDetay?.saglik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('saglik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
-                            </div>
-                        )}
-                    </div>
-                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                        <label className="block text-[10px] text-blue-400 font-bold mb-2">EMNİYET GÜCÜ (VAR MI?)</label>
-                        <select value={raporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
-                            <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
-                        </select>
-                        {raporDetay?.guvenlik === 'var' && (
-                            <div className="mt-3 space-y-2 animate-fade-in-down">
-                                <input type="text" value={raporDetay?.guvenlik_amiri || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_amiri', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Güvenlik Amiri Adı" />
-                                <input type="text" value={raporDetay?.guvenlik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
-                            </div>
-                        )}
-                    </div>
-                </div>
+                                                                    return (
+                                                                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6 shadow-2xl relative overflow-hidden animate-fade-in-down mt-4">
+                                                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                                                                            <h4 className="font-black text-blue-400 border-b border-slate-800 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest uppercase">
+                                                                                <span className="text-xl">⚡</span> MÜSABAKA BİLGİ GİRİŞ PANELİ
+                                                                            </h4>
+                                                                            
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                    <label className="block text-[10px] text-slate-400 font-bold mb-2">HAKEM</label>
+                                                                                    {renderKaranlikHakemSecici('hakem', 'hakem', raporDetay?.hakem)}
+                                                                                </div>
+                                                                                {String(getHakemGosterimModu(mac.kategori_adi)) !== 'tek_hakem' && (
+                                                                                    <>
+                                                                                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                            <label className="block text-[10px] text-slate-400 font-bold mb-2">1. YARDIMCI HAKEM</label>
+                                                                                            {renderKaranlikHakemSecici('hakem', 'y_hakem_1', raporDetay?.y_hakem_1)}
+                                                                                        </div>
+                                                                                        <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                            <label className="block text-[10px] text-slate-400 font-bold mb-2">2. YARDIMCI HAKEM</label>
+                                                                                            {renderKaranlikHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
+                                                                                        </div>
+                                                                                    </>
+                                                                                )}
+                                                                                {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'uc_ve_gozlemci') && (
+                                                                                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                        <label className="block text-[10px] text-purple-400 font-bold mb-2">GÖZLEMCİ</label>
+                                                                                        {renderKaranlikHakemSecici('gozlemci', 'gozlemci', raporDetay?.gozlemci)}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
 
-                <div className="mb-6 bg-slate-900 p-3 rounded-lg border border-slate-800">
-                    <label className="block text-[10px] text-amber-400 font-bold mb-2">SİSTEM NOTU / MÜSABAKA OLAYLARI</label>
-                    <textarea
-                        value={raporDetay?.tff_not || raporNotu}
-                        onChange={(e: any) => { handleHizliNotChange(e.target.value); raporDetayGuncelle('tff_not', e.target.value); }}
-                        className="w-full outline-none bg-slate-800 text-amber-300 font-serif text-xs leading-relaxed resize-none min-h-[100px] border border-slate-700 p-3 rounded-md" 
-                        placeholder="Olayların detaylarını buraya yazabilirsiniz..."
-                    ></textarea>
-                </div>
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                    <label className="block text-[10px] text-emerald-400 font-bold mb-2">SAĞLIK GÖREVLİSİ (VAR MI?)</label>
+                                                                                    <select value={raporDetay?.saglik || ''} onChange={(e: any) => raporDetayGuncelle('saglik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
+                                                                                        <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
+                                                                                    </select>
+                                                                                    {raporDetay?.saglik === 'var' && (
+                                                                                        <div className="mt-3 space-y-2 animate-fade-in-down">
+                                                                                            <input type="text" value={raporDetay?.saglik_adi || ''} onChange={(e: any) => raporDetayGuncelle('saglik_adi', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Sağlıkçı Adı Soyadı" />
+                                                                                            <input type="text" value={raporDetay?.saglik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('saglik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                    <label className="block text-[10px] text-blue-400 font-bold mb-2">EMNİYET GÜCÜ (VAR MI?)</label>
+                                                                                    <select value={raporDetay?.guvenlik || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik', e.target.value)} className="w-full text-xs outline-none bg-slate-800 text-white py-2 px-3 font-bold cursor-pointer rounded border border-slate-700">
+                                                                                        <option value="">-- SEÇ --</option><option value="var">VAR</option><option value="yok">YOK</option>
+                                                                                    </select>
+                                                                                    {raporDetay?.guvenlik === 'var' && (
+                                                                                        <div className="mt-3 space-y-2 animate-fade-in-down">
+                                                                                            <input type="text" value={raporDetay?.guvenlik_amiri || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_amiri', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold" placeholder="Güvenlik Amiri Adı" />
+                                                                                            <input type="text" value={raporDetay?.guvenlik_telefon || ''} onChange={(e: any) => raporDetayGuncelle('guvenlik_telefon', turkceBuyukHarf(e.target.value))} className="w-full outline-none bg-slate-800 text-blue-300 border border-slate-700 px-3 py-2 rounded text-xs font-bold mt-2" placeholder="Telefon Numarası" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
 
-                <button onClick={() => setOnizlemeModu(true)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest border border-blue-400">
-                    <span>📄</span> GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE
-                </button>
-            </div>
-            
-        ) : (
-            <div className="bg-slate-200 border border-slate-300 shadow-inner rounded-xl p-4 md:p-6 relative overflow-hidden animate-fade-in-up mt-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-black text-slate-800 text-sm md:text-base tracking-widest">A4 RAPOR ÖNİZLEMESİ</h4>
-                    <button onClick={() => setOnizlemeModu(false)} className="bg-slate-300 hover:bg-slate-400 text-slate-700 px-3 py-1.5 rounded font-bold text-xs shadow-sm transition-colors border border-slate-400">✏️ GERİ DÖN VE DÜZELT</button>
-                </div>
-                
-                <div className="mb-6 overflow-x-auto pb-4 custom-scrollbar shadow-2xl rounded">
-                    {renderTffRaporu(mac, 'aktif')}
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
-                    <button onClick={() => tffTutanakIndir(mac, 'aktif')} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-md transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest">
-                        📸 FOTOĞRAF (PNG) İNDİR
-                    </button>
-                    <button onClick={() => skorRaporunuGonder(mac.id, 'detayli')} disabled={skorKaydediliyor} className={`flex-1 text-white font-black py-4 rounded-xl shadow-md transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest disabled:opacity-70 border ${detayliGonderilmis ? 'bg-amber-600 hover:bg-amber-700 border-amber-500' : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 animate-pulse'}`}>
-                        {skorKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (detayliGonderilmis ? '💾 RAPORU GÜNCELLE' : '✅ YÖNETİME İLET (ONAYLA)')}
-                    </button>
-                </div>
-            </div>
-        )}
-    </div>
-)}
+                                                                            <div className="mb-6 bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                <label className="block text-[10px] text-amber-400 font-bold mb-2">MÜSABAKA OLAYLARI / İHRAÇLAR</label>
+                                                                                <textarea
+                                                                                    value={raporDetay?.tff_not || raporNotu}
+                                                                                    onChange={(e: any) => { handleHizliNotChange(e.target.value); raporDetayGuncelle('tff_not', e.target.value); }}
+                                                                                    className="w-full outline-none bg-slate-800 text-amber-300 font-serif text-xs leading-relaxed resize-none min-h-[100px] border border-slate-700 p-3 rounded-md" 
+                                                                                    placeholder="Olayların detaylarını buraya yazabilirsiniz..."
+                                                                                ></textarea>
+                                                                            </div>
+
+                                                                            <button onClick={() => setOnizlemeModu(true)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest border border-blue-400">
+                                                                                <span>📄</span> GİRİŞİ TAMAMLA VE A4 RAPORU ÖNİZLE
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <div className="bg-slate-200 border border-slate-300 shadow-inner rounded-xl p-4 md:p-6 relative overflow-hidden animate-fade-in-up mt-4">
+                                                                    <div className="flex justify-between items-center mb-4">
+                                                                        <h4 className="font-black text-slate-800 text-sm md:text-base tracking-widest">A4 RAPOR ÖNİZLEMESİ</h4>
+                                                                        <button onClick={() => setOnizlemeModu(false)} className="bg-slate-300 hover:bg-slate-400 text-slate-700 px-3 py-1.5 rounded font-bold text-xs shadow-sm transition-colors border border-slate-400">✏️ GERİ DÖN VE DÜZELT</button>
+                                                                    </div>
+                                                                    
+                                                                    <div className="mb-6 overflow-x-auto pb-4 custom-scrollbar shadow-2xl rounded">
+                                                                        {renderTffRaporu(mac, 'aktif')}
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-2">
+                                                                        <button onClick={() => tffTutanakIndir(mac, 'aktif')} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl shadow-md transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest">
+                                                                            📸 FOTOĞRAF (PNG) İNDİR
+                                                                        </button>
+                                                                        <button onClick={() => skorRaporunuGonder(mac.id, 'detayli')} disabled={skorKaydediliyor} className={`flex-1 text-white font-black py-4 rounded-xl shadow-md transition-colors text-xs md:text-sm flex items-center justify-center gap-2 tracking-widest disabled:opacity-70 border ${detayliGonderilmis ? 'bg-amber-600 hover:bg-amber-700 border-amber-500' : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 animate-pulse'}`}>
+                                                                            {skorKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : (detayliGonderilmis ? '💾 RAPORU GÜNCELLE' : '✅ YÖNETİME İLET (ONAYLA)')}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
