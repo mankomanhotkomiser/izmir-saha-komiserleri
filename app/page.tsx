@@ -56,7 +56,11 @@ const getAnaKategori = (kategori: any) => {
               temizKat.includes('2.LİG') || 
               temizKat.includes('3.LİG') || 
               temizKat.includes('ZİRAAT') || 
-              temizKat.includes('TÜRKİYEKUPASI')) {
+              temizKat.includes('TÜRKİYEKUPASI') ||
+              temizKat.includes('ZTK') ||
+              temizKat.includes('TRENDYOL') ||
+              temizKat.includes('NESİNE') ||
+              temizKat.includes('TFFSÜPER')) {
               return 'profesyonel';
           }
       }
@@ -217,7 +221,9 @@ const isBordroKategori = (kategoriAdi: string) => {
         const isProf = kat.includes('SÜPER') || 
                        kat.includes('1. LİG') || kat.includes('1.LİG') ||
                        kat.includes('2. LİG') || kat.includes('2.LİG') ||
-                       kat.includes('3. LİG') || kat.includes('3.LİG');
+                       kat.includes('3. LİG') || kat.includes('3.LİG') ||
+                       kat.includes('ZTK') || kat.includes('ZİRAAT') || kat.includes('KUPA') ||
+                       kat.includes('TRENDYOL') || kat.includes('NESİNE');
         if (!isProf) {
             return false; // TFF yazıyor ama profesyonel değil (örn: TFF U19 Gelişim), REDDET!
         }
