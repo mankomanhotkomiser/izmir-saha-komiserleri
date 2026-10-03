@@ -3164,7 +3164,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                         <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6 shadow-2xl relative overflow-hidden animate-fade-in-down mt-4">
                                                                             <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
                                                                             <h4 className="font-black text-blue-400 border-b border-slate-800 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest uppercase">
-                                                                                <span className="text-xl">⚡</span> MÜSABAKA BİLGİ GİRİŞ PANELİ
+                                                                                <span className="text-xl">⚡</span> MÜSABAKA BİLGİ GİRİŞ PANELİ                                                                            
                                                                             </h4>
                                                                             
                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -3183,6 +3183,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                                             {renderKaranlikHakemSecici('hakem', 'y_hakem_2', raporDetay?.y_hakem_2)}
                                                                                         </div>
                                                                                     </>
+                                                                                )}
+                                                                                {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_kutu') && (
+                                                                                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                                                                        <label className="block text-[10px] text-slate-400 font-bold mb-2">4. HAKEM</label>
+                                                                                        {renderKaranlikHakemSecici('hakem', 'hakem_4', raporDetay?.hakem_4)}
+                                                                                    </div>
                                                                                 )}
                                                                                 {(String(getHakemGosterimModu(mac.kategori_adi)) === 'dort_ve_gozlemci' || String(getHakemGosterimModu(mac.kategori_adi)) === 'uc_ve_gozlemci') && (
                                                                                     <div className="bg-slate-900 p-3 rounded-lg border border-slate-800">
