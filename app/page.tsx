@@ -1607,7 +1607,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     if (eklenecekler.length > 0) {
                         const uniqueEklenecekler = Array.from(new Set(eklenecekler));
                         // 🔥 YENİ: Veritabanına kaydederken aktifSehir mührünü zorunlu bas
-                        const insertPayload = uniqueEklenecekler.map((ad: any) => ({ ad_soyad: ad, sehir: aktifSehir }));
+                        const insertPayload = uniqueEklenecekler.map((ad: any) => ({ ad_soyad: ad, sehir: aktifSehir, bolge: turkceBuyukHarf(aktifSehir), aktif_mi: true }));
 
                         const { error } = await supabase.from('hakemler').insert(insertPayload);
                         if (!error) {
@@ -1632,7 +1632,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
                     if (!guncelListe.includes(girilenGozlemci)) {
                         // 🔥 YENİ: Veritabanına kaydederken aktifSehir mührünü zorunlu bas
-                        const { error } = await supabase.from('gozlemciler').insert([{ ad_soyad: girilenGozlemci, sehir: aktifSehir }]);
+                        const { error } = await supabase.from('gozlemciler').insert([{ ad_soyad: girilenGozlemci, sehir: aktifSehir, bolge: turkceBuyukHarf(aktifSehir), aktif_mi: true }]);
                         if (!error) {
                             setGozlemciListesi((prev: string[]) => {
                                 const newList = [...prev, girilenGozlemci];
