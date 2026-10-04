@@ -1873,59 +1873,73 @@ const [kucukHeader, setKucukHeader] = useState(false);
         // ==========================================
         // COMPONENT GÖRSEL FONKSİYONLARI
         // ==========================================
-        const renderOrtakHeader = (geriDonusuGoster = false) => (
-            <div className="sticky top-0 z-50 w-full transition-all duration-300 shadow-md">
-                <header className="bg-slate-800 text-white w-full p-0 m-0">
-                    <div className="w-full flex flex-col items-center p-0 m-0">
-
-                        {/* 1. KAT: LOGO ALANI (Sıfıra Sıfır, Aşağı Kaydırınca Gizlenir) */}
-                        <div className={`w-full bg-white flex justify-center items-center transition-all duration-500 origin-top overflow-hidden ${kucukHeader ? 'max-h-0 opacity-0' : 'max-h-[150px] opacity-100'}`}>
-                            <img
-                                src={`/${aktifSehir}-logo.png`}
-                                alt="TFSKD Logo"
-                                className="w-full max-w-lg h-auto object-contain block m-0 p-0" />
+        // ==========================================
+        // COMPONENT GÖRSEL FONKSİYONLARI
+        // ==========================================
+        const renderOrtakHeader = (geriDonusuGoster = false) => {
+            const isTest = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('localhost'));
+            
+            return (
+                <div className="sticky top-0 z-50 w-full transition-all duration-300 shadow-md">
+                    {/* 🔥 DİNAMİK TEST ORTAMI UYARISI 🔥 */}
+                    {isTest && (
+                        <div className="bg-red-600 text-white text-center text-[10px] md:text-xs font-black tracking-widest py-1.5 shadow-inner w-full">
+                            ⚠️ DİKKAT: ŞU AN TEST (GELİŞTİRİCİ) EKRANINDASINIZ ⚠️
                         </div>
+                    )}
+                    
+                    <header className="bg-slate-800 text-white w-full p-0 m-0">
+                        <div className="w-full flex flex-col items-center p-0 m-0">
 
-                        {/* 2. KAT: HAFTA VE BUTONLAR (Kompakt ve Dar) */}
-                        <div className={`w-full max-w-4xl mx-auto flex justify-between items-end transition-all duration-300 px-2 py-1`}>
-
-                            {/* SOL TARAF: HAFTA BİLGİSİ */}
-                            <div className="inline-block bg-slate-900 px-2 py-1 rounded border border-slate-700 shadow-sm shrink-0">
-                                <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-none m-0">
-                                    {globalAktifHaftaNo}. PROGRAM HAFTASI
-                                    <span className="block text-blue-300 font-bold text-[9px] md:text-[10px] mt-0.5">
-                                        ({haftaTarihAraligi ? haftaTarihAraligi : '20 - 26 Aralık 2026'})
-                                    </span>
-                                </p>
+                            {/* 1. KAT: LOGO ALANI (Sıfıra Sıfır, Aşağı Kaydırınca Gizlenir) */}
+                            <div className={`w-full bg-white flex justify-center items-center transition-all duration-500 origin-top overflow-hidden ${kucukHeader ? 'max-h-0 opacity-0' : 'max-h-[150px] opacity-100'}`}>
+                                <img
+                                    src={`/${aktifSehir}-logo.png`}
+                                    alt="TFSKD Logo"
+                                    className="w-full max-w-lg h-auto object-contain block m-0 p-0" />
                             </div>
 
-                            {/* SAĞ TARAF: BUTON (Geri Dön veya Çıkış) */}
-                            <div className="shrink-0 flex items-end">
-                                {geriDonusuGoster ? (
-                                    <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); } } className="flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
-                                        GERİ DÖN
-                                    </button>
-                                ) : (
-                                    <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
-                                        ÇIKIŞ
-                                    </button>
-                                )}
+                            {/* 2. KAT: HAFTA VE BUTONLAR (Kompakt ve Dar) */}
+                            <div className={`w-full max-w-4xl mx-auto flex justify-between items-end transition-all duration-300 px-2 py-1`}>
 
+                                {/* SOL TARAF: HAFTA BİLGİSİ */}
+                                <div className="inline-block bg-slate-900 px-2 py-1 rounded border border-slate-700 shadow-sm shrink-0">
+                                    <p className="text-white text-[11px] md:text-sm font-black tracking-widest leading-none m-0">
+                                        {globalAktifHaftaNo}. PROGRAM HAFTASI
+                                        <span className="block text-blue-300 font-bold text-[9px] md:text-[10px] mt-0.5">
+                                            ({haftaTarihAraligi ? haftaTarihAraligi : '20 - 26 Aralık 2026'})
+                                        </span>
+                                    </p>
+                                </div>
+
+                                {/* SAĞ TARAF: BUTON (Geri Dön veya Çıkış) */}
+                                <div className="shrink-0 flex items-end">
+                                    {geriDonusuGoster ? (
+                                        <button onClick={() => { setAktifEkran('dashboard'); setArsivAcik(false); } } className="flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
+                                            GERİ DÖN
+                                        </button>
+                                    ) : (
+                                        <button onClick={cikisYap} className="flex items-center justify-center bg-red-700 hover:bg-red-800 text-white text-[10px] md:text-sm font-black py-1.5 px-3 rounded shadow transition-colors tracking-widest leading-none m-0">
+                                            ÇIKIŞ
+                                        </button>
+                                    )}
+
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </header>
-                {/* MİNE: HER YERDEN GÖRÜNEN SABİT UYARI BARI (Navbar'ın içinde güvende!) */}
-                {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevKartlari' && (
-                    <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center cursor-pointer">
-                        <span className="text-xl animate-bounce">⚠️</span>
-                        <span className="mx-2">DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ</span>
-                        <span className="text-xl animate-bounce">⚠️</span>
-                    </button>
-                )}
+                    </header>
+                    {/* MİNE: HER YERDEN GÖRÜNEN SABİT UYARI BARI (Navbar'ın içinde güvende!) */}
+                    {tebellugBekleyenSayisi > 0 && aktifEkran !== 'gorevKartlari' && (
+                        <button onClick={() => setAktifEkran('gorevKartlari')} className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2.5 text-center text-xs md:text-sm font-black tracking-widest shadow-md flex justify-center items-center cursor-pointer">
+                            <span className="text-xl animate-bounce">⚠️</span>
+                            <span className="mx-2">DİKKAT: YENİ ATANAN GÖREVİNİZ VAR! LÜTFEN TIKLAYIP TEBELLÜĞ EDİNİZ</span>
+                            <span className="text-xl animate-bounce">⚠️</span>
+                        </button>
+                    )}
 
-            </div>
-        );
+                </div>
+            );
+        };
         const renderGunSatiri = (key: string, label: string) => {
             const g = gunler[key];
             return (
