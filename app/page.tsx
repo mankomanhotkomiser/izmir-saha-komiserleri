@@ -2252,7 +2252,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             </div>
 
                             <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black">
-                                <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div></div>
+                                <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">{turkceBuyukHarf(aktifSehir)}</span></div></div>
                                 <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm text-black">{formatMacKodu(mac?.mac_kodu)}</span></div></div>
                                 <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
                                 <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs text-right truncate w-3/4 text-black">{turkceBuyukHarf(mac?.saha || '-')}</span></div></div>
