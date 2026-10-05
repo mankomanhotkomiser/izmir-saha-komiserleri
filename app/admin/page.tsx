@@ -177,52 +177,20 @@ const getAyYil = (tarihMetni: any) => {
 
 // 🔥 BORDRO ( BORDROLAR) FİLTRESİ: KİMLER HAKEDİŞ ALACAK? 🔥
 const isBordroKategori = (kategoriAdi: string) => {
-    if (!kategoriAdi) return false;
-    const kat = kategoriAdi.toLocaleUpperCase('tr-TR');
+      if (!kategoriAdi) return false;
+      const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
 
-    // 1. TFF KONTROLÜ - EN KESİN FİLTRE
-    // Eğer içinde TFF geçiyorsa, SADECE ağır abiler (Prof Ligler) geçebilir.
-    if (kat.includes('TFF')) {
-        const isProf = kat.includes('SÜPER') || 
-                       kat.includes('1. LİG') || kat.includes('1.LİG') ||
-                       kat.includes('2. LİG') || kat.includes('2.LİG') ||
-                       kat.includes('3. LİG') || kat.includes('3.LİG') ||
-                       kat.includes('ZTK') || kat.includes('ZİRAAT') || kat.includes('KUPA') ||
-                       kat.includes('TRENDYOL') || kat.includes('NESİNE');
-        if (!isProf) {
-            return false; // TFF yazıyor ama profesyonel değil (örn: TFF U19 Gelişim), REDDET!
-        }
-    }
+      const yasakliKelimeler = ['PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'];
+      for (let i = 0; i < yasakliKelimeler.length; i++) {
+          if (kat.includes(yasakliKelimeler[i])) return false;
+      }
 
-    // 2. KESİNLİKLE BORDRO DIŞI KALACAK DİĞER KELİMELER
-    const yasakliKelimeler = [
-        'GELİŞİM', 'AKADEMİ', 'ELİT', 'PAF', 
-        'KADIN', 'KIZ', 'KADINLAR', 'KIZLAR'
-    ];
-    
-    for (let i = 0; i < yasakliKelimeler.length; i++) {
-        if (kat.includes(yasakliKelimeler[i])) return false; 
-    }
+      if (kat.includes('SÜPERLİG') || kat.includes('1.LİG') || kat.includes('2.LİG') || kat.includes('3.LİG') || kat.includes('BAL') || kat.includes('BÖLGESEL') || kat.includes('AMATÖR') || kat.includes('İZMİR') || kat.includes('KOCAELİ') || kat.includes('KUPA') || kat.includes('ZİRAAT') || kat.includes('PROFESYONEL') || kat.includes('U1') || kat.includes('U2') || kat.includes('U-') || kat.includes('TRENDYOL') || kat.includes('NESİNE') || kat.includes('ZTK') || kat.includes('TFFSÜPER')) {
+          return true;
+      }
 
-    // 3. İZİN VERİLENLER (Buraya kadar geldiyse TFF engeline veya Kadınlar engeline takılmamış demektir)
-    const izinliKelimeler = [
-        'SÜPER', '1. LİG', '1.LİG', '2. LİG', '2.LİG', '3. LİG', '3.LİG',
-        'BAL', 'BÖLGESEL', 'AMATÖR', 'KUPA', 'ZTK', 'TÜRKİYE KUPASI',
-        'İZMİR', 'KOCAELİ', 'HATAY', 'YALOVA', 'İSTANBUL', 'ANKARA',
-        'U19', 'U 19', 'U-19', 'U18', 'U 18', 'U-18',
-        'U17', 'U 17', 'U-17', 'U16', 'U 16', 'U-16',
-        'U15', 'U 15', 'U-15', 'U14', 'U 14', 'U-14',
-        'U13', 'U 13', 'U-13', 'U12', 'U 12', 'U-12',
-        'U11', 'U 11', 'U-11', 'U10', 'U 10', 'U-10'
-    ];
-
-    for (let i = 0; i < izinliKelimeler.length; i++) {
-        if (kat.includes(izinliKelimeler[i])) return true;
-    }
-
-    // Hiçbirine uymuyorsa reddet
-    return false; 
-};
+      return false; 
+  };
 
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
@@ -1967,16 +1935,20 @@ useEffect(() => {
               )}
 
               {/* EK RAPORLAR EKRANI */}
-              {ekRaporlarListesi.map((ekRapor: any, index: number) => (
-                  <div key={ekRapor.id} className="print-page flex flex-col relative">
+              {ekRaporlarListesi.map((ekRapor: any, index: number) => {
+                  const f1 = ekRapor.foto_url_1 || ekRapor.foto_url;
+                  const f2 = ekRapor.foto_url_2;
+                  
+                  return (
+                  <div key={ekRapor.id} className="print-page flex flex-col relative bolunmez page-break-before-always">
                       {raporTuru === 'amator' ? (
-                          <div className="flex flex-col items-center mb-8 border-b-[3px] border-double border-red-600 pb-4 text-center shrink-0">
+                          <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 text-center shrink-0">
                               <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
                               <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
                               <h3 className="font-bold text-lg md:text-xl uppercase mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
                           </div>
                       ) : (
-                          <div className="flex items-center justify-between mb-8 pb-4 shrink-0 border-b-2 border-slate-800">
+                          <div className="flex items-center justify-between mb-6 pb-4 shrink-0 border-b-2 border-slate-800">
                               <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
                               <div className="text-center flex flex-col items-center justify-center w-2/4">
                                   <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
@@ -1987,32 +1959,41 @@ useEffect(() => {
                           </div>
                       )}
 
-                      <div className="flex border-b border-black text-sm font-bold mb-6 shrink-0">
-                          <div className="w-1/2 border-r border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
-                          <div className="w-1/4 border-r border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
-                          <div className="w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
+                      <div className="flex flex-col md:flex-row border-b border-black text-[10px] md:text-sm font-bold mb-6 shrink-0">
+                          <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase truncate">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
+                          <div className="w-full md:w-1/4 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
+                          <div className="w-full md:w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
+                      </div>
+
+                      {/* 🔥 İKİLİ FOTOĞRAF ALANI 🔥 */}
+                      <div className="grid grid-cols-2 gap-2 md:gap-4 mb-6 shrink-0">
+                          <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
+                              <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">1. FOTOĞRAFLI KANIT</h3>
+                              {f1 ? (
+                                  <img src={f1} crossOrigin="anonymous" alt={`Ek Kanıt 1`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                              ) : (
+                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">1. Görsel Yok</p></div>
+                              )}
+                          </div>
+
+                          <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
+                              <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">2. FOTOĞRAFLI KANIT</h3>
+                              {f2 ? (
+                                  <img src={f2} crossOrigin="anonymous" alt={`Ek Kanıt 2`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                              ) : (
+                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">2. Görsel Yok</p></div>
+                              )}
+                          </div>
                       </div>
 
                       <div className="mb-6 flex-1">
-                          <h3 className="font-bold text-sm uppercase mb-2 bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
-                          <div className="w-full min-h-[200px] h-full p-4 border border-dashed border-black whitespace-pre-wrap">{ekRapor.text}</div>
-                      </div>
-
-                      <div className="mb-4 border border-dashed border-black p-4 flex flex-col items-center justify-center relative shrink-0">
-                          <h3 className="font-bold text-sm uppercase mb-4 absolute top-0 left-0 bg-white px-2 -mt-2 ml-4 text-black">FOTOĞRAFLI KANIT (VARSA)</h3>
-                          {ekRapor.foto_url ? (
-                              <img src={ekRapor.foto_url} crossOrigin="anonymous" alt={`Ek Kanıt ${index + 1}`} className="max-w-full max-h-[300px] object-contain shadow-sm border border-slate-200" />
-                          ) : (
-                              <div className="text-slate-400 text-center tff-no-print p-10">
-                                  <span className="text-4xl block mb-2">📸</span>
-                                  <p className="text-sm font-bold">Kanıt Fotoğrafı Yok</p>
-                              </div>
-                          )}
+                          <h3 className="font-bold text-xs md:text-sm uppercase mb-2 bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
+                          <div className="w-full min-h-[150px] h-full p-3 md:p-4 border border-dashed border-black whitespace-pre-wrap text-xs md:text-sm text-black">{ekRapor.text}</div>
                       </div>
 
                       <RenderA4Footer />
                   </div>
-              ))}
+              )})}
 
               {/* ========================================================== */}
               {/* DİNAMİK ELİT RAPOR - ESAMELER VE BELGELER (DİNAMİK TAM SAYFA) */}
