@@ -1940,55 +1940,59 @@ useEffect(() => {
                   const f2 = ekRapor.foto_url_2;
                   
                   return (
-                  <div key={ekRapor.id} className="print-page flex flex-col relative bolunmez page-break-before-always">
+                  <div key={ekRapor.id} className="print-page flex flex-col relative bolunmez page-break-before-always h-[1100px]">
+                      {/* 🔥 1. KÜÇÜLTÜLMÜŞ KOMPAKT BAŞLIK 🔥 */}
                       {raporTuru === 'amator' ? (
-                          <div className="flex flex-col items-center mb-6 border-b-[3px] border-double border-red-600 pb-4 text-center shrink-0">
-                              <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-16 w-auto mb-2 drop-shadow-md" />
-                              <h2 className="font-extrabold text-xl md:text-2xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                              <h3 className="font-bold text-lg md:text-xl uppercase mt-2 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                          <div className="flex items-center justify-center gap-4 mb-3 border-b-[3px] border-double border-red-600 pb-2 text-center shrink-0">
+                              <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Merkez" className="h-10 md:h-12 w-auto drop-shadow-sm" />
+                              <div className="flex flex-col">
+                                  <h2 className="font-extrabold text-base md:text-lg uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                  <h3 className="font-bold text-sm md:text-base uppercase text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                              </div>
                           </div>
                       ) : (
-                          <div className="flex items-center justify-between mb-6 pb-4 shrink-0 border-b-2 border-slate-800">
-                              <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+                          <div className="flex items-center justify-between mb-3 pb-2 shrink-0 border-b-2 border-slate-800">
+                              <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-10 md:h-12 w-auto drop-shadow-sm" /></div>
                               <div className="text-center flex flex-col items-center justify-center w-2/4">
-                                  <h2 className="font-extrabold text-lg md:text-xl uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
-                                  <h3 className="font-bold text-base md:text-lg uppercase mt-1 text-black">{ustBaslik}</h3>
-                                  <h3 className="font-bold text-sm md:text-base uppercase mt-1 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
+                                  <h2 className="font-extrabold text-sm md:text-base uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                  <h3 className="font-bold text-[10px] md:text-xs uppercase mt-0.5 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
                               </div>
-                              <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-16 md:h-20 w-auto drop-shadow-md" /></div>
+                              <div className="w-1/4 flex justify-end items-center"><img src={sagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-10 md:h-12 w-auto drop-shadow-sm" /></div>
                           </div>
                       )}
 
-                      <div className="flex flex-col md:flex-row border-b border-black text-[10px] md:text-sm font-bold mb-6 shrink-0">
-                          <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase truncate">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
-                          <div className="w-full md:w-1/4 md:border-r border-b md:border-b-0 border-black p-2 flex gap-2"><span className="text-slate-500">TARİH:</span> <span>{guvenliTarih(mac?.tarih)}</span></div>
-                          <div className="w-full md:w-1/4 p-2 flex gap-2"><span className="text-slate-500">MÜSABAKA NO:</span> <span>{formatMacKodu(mac?.mac_kodu)}</span></div>
+                      {/* 🔥 2. KÜÇÜLTÜLMÜŞ MAÇ BİLGİSİ SATIRI 🔥 */}
+                      <div className="flex flex-col md:flex-row border border-black text-[10px] md:text-xs font-bold mb-3 shrink-0 bg-slate-50">
+                          <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-black p-1.5 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase truncate text-black">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
+                          <div className="w-full md:w-1/4 md:border-r border-b md:border-b-0 border-black p-1.5 flex gap-2"><span className="text-slate-500">TARİH:</span> <span className="text-black">{guvenliTarih(mac?.tarih)}</span></div>
+                          <div className="w-full md:w-1/4 p-1.5 flex gap-2"><span className="text-slate-500">KOD:</span> <span className="text-black">{formatMacKodu(mac?.mac_kodu)}</span></div>
                       </div>
 
-                      {/* 🔥 İKİLİ FOTOĞRAF ALANI 🔥 */}
-                      <div className="grid grid-cols-2 gap-2 md:gap-4 mb-6 shrink-0">
-                          <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
-                              <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">1. FOTOĞRAFLI KANIT</h3>
+                      {/* 🔥 3. BÜYÜTÜLMÜŞ İKİLİ FOTOĞRAF ALANI 🔥 */}
+                      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 shrink-0">
+                          <div className="border border-dashed border-black p-2 h-[350px] md:h-[450px] flex flex-col items-center justify-center relative bg-slate-50">
+                              <h3 className="font-bold text-[9px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-2 -mt-2 ml-2 text-black border border-slate-300">1. FOTOĞRAFLI KANIT</h3>
                               {f1 ? (
-                                  <img src={f1} crossOrigin="anonymous" alt={`Ek Kanıt 1`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                                  <img src={f1} crossOrigin="anonymous" alt={`Ek Kanıt 1`} className="max-w-full max-h-full h-auto object-contain shadow-sm" />
                               ) : (
-                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">1. Görsel Yok</p></div>
+                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-3xl md:text-5xl block mb-1">📸</span><p className="text-[9px] md:text-xs font-bold">1. Görsel Yok</p></div>
                               )}
                           </div>
 
-                          <div className="border border-dashed border-black p-2 min-h-[150px] md:min-h-[220px] flex flex-col items-center justify-center relative bg-slate-50">
-                              <h3 className="font-bold text-[8px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-1 md:px-2 -mt-2 ml-2 text-black">2. FOTOĞRAFLI KANIT</h3>
+                          <div className="border border-dashed border-black p-2 h-[350px] md:h-[450px] flex flex-col items-center justify-center relative bg-slate-50">
+                              <h3 className="font-bold text-[9px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-2 -mt-2 ml-2 text-black border border-slate-300">2. FOTOĞRAFLI KANIT</h3>
                               {f2 ? (
-                                  <img src={f2} crossOrigin="anonymous" alt={`Ek Kanıt 2`} className="max-w-full h-[120px] md:h-[180px] object-contain shadow-sm border border-slate-200" />
+                                  <img src={f2} crossOrigin="anonymous" alt={`Ek Kanıt 2`} className="max-w-full max-h-full h-auto object-contain shadow-sm" />
                               ) : (
-                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-2xl md:text-4xl block mb-1">📸</span><p className="text-[8px] md:text-[10px] font-bold">2. Görsel Yok</p></div>
+                                  <div className="text-slate-400 text-center tff-no-print"><span className="text-3xl md:text-5xl block mb-1">📸</span><p className="text-[9px] md:text-xs font-bold">2. Görsel Yok</p></div>
                               )}
                           </div>
                       </div>
 
-                      <div className="mb-6 flex-1">
-                          <h3 className="font-bold text-xs md:text-sm uppercase mb-2 bg-slate-100 p-2 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
-                          <div className="w-full min-h-[150px] h-full p-3 md:p-4 border border-dashed border-black whitespace-pre-wrap text-xs md:text-sm text-black">{ekRapor.text}</div>
+                      {/* 🔥 4. YAZI ALANI 🔥 */}
+                      <div className="flex-1 flex flex-col mb-4">
+                          <h3 className="font-bold text-[10px] md:text-xs uppercase mb-1 bg-slate-100 p-1.5 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
+                          <div className="w-full flex-1 p-3 border border-dashed border-black whitespace-pre-wrap text-[11px] md:text-xs text-black leading-relaxed">{ekRapor.text}</div>
                       </div>
 
                       <RenderA4Footer />
