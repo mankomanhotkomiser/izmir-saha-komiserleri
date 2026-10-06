@@ -559,6 +559,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const [aramaKomiser, setAramaKomiser] = useState('')
   const [aramaSaha, setAramaSaha] = useState('')
   const [aramaTakim, setAramaTakim] = useState('')
+  const [aramaHakem, setAramaHakem] = useState('')
   const [acikAramaMacId, setAcikAramaMacId] = useState<number | null>(null)
   const [macYukleniyor, setMacYukleniyor] = useState(false)
   const [haftaReferanslari, setHaftaReferanslari] = useState<number[]>([])
@@ -821,9 +822,19 @@ const [kucukHeader, setKucukHeader] = useState(false);
     const q = turkceBuyukHarf(aramaSaha);
     filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => turkceBuyukHarf(mac?.saha || '').includes(q));
   }
-  if (aramaTakim.trim() !== '') {
-    const q = turkceBuyukHarf(aramaTakim);
-    filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => turkceBuyukHarf(mac?.ev_sahibi || '').includes(q) || turkceBuyukHarf(mac?.misafir_takim || '').includes(q) || turkceBuyukHarf(mac?.kategori_adi || '').includes(q));
+  if (aramaHakem.trim() !== '') {
+    const q = turkceBuyukHarf(aramaHakem);
+    filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => {
+        if (!mac?.tff_rapor_detaylari) return false;
+        // Raporun içini aç ve 4 hakem + gözlemcinin isimlerinde arama yap!
+        const detay = parseDetay(mac.tff_rapor_detaylari);
+        const h1 = turkceBuyukHarf(detay.hakem || '');
+        const h2 = turkceBuyukHarf(detay.y_hakem_1 || '');
+        const h3 = turkceBuyukHarf(detay.y_hakem_2 || '');
+        const h4 = turkceBuyukHarf(detay.hakem_4 || '');
+        const goz = turkceBuyukHarf(detay.gozlemci || '');
+        return h1.includes(q) || h2.includes(q) || h3.includes(q) || h4.includes(q) || goz.includes(q);
+    });
   }
   
   const safeKomiserler = Array.isArray(tumKomiserler) ? tumKomiserler : [];
@@ -3814,7 +3825,16 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     <div><label className="block text-xs font-bold text-slate-600 tracking-wider mb-2">SAHA KOMİSERİ ADI</label><input list="komiser-listesi" type="text" placeholder="Komiser arayın..." value={aramaKomiser} onChange={(e: any) => setAramaKomiser(e.target.value)} className="w-full bg-white border-2 border-slate-300 text-slate-800 px-4 py-3 rounded-lg focus:outline-none focus:border-slate-500 transition-colors text-sm font-bold" /><datalist id="komiser-listesi">{siraliKomiserler.map((k: any, i: number) => <option key={`kom-${i}`} value={k.ad_soyad || ''} />)}</datalist></div>
                                     <div><label className="block text-xs font-bold text-slate-600 tracking-wider mb-2">SAHA ADI</label><input list="saha-listesi" type="text" placeholder="Saha arayın..." value={aramaSaha} onChange={(e: any) => setAramaSaha(e.target.value)} className="w-full bg-white border-2 border-slate-300 text-slate-800 px-4 py-3 rounded-lg focus:outline-none focus:border-slate-500 transition-colors text-sm font-bold" /><datalist id="saha-listesi">{siraliSahalar.map((saha: any, i: number) => <option key={`sah-${i}`} value={saha as string} />)}</datalist></div>
                                     <div><label className="block text-xs font-bold text-slate-600 tracking-wider mb-2">TAKIM VEYA LİG ADI</label><input list="takim-listesi" type="text" placeholder="Takım veya lig arayın..." value={aramaTakim} onChange={(e: any) => setAramaTakim(e.target.value)} className="w-full bg-white border-2 border-slate-300 text-slate-800 px-4 py-3 rounded-lg focus:outline-none focus:border-slate-500 transition-colors text-sm font-bold" /><datalist id="takim-listesi">{siraliTakimlar.map((takim: any, i: number) => <option key={`tak-${i}`} value={takim as string} />)}</datalist></div>
-                                    {(aramaKomiser || aramaSaha || aramaTakim) && (<div className="pt-2 text-right"><button onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAcikAramaMacId(null); } } className="text-slate-500 hover:text-slate-800 text-xs tracking-widest font-black transition-colors bg-white px-3 py-1.5 rounded border border-slate-300 shadow-sm">FİLTRELERİ TEMİZLE</button></div>)}
+                                    
+                                    {/* 🔥 SÜPER ADMİNLER İÇİN GİZLİ HAKEM/GÖZLEMCİ ARAMA 🔥 */}
+                                    {(String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735')) && (
+                                        <div className="animate-fade-in-down">
+                                            <label className="block text-xs font-bold text-indigo-600 tracking-wider mb-2">HAKEM / GÖZLEMCİ ADI (SÜPER ADMİN ÖZEL)</label>
+                                            <input type="text" placeholder="Tüm sezon arşivinde hakem veya gözlemci arayın..." value={aramaHakem} onChange={(e: any) => setAramaHakem(e.target.value)} className="w-full bg-indigo-50 border-2 border-indigo-200 text-indigo-900 px-4 py-3 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors text-sm font-bold shadow-inner" />
+                                        </div>
+                                    )}
+
+                                    {(aramaKomiser || aramaSaha || aramaTakim || aramaHakem) && (<div className="pt-2 text-right"><button onClick={() => { setAramaKomiser(''); setAramaSaha(''); setAramaTakim(''); setAramaHakem(''); setAcikAramaMacId(null); } } className="text-slate-500 hover:text-slate-800 text-xs tracking-widest font-black transition-colors bg-white px-3 py-1.5 rounded border border-slate-300 shadow-sm">FİLTRELERİ TEMİZLE</button></div>)}
                                 </div>
                             )}
                         </div>
