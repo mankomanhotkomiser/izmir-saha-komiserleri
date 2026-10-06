@@ -1715,7 +1715,7 @@ useEffect(() => {
                       <h3 className="font-bold text-lg md:text-xl uppercase mt-1 text-black">SAHA KOMİSERİ RAPORU</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-0 border border-black mb-6 text-black shrink-0">
-                      <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">İZMİR</span></div></div>
+                      <div className="border-r border-black p-2 flex flex-col justify-center border-b border-dashed"><div className="flex items-center gap-2"><span className="text-[10px] font-bold">MÜSABAKANIN YAPILDIĞI YER:</span> <span className="font-black text-xl tracking-wider">{turkceBuyukHarf(mac?.sehir || aktifAdmin?.sehir || 'İZMİR')}</span></div></div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">MÜSABAKA NO:</span> <span className="font-bold text-sm uppercase text-black">{formatMacKodu(mac?.mac_kodu)}</span></div></div>
                       <div className="p-2 border-r border-b border-dashed border-black bg-slate-100/50 text-center font-bold text-xs">KARŞILAŞAN KULÜPLER</div>
                       <div className="p-2 border-b border-dashed border-black"><div className="flex justify-between items-center"><span className="text-[10px] font-bold">STAD ADI:</span> <span className="font-bold text-xs uppercase text-right truncate w-3/4 text-black">{mac?.saha || '-'}</span></div></div>
@@ -2450,7 +2450,7 @@ useEffect(() => {
                         <div id="admin-bordro-print-area" className="w-full bg-white p-6 relative font-sans text-black mobile-zoom">
                               <style dangerouslySetInnerHTML={{__html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }`}} />
                               
-                              <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
+                              <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">{turkceBuyukHarf(aktifAdmin?.sehir || 'İZMİR')} SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
                               
                               <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
                                   <tbody>
@@ -2585,7 +2585,7 @@ useEffect(() => {
                             <div className="flex justify-between items-center border-b-[3px] border-double border-slate-800 pb-4 mb-6">
                                 <img src={AMATOR_MERKEZ_LOGO} crossOrigin="anonymous" alt="TFF Logo" className="h-16 w-auto" />
                                 <div className="text-center flex-1 px-4">
-                                    <h2 className="font-black text-xl uppercase tracking-widest text-black">İZMİR SAHA KOMİSERLERİ DERNEĞİ</h2>
+                                    <h2 className="font-black text-xl uppercase tracking-widest text-black">{turkceBuyukHarf(aktifAdmin?.sehir || 'İZMİR')} SAHA KOMİSERLERİ DERNEĞİ</h2>
                                     <p className="font-bold text-sm mt-1 text-slate-800">{goruntulenenHafta}. HAFTA {bultenTab === 'gorev' ? 'MÜSABAKA GÖREV LİSTESİ (MAÇ ÖNCESİ)' : 'TOPLU MÜSABAKA SONUÇLARI (MAÇ SONRASI)'}</p>
                                 </div>
                                 <div className="h-16 w-16"></div> 
