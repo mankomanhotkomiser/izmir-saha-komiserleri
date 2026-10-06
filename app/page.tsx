@@ -622,53 +622,52 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (!analizAcikMac) return;
       setAnalizYukleniyor(true);
       try {
-          // 🔥 HEDEF: https://www.sofascore.com/tr/football/match/altinordu-u14-goztepe-u14/oQIjsqQIj
-          // Sistem artık takımların ismini analiz edip güncel gerçek istatistikleri Supabase'e işliyor!
+          // 📸 SOFASCORE GÖRÜNTÜSÜNDEKİ 18 TAKIMLIK TAM LİSTE
+          const gercekGrupVerisi = [
+              { takim_adi: 'BUCASPOR 1928 U14', oynadi: 4, galibiyet: 4, beraberlik: 0, maglubiyet: 0, attigi: 30, yedigi: 2, averaj: 28, puan: 12 },
+              { takim_adi: 'GÖZTEPE U14', oynadi: 4, galibiyet: 4, beraberlik: 0, maglubiyet: 0, attigi: 17, yedigi: 2, averaj: 15, puan: 12 },
+              { takim_adi: 'ALTAY SK U14', oynadi: 4, galibiyet: 4, beraberlik: 0, maglubiyet: 0, attigi: 19, yedigi: 9, averaj: 13, puan: 12 },
+              { takim_adi: 'MANİSA FK U14', oynadi: 4, galibiyet: 4, beraberlik: 0, maglubiyet: 0, attigi: 15, yedigi: 2, averaj: 13, puan: 12 },
+              { takim_adi: 'KARŞIYAKA U14', oynadi: 4, galibiyet: 3, beraberlik: 0, maglubiyet: 1, attigi: 11, yedigi: 1, averaj: 10, puan: 9 },
+              { takim_adi: 'MUĞLASPOR U14', oynadi: 4, galibiyet: 3, beraberlik: 0, maglubiyet: 1, attigi: 14, yedigi: 4, averaj: 10, puan: 9 },
+              { takim_adi: 'UŞAKSPOR U14', oynadi: 4, galibiyet: 2, beraberlik: 1, maglubiyet: 1, attigi: 15, yedigi: 16, averaj: -1, puan: 7 },
+              { takim_adi: 'ALTINORDU U14', oynadi: 4, galibiyet: 2, beraberlik: 0, maglubiyet: 2, attigi: 32, yedigi: 3, averaj: 29, puan: 6 },
+              { takim_adi: 'MENEMEN FK U14', oynadi: 4, galibiyet: 2, beraberlik: 0, maglubiyet: 2, attigi: 21, yedigi: 8, averaj: 13, puan: 6 },
+              { takim_adi: 'BODRUM FK U14', oynadi: 4, galibiyet: 2, beraberlik: 0, maglubiyet: 2, attigi: 9, yedigi: 6, averaj: 3, puan: 6 },
+              { takim_adi: 'SOMASPOR U14', oynadi: 4, galibiyet: 2, beraberlik: 0, maglubiyet: 2, attigi: 11, yedigi: 12, averaj: -1, puan: 6 },
+              { takim_adi: 'ALİAĞA FK U14', oynadi: 4, galibiyet: 1, beraberlik: 0, maglubiyet: 3, attigi: 10, yedigi: 11, averaj: -1, puan: 3 },
+              { takim_adi: 'FETHİYESPOR U14', oynadi: 4, galibiyet: 1, beraberlik: 0, maglubiyet: 3, attigi: 7, yedigi: 15, averaj: -8, puan: 3 },
+              { takim_adi: 'DENİZLİSPOR U14', oynadi: 4, galibiyet: 1, beraberlik: 0, maglubiyet: 3, attigi: 6, yedigi: 27, averaj: -21, puan: 3 },
+              { takim_adi: 'DENİZLİ İDMAN YURDU 1959 SK U14', oynadi: 4, galibiyet: 0, beraberlik: 1, maglubiyet: 3, attigi: 6, yedigi: 21, averaj: -15, puan: 1 },
+              { takim_adi: 'GAZİEMİR U14', oynadi: 4, galibiyet: 0, beraberlik: 0, maglubiyet: 4, attigi: 3, yedigi: 34, averaj: -31, puan: 0 },
+              { takim_adi: 'SÖKE 1970 U14', oynadi: 4, galibiyet: 0, beraberlik: 0, maglubiyet: 4, attigi: 4, yedigi: 39, averaj: -36, puan: 0 },
+              { takim_adi: 'MENTEŞE YILDIZSPOR U14', oynadi: 4, galibiyet: 0, beraberlik: 0, maglubiyet: 4, attigi: 1, yedigi: 22, averaj: -21, puan: -3 }
+          ];
 
-          // Ev Sahibi Gerçek İstatistik Dizilimi
-          let evOyn = 4, evGal = 1, evBer = 1, evMag = 2, evAt = 5, evYe = 6, evAv = -1, evPuan = 4, evForm = 'MGBM';
-          if (analizAcikMac.ev_sahibi.includes('GÖZTEPE')) {
-              // Göztepe ise güncel TFF/SofaScore rakamları (3 Galibiyet = 9 Puan)
-              evOyn = 4; evGal = 3; evBer = 0; evMag = 1; evAt = 8; evYe = 3; evAv = 5; evPuan = 9; evForm = 'GGGM'; 
-          }
-
-          // Misafir Takım Gerçek İstatistik Dizilimi
-          let misOyn = 4, misGal = 1, misBer = 1, misMag = 2, misAt = 5, misYe = 6, misAv = -1, misPuan = 4, misForm = 'MGBM';
-          if (analizAcikMac.misafir_takim.includes('GÖZTEPE')) {
-              misOyn = 4; misGal = 3; misBer = 0; misMag = 1; misAt = 8; misYe = 3; misAv = 5; misPuan = 9; misForm = 'GGGM';
-          }
-
-          const evPayload = { 
-              kategori_adi: analizAcikMac.kategori_adi, 
-              takim_adi: analizAcikMac.ev_sahibi, 
-              oynadi: evOyn, galibiyet: evGal, beraberlik: evBer, maglubiyet: evMag, attigi: evAt, yedigi: evYe, averaj: evAv, puan: evPuan, form_durumu: evForm 
-          };
-          const misafirPayload = { 
-              kategori_adi: analizAcikMac.kategori_adi, 
-              takim_adi: analizAcikMac.misafir_takim, 
-              oynadi: misOyn, galibiyet: misGal, beraberlik: misBer, maglubiyet: misMag, attigi: misAt, yedigi: misYe, averaj: misAv, puan: misPuan, form_durumu: misForm 
-          };
+          const payloadArray = gercekGrupVerisi.map(t => ({
+              kategori_adi: analizAcikMac.kategori_adi,
+              takim_adi: t.takim_adi,
+              oynadi: t.oynadi, galibiyet: t.galibiyet, beraberlik: t.beraberlik, maglubiyet: t.maglubiyet,
+              attigi: t.attigi, yedigi: t.yedigi, averaj: t.averaj, puan: t.puan, form_durumu: ''
+          }));
           
-          // 1. SUPABASE'E YAZMAYI DENE (GERÇEK VERİLERLE)
-          const { error: upsertError } = await supabase.from('puan_durumlari').upsert([evPayload, misafirPayload], { onConflict: 'kategori_adi,takim_adi' });
+          // 1. SUPABASE'E GRUBU KOMPLE YAZ
+          const { error: upsertError } = await supabase.from('puan_durumlari').upsert(payloadArray, { onConflict: 'kategori_adi,takim_adi' });
           
-          if (upsertError) {
-              console.warn("Supabase Hatası:", upsertError.message);
-          }
+          if (upsertError) console.warn("Supabase Hatası:", upsertError.message);
 
-          // 2. SUPABASE'DEN GERİ OKUMAYI DENE (Sıralamayı Puan ve Averaja Göre Otomatik Yapar)
-          const { data, error: selectError } = await supabase
+          // 2. SUPABASE'DEN GERİ OKU VE SIRALA
+          const { data } = await supabase
               .from('puan_durumlari')
               .select('*')
               .eq('kategori_adi', analizAcikMac.kategori_adi)
               .order('puan', { ascending: false })
               .order('averaj', { ascending: false });
               
-          // 3. EKRANA YANSIT
           if (data && data.length > 0) {
               setCanliPuanDurumu(data);
           } else {
-              setCanliPuanDurumu([evPayload, misafirPayload].sort((a, b) => b.puan - a.puan));
+              setCanliPuanDurumu(payloadArray.sort((a, b) => b.puan - a.puan || b.averaj - a.averaj));
           }
       } catch (e: any) {
           alert("Beklenmeyen Hata: " + e.message);
@@ -4296,10 +4295,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 </thead>
                                                 <tbody>
                                                     {canliPuanDurumu.map((takim, index) => {
-                                                        const isEvSahibi = takim.takim_adi === analizAcikMac.ev_sahibi;
-                                                        const isMisafir = takim.takim_adi === analizAcikMac.misafir_takim;
-                                                        const rowClass = isEvSahibi ? 'bg-blue-900/30' : (isMisafir ? 'bg-red-900/20' : '');
-                                                        const textClass = (isEvSahibi || isMisafir) ? 'text-white font-bold' : 'text-slate-400';
+    // İsimlerin ilk kelimesinden yakala ki (Örn: GÖZTEPE) "U14" veya "A.Ş." eklentilerinde bile sorunsuz eşleşsin
+    const evSahibiKok = analizAcikMac.ev_sahibi.split(' ')[0];
+    const misafirKok = analizAcikMac.misafir_takim.split(' ')[0];
+    
+    const isEvSahibi = takim.takim_adi.includes(evSahibiKok);
+    const isMisafir = takim.takim_adi.includes(misafirKok);
+    
+    const rowClass = isEvSahibi ? 'bg-blue-900/30' : (isMisafir ? 'bg-red-900/20' : '');
+    const textClass = (isEvSahibi || isMisafir) ? 'text-white font-bold' : 'text-slate-400';
                                                         
                                                         return (
                                                             <tr key={index} className={`border-b border-slate-700 ${rowClass}`}>
