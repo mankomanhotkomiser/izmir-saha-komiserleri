@@ -622,45 +622,55 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (!analizAcikMac) return;
       setAnalizYukleniyor(true);
       try {
-          // 1. YAPAY ZEKA RADARI: Admin ne yazarsa yazsın, takımdan yola çıkarak doğru grubu bulur!
-          const evSahibiKok = analizAcikMac.ev_sahibi.split(' ')[0]; // Örn: GÖZTEPE
+          // 1. TÜRKÇE KARAKTER ZIRHI (İ, I, Ş, Ç sorunlarını kökten çözer)
+          const evSahibiKok = (analizAcikMac.ev_sahibi || '').trim().split(' ')[0].toLocaleUpperCase('tr-TR');
+          const misafirKok = (analizAcikMac.misafir_takim || '').trim().split(' ')[0].toLocaleUpperCase('tr-TR');
           
-          // Kategoriden yaş grubunu/numarayı yakala (Örn: "TFF U-14" içinden "14"ü alır)
-          const yasGrubuMatch = analizAcikMac.kategori_adi.match(/\d+/); 
-          const yasGrubu = yasGrubuMatch ? yasGrubuMatch[0] : ''; 
+          // 2. Yaş grubunu yakala (Örn: "TFF U-15" -> "15")
+          const yasGrubuMatch = (analizAcikMac.kategori_adi || '').match(/\d+/);
+          const hedefYas = yasGrubuMatch ? yasGrubuMatch[0] : '';
+          
+          // 3. Supabase'den tüm veriyi çek, kuralcı SQL araması yerine işi JS zekasına bırak!
+          const { data: tumVeri, error } = await supabase
+              .from('puan_durumlari')
+              .select('*');
+              
+          if (error) {
+              alert("Supabase Hatası:\n" + error.message);
+              setAnalizYukleniyor(false);
+              return;
+          }
 
-          let gercekGrupKategorisi = analizAcikMac.kategori_adi;
-
-          if (yasGrubu) {
-              // Supabase'e sor: "İçinde Göztepe geçen ve yaş kategorisinde 14 olan takımın ASIL grubu nedir?"
-              const { data: takimBulgu } = await supabase
-                  .from('puan_durumlari')
-                  .select('kategori_adi')
-                  .ilike('takim_adi', `%${evSahibiKok}%`)
-                  .ilike('kategori_adi', `%${yasGrubu}%`)
-                  .limit(1);
-
-              if (takimBulgu && takimBulgu.length > 0) {
-                  gercekGrupKategorisi = takimBulgu[0].kategori_adi; // Örn: "U14 GELİŞİM LİGİ 6. GRUP"
+          // 4. RADAR: Gelen veriler içinde bizim takımların izini sür
+          let dogruKategori = '';
+          
+          if (tumVeri && tumVeri.length > 0) {
+              const eslesenTakim = tumVeri.find(t => {
+                  const dbTakim = t.takim_adi.toLocaleUpperCase('tr-TR');
+                  const dbKategori = t.kategori_adi.toLocaleUpperCase('tr-TR');
+                  // Yaş grubuna göre eşleşmeyi sağla (Örn: U15 Altay'ı U14 grubunda bulmasın)
+                  const yasUyuyorMu = hedefYas ? dbKategori.includes(hedefYas) : true;
+                  
+                  return (dbTakim.includes(evSahibiKok) || dbTakim.includes(misafirKok)) && yasUyuyorMu;
+              });
+              
+              if (eslesenTakim) {
+                  dogruKategori = eslesenTakim.kategori_adi; // Örn: "U15 GELİŞİM LİGİ 6. GRUP"
               }
           }
 
-          // 2. RADARIN BULDUĞU NOKTA ATIŞI GRUBU ÇEK VE EKRANA YANSIT
-          const { data, error } = await supabase
-              .from('puan_durumlari')
-              .select('*')
-              .eq('kategori_adi', gercekGrupKategorisi)
-              .order('puan', { ascending: false })
-              .order('averaj', { ascending: false });
-              
-          if (error) {
-              alert("Supabase Okuma Hatası:\n" + error.message);
-          } else if (data && data.length > 0) {
-              setCanliPuanDurumu(data);
+          // 5. FİLİTRELE VE EKRANA BAS
+          if (dogruKategori) {
+              const grupTablosu = tumVeri
+                  .filter(t => t.kategori_adi === dogruKategori)
+                  .sort((a, b) => b.puan - a.puan || (b.averaj - a.averaj));
+                  
+              setCanliPuanDurumu(grupTablosu);
           } else {
               setCanliPuanDurumu([]);
-              alert(`Veritabanında "${evSahibiKok}" takımına ait güncel bir tablo bulunamadı!`);
+              alert(`Veritabanında "${evSahibiKok}" takımına (Yaş Grubu: ${hedefYas || 'Genel'}) ait bir lig tablosu bulunamadı!`);
           }
+
       } catch (e: any) {
           alert("Beklenmeyen Hata: " + e.message);
       }
