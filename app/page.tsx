@@ -549,6 +549,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
   
   const [komiserMaclari, setKomiserMaclari] = useState<any[]>([])
   const [tumAktifMaclar, setTumAktifMaclar] = useState<any[]>([])
+  const [tumSezonMaclari, setTumSezonMaclari] = useState<any[]>([])
   const [tumKomiserler, setTumKomiserler] = useState<any[]>([])
   const [tumStatuler, setTumStatuler] = useState<any[]>([]) 
   const [hakemListesi, setHakemListesi] = useState<string[]>([])
@@ -806,7 +807,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
   const siraliKadinlar = Object.entries(kadinKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
 
-  const guvenliTumMaclar = Array.isArray(tumAktifMaclar) ? tumAktifMaclar : [];
+  const isSuperAdmin = String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735');
+  const guvenliTumMaclar = isSuperAdmin ? (Array.isArray(tumSezonMaclari) ? tumSezonMaclari : []) : (Array.isArray(tumAktifMaclar) ? tumAktifMaclar : []);
   let filtrelenmisMaclar = guvenliTumMaclar;
   if (aramaKomiser.trim() !== '') {
     const q = turkceBuyukHarf(aramaKomiser);
@@ -1006,6 +1008,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
         }
         
         if (tumMaclarGecici && tumMaclarGecici.length > 0 && aktif) {
+          setTumSezonMaclari(tumMaclarGecici)
           const cumalar = tumMaclarGecici.map((mac: any) => mac?.tarih ? cumaBul(mac.tarih) : 0).filter((t: number) => t > 0)
           const essizCumalar = Array.from(new Set(cumalar)).sort((a: any, b: any) => a - b)
           
@@ -3072,7 +3075,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 <span className="text-xs md:text-sm font-black tracking-widest text-center">LİG STATÜLERİ VE TALİMATLAR</span>
                             </button>
                         </div>
-                        <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">🔍 HAFTALIK BÜLTEN VE GÖREV ARAMA</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Saha, takım veya komiser ismine göre İzmir'deki tüm güncel görevleri sorgulayın.</p></div></button>
+                        <button onClick={() => setAktifEkran('bultenArama')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">🔍 {(String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735')) ? 'TÜM SEZON ARŞİV ARAMA (SÜPER ADMİN)' : 'HAFTALIK BÜLTEN VE GÖREV ARAMA'}</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Saha, takım veya komiser ismine göre İzmir'deki {(String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735')) ? 'TÜM SEZON görevlerini' : 'tüm güncel görevleri'} sorgulayın.</p></div></button>
                         <button onClick={() => setAktifEkran('istatistiklerim')} className="w-full mb-4 flex items-center justify-between p-5 md:p-6 rounded-2xl shadow-sm bg-slate-800 border-2 border-slate-700 hover:bg-slate-900 transition-all transform hover:scale-[1.01] group overflow-hidden relative"><div className="text-left relative z-10"><h4 className="font-black text-lg md:text-xl text-white tracking-wide">SEZONLUK İSTATİSTİKLERİM</h4><p className="text-xs md:text-sm mt-1 text-slate-400 font-medium">Görev aldığınız liglerin detaylı dökümü.</p></div></button>
 
                         {/* 🔥 GÜNCELLENEN MÜSAİTLİK BUTONU 🔥 */}
@@ -3824,7 +3827,17 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     return (
                                         <div key={mac.id || `arama-${idx}`} className="bg-white border-l-4 border-slate-800 shadow-sm rounded-r-xl overflow-hidden transition-all hover:shadow-md border-y border-r border-slate-200">
                                             <button onClick={() => setAcikAramaMacId(isAcik ? null : mac.id)} className="w-full text-left p-3 md:p-4 flex justify-between items-center hover:bg-slate-50 focus:outline-none"><div className="flex-1 pr-2"><div className="flex items-center gap-2 mb-1"><span className="bg-slate-100 text-slate-700 border border-slate-300 text-[9px] px-2 py-0.5 rounded font-black tracking-wider">{formatMacKodu(mac?.mac_kodu)}</span><span className="text-slate-600 text-[10px] font-black tracking-widest">{turkceBuyukHarf(mac?.kategori_adi || '-')}</span></div><span className="font-black text-slate-900 text-sm md:text-base leading-tight block">{turkceBuyukHarf(mac?.ev_sahibi || '-')} <span className="text-slate-400 font-medium mx-1">vs</span> {turkceBuyukHarf(mac?.misafir_takim || '-')}</span></div><span className={`text-slate-400 text-xl leading-none transition-transform ${isAcik ? 'rotate-180 text-slate-800' : ''}`}>▼</span></button>
-                                            {isAcik && (<div className="p-3 md:p-4 border-t border-slate-200 bg-slate-50 animate-fade-in-down"><div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-sm text-slate-700"><div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold tracking-wider">TARİH & SAAT</span><span className="font-bold text-slate-800 text-xs md:text-sm">{guvenliTarih(mac?.tarih)} - {guvenliSaat(mac?.saat)}</span></div><div className="flex flex-col"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold tracking-wider">SAHA</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{turkceBuyukHarf(mac?.saha || '-')}</span></div><div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold tracking-wider">KATEGORİ / LİG</span><span className="font-bold text-slate-800 text-xs md:text-sm leading-tight">{turkceBuyukHarf(mac?.kategori_adi || '-')} <span className="text-[9px] md:text-xs font-normal text-slate-500 block sm:inline mt-0.5 sm:mt-0 sm:ml-1">(KOD: {formatMacKodu(mac?.mac_kodu)})</span></span></div><div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200"><span className="text-[10px] md:text-xs text-slate-400 mb-0.5 font-semibold tracking-wider">ATANAN GÖREV</span><span className="font-extrabold text-slate-700 text-xs md:text-sm">{turkceBuyukHarf(gorevTuruBelirle(mac?.kategori_adi || '', mac?.mac_kodu || ''))}</span></div><div className="flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-300 col-span-1 sm:col-span-2 bg-white p-3 rounded-lg border border-slate-300 shadow-sm"><span className="text-[9px] md:text-[10px] text-slate-500 mb-1 font-bold tracking-wider">MÜSABAKA SAHA KOMİSERİ</span><span className="font-black text-slate-900 text-sm md:text-base">{turkceBuyukHarf(komiserIsim)}</span></div></div></div>)}
+                                            {isAcik && (
+                                                <div className="p-3 md:p-4 border-t border-slate-200 bg-slate-50 animate-fade-in-down">
+                                                    <div className="mb-4 flex flex-col bg-white p-3 rounded-lg border border-slate-300 shadow-sm">
+                                                        <span className="text-[9px] md:text-[10px] text-slate-500 mb-1 font-bold tracking-wider">MÜSABAKA SAHA KOMİSERİ</span>
+                                                        <span className="font-black text-slate-900 text-sm md:text-base">{turkceBuyukHarf(komiserIsim)}</span>
+                                                    </div>
+                                                    <div className="transform scale-[0.98] origin-top">
+                                                        {renderOrjinalGorevKarti(mac, true)}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })
