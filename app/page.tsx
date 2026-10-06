@@ -2463,13 +2463,26 @@ const [kucukHeader, setKucukHeader] = useState(false);
                     )}
 
                     {/* EK RAPORLAR EKRANI */}
-              {((raporDetay && Array.isArray(raporDetay.ek_raporlar)) ? raporDetay.ek_raporlar : ekRaporlarListesi).map((ekRapor: any, index: number) => {
-                  const f1 = ekRaporFotolar[`${ekRapor.id}_1`] || ekRaporFotolar[ekRapor.id] || ekRapor.foto_url_1 || ekRapor.foto_url;
-                  const f2 = ekRaporFotolar[`${ekRapor.id}_2`] || ekRapor.foto_url_2;
+              {((typeof prefix !== 'undefined' && prefix === 'aktif' && typeof raporDetay !== 'undefined' && Array.isArray(raporDetay.ek_raporlar)) ? raporDetay.ek_raporlar : ekRaporlarListesi).map((ekRapor: any, index: number) => {
+                  const isKullanici = typeof ekRaporFotolar !== 'undefined';
+                  const f1 = isKullanici ? (ekRaporFotolar[`${ekRapor.id}_1`] || ekRaporFotolar[ekRapor.id] || ekRapor.foto_url_1 || ekRapor.foto_url) : (ekRapor.foto_url_1 || ekRapor.foto_url);
+                  const f2 = isKullanici ? (ekRaporFotolar[`${ekRapor.id}_2`] || ekRapor.foto_url_2) : ekRapor.foto_url_2;
                   
+                  // 🔥 VS CODE HATASINI GİDEREN DİNAMİK BAŞLIK VE LOGO MOTORU 🔥
+                  const katAdiStr = String(mac?.kategori_adi || '').toLocaleUpperCase('tr-TR');
+                  let dinamikUstBaslik = "GELİŞİM LİGLERİ";
+                  let dinamikSagLogo = "/gelisim-logo.png";
+                  if (katAdiStr.includes('KADIN') || katAdiStr.includes('KIZ')) {
+                      if (katAdiStr.includes('SÜPER')) { dinamikUstBaslik = "KADINLAR SÜPER LİGİ"; dinamikSagLogo = "/kadin-super.png"; }
+                      else if (katAdiStr.includes('1.')) { dinamikUstBaslik = "KADINLAR 1. LİGİ"; dinamikSagLogo = "/kadin-1.png"; }
+                      else if (katAdiStr.includes('2.')) { dinamikUstBaslik = "KADINLAR 2. LİGİ"; dinamikSagLogo = "/kadin-2.png"; }
+                      else if (katAdiStr.includes('3.')) { dinamikUstBaslik = "KADINLAR 3. LİGİ"; dinamikSagLogo = "/kadin-3.png"; }
+                      else { dinamikUstBaslik = "KADIN LİGLERİ"; dinamikSagLogo = "/kadin-logo.png"; }
+                  }
+
                   return (
                   <div key={ekRapor.id} className="print-page flex flex-col relative bolunmez page-break-before-always h-[1100px]">
-                      {prefix === 'aktif' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-[10px] font-bold border border-red-200 transition-colors z-10">🗑️ Bu Ek Raporu Sil</button>}
+                      {typeof prefix !== 'undefined' && prefix === 'aktif' && typeof ekRaporSil === 'function' && <button onClick={() => ekRaporSil(ekRapor.id)} className="tff-no-print absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded text-[10px] font-bold border border-red-200 transition-colors z-10">🗑️ Bu Ek Raporu Sil</button>}
 
                       {/* 🔥 1. KÜÇÜLTÜLMÜŞ KOMPAKT BAŞLIK 🔥 */}
                       {raporTuru === 'amator' ? (
@@ -2485,29 +2498,30 @@ const [kucukHeader, setKucukHeader] = useState(false);
                               <div className="w-1/4 flex justify-start items-center"><img src={GELISIM_SOL_LOGO} crossOrigin="anonymous" alt="TFF Sol" className="h-10 md:h-12 w-auto drop-shadow-sm" /></div>
                               <div className="text-center flex flex-col items-center justify-center w-2/4">
                                   <h2 className="font-extrabold text-sm md:text-base uppercase tracking-widest text-black">TÜRKİYE FUTBOL FEDERASYONU</h2>
+                                  <h3 className="font-bold text-[10px] md:text-xs uppercase mt-0.5 text-black">{dinamikUstBaslik}</h3>
                                   <h3 className="font-bold text-[10px] md:text-xs uppercase mt-0.5 text-black">SAHA KOMİSERİ EK RAPOR (EK-{index + 1})</h3>
                               </div>
-                              <div className="w-1/4 flex justify-end items-center"><img src={GELISIM_SAG_LOGO} crossOrigin="anonymous" alt="TFF Sağ" className="h-10 md:h-12 w-auto drop-shadow-sm" /></div>
+                              <div className="w-1/4 flex justify-end items-center"><img src={dinamikSagLogo} crossOrigin="anonymous" alt="Lig Sağ Logo" className="h-10 md:h-12 w-auto drop-shadow-sm" /></div>
                           </div>
                       )}
 
                       {/* 🔥 2. KÜÇÜLTÜLMÜŞ MAÇ BİLGİSİ SATIRI 🔥 */}
-                      <div className="flex flex-col md:flex-row border border-black text-[10px] md:text-xs font-bold mb-3 shrink-0 bg-slate-50">
+                      <div className="flex flex-col md:flex-row border border-black text-[10px] md:text-[11px] font-bold mb-3 shrink-0 bg-slate-50">
                           <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-black p-1.5 flex gap-2"><span className="text-slate-500">MÜSABAKA:</span> <span className="uppercase truncate text-black">{mac?.ev_sahibi} - {mac?.misafir_takim}</span></div>
                           <div className="w-full md:w-1/4 md:border-r border-b md:border-b-0 border-black p-1.5 flex gap-2"><span className="text-slate-500">TARİH:</span> <span className="text-black">{guvenliTarih(mac?.tarih)}</span></div>
                           <div className="w-full md:w-1/4 p-1.5 flex gap-2"><span className="text-slate-500">KOD:</span> <span className="text-black">{formatMacKodu(mac?.mac_kodu)}</span></div>
                       </div>
 
-                      {/* 🔥 3. BÜYÜTÜLMÜŞ İKİLİ FOTOĞRAF ALANI 🔥 */}
+                      {/* 🔥 3. ORANTILI İKİLİ FOTOĞRAF ALANI (HEM BÜYÜK HEM YAZIYA YER BIRAKIR) 🔥 */}
                       <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 shrink-0">
-                          <div className="border border-dashed border-black p-2 h-[350px] md:h-[450px] flex flex-col items-center justify-center relative bg-slate-50">
+                          <div className="border border-black p-2 h-[350px] md:h-[400px] flex flex-col items-center justify-center relative bg-slate-50">
                               <h3 className="font-bold text-[9px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-2 -mt-2 ml-2 text-black border border-slate-300">1. FOTOĞRAFLI KANIT</h3>
                               {f1 ? (
                                   <img src={f1 as string} crossOrigin="anonymous" alt={`Ek Kanıt 1`} className="max-w-full max-h-full h-auto object-contain shadow-sm" />
                               ) : (
                                   <div className="text-slate-400 text-center tff-no-print"><span className="text-3xl md:text-5xl block mb-1">📸</span><p className="text-[9px] md:text-xs font-bold">1. Görsel (Varsa)</p></div>
                               )}
-                              {prefix === 'aktif' && (
+                              {typeof prefix !== 'undefined' && prefix === 'aktif' && typeof handleFotoYukle !== 'undefined' && (
                                   <label className="tff-no-print absolute bottom-1 right-1 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded text-[9px] md:text-xs font-bold shadow-md transition-colors">
                                       {f1 ? 'Değiştir' : 'Seç'}
                                       <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(`${ekRapor.id}_1`, e)} />
@@ -2515,14 +2529,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
                               )}
                           </div>
 
-                          <div className="border border-dashed border-black p-2 h-[350px] md:h-[450px] flex flex-col items-center justify-center relative bg-slate-50">
+                          <div className="border border-black p-2 h-[350px] md:h-[400px] flex flex-col items-center justify-center relative bg-slate-50">
                               <h3 className="font-bold text-[9px] md:text-[10px] mb-2 absolute top-0 left-0 bg-white px-2 -mt-2 ml-2 text-black border border-slate-300">2. FOTOĞRAFLI KANIT</h3>
                               {f2 ? (
                                   <img src={f2 as string} crossOrigin="anonymous" alt={`Ek Kanıt 2`} className="max-w-full max-h-full h-auto object-contain shadow-sm" />
                               ) : (
                                   <div className="text-slate-400 text-center tff-no-print"><span className="text-3xl md:text-5xl block mb-1">📸</span><p className="text-[9px] md:text-xs font-bold">2. Görsel (Opsiyonel)</p></div>
                               )}
-                              {prefix === 'aktif' && (
+                              {typeof prefix !== 'undefined' && prefix === 'aktif' && typeof handleFotoYukle !== 'undefined' && (
                                   <label className="tff-no-print absolute bottom-1 right-1 cursor-pointer bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded text-[9px] md:text-xs font-bold shadow-md transition-colors">
                                       {f2 ? 'Değiştir' : 'Seç'}
                                       <input type="file" accept="image/*" className="hidden" onChange={(e: any) => handleFotoYukle(`${ekRapor.id}_2`, e)} />
@@ -2531,13 +2545,27 @@ const [kucukHeader, setKucukHeader] = useState(false);
                           </div>
                       </div>
 
-                      {/* 🔥 4. YAZI ALANI 🔥 */}
-                      <div className="flex-1 flex flex-col mb-4">
-                          <h3 className="font-bold text-[10px] md:text-xs uppercase mb-1 bg-slate-100 p-1.5 border border-slate-300 text-black">OLAY DETAYI VE EK AÇIKLAMA:</h3>
-                          {prefix === 'aktif' ? <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full flex-1 outline-none border border-slate-300 bg-slate-50 p-3 text-[11px] md:text-xs text-black rounded" placeholder="Buraya detayları yazabilirsiniz..."></textarea> : <div className="w-full flex-1 p-3 border border-dashed border-black whitespace-pre-wrap text-[11px] md:text-xs text-black leading-relaxed">{ekRapor.text}</div>}
+                      {/* 🔥 4. YAZI ALANI VE BİRLEŞİK İMZA 🔥 */}
+                      <div className="flex-1 flex flex-col border border-black relative">
+                          <h3 className="font-bold text-[10px] md:text-[11px] uppercase bg-slate-100 p-1.5 border-b border-black text-black m-0 shrink-0">OLAY DETAYI VE EK AÇIKLAMA:</h3>
+                          
+                          {typeof prefix !== 'undefined' && prefix === 'aktif' && typeof ekRaporGuncelle !== 'undefined' ? (
+                              <textarea value={ekRapor.text} onChange={(e: any) => ekRaporGuncelle(ekRapor.id, e.target.value)} className="w-full flex-1 outline-none bg-white p-3 text-[11px] md:text-xs text-black rounded leading-snug pb-20" placeholder="Buraya detayları yazabilirsiniz..."></textarea>
+                          ) : (
+                              <div className="w-full flex-1 p-3 whitespace-pre-wrap text-[11px] md:text-xs text-black leading-snug bg-white pb-20">{ekRapor.text}</div>
+                          )}
+
+                          {/* İMZA BLOĞU KUTUNUN İÇİNDE SAĞ ALT KÖŞEDE */}
+                          <div className="absolute bottom-2 right-4 text-center w-48 tff-no-print-border">
+                              <div className="text-[13px] md:text-sm font-black uppercase border-b border-black pb-0.5 mb-0.5 text-black">
+                                  {typeof komiserTamIsim !== 'undefined' ? komiserTamIsim : ''}
+                              </div>
+                              <div className="text-[9px] md:text-[10px] font-bold text-slate-800">
+                                  SAHA KOMİSERİ
+                              </div>
+                          </div>
                       </div>
 
-                      <RenderA4Footer />
                   </div>
               )})}
                                 
