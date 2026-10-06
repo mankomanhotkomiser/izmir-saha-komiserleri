@@ -622,7 +622,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (!analizAcikMac) return;
       setAnalizYukleniyor(true);
       try {
-          // 🔥 BOT SİMÜLASYONU: Sistem dışarıdan veriyi çekmiş gibi doğrudan Supabase tablomuzu güncelliyor!
           const evPayload = { 
               kategori_adi: analizAcikMac.kategori_adi, 
               takim_adi: analizAcikMac.ev_sahibi, 
@@ -634,21 +633,34 @@ const [kucukHeader, setKucukHeader] = useState(false);
               oynadi: 15, galibiyet: 3, beraberlik: 3, maglubiyet: 9, attigi: 15, yedigi: 30, averaj: -15, puan: 12, form_durumu: 'MMBGM' 
           };
           
-          // Veritabanına (Supabase) YAZ
-          await supabase.from('puan_durumlari').upsert([evPayload, misafirPayload], { onConflict: 'kategori_adi,takim_adi' });
+          // 1. SUPABASE'E YAZMAYI DENE (HATALARI YAKALAYARAK)
+          const { error: upsertError } = await supabase.from('puan_durumlari').upsert([evPayload, misafirPayload], { onConflict: 'kategori_adi,takim_adi' });
           
-          // Veritabanından (Supabase) GÜNCEL HALİNİ GERİ OKU
-          const { data } = await supabase
+          if (upsertError) {
+              alert("Supabase Veritabanı Hatası (Yazma Reddedildi):\n" + upsertError.message);
+          }
+
+          // 2. SUPABASE'DEN GERİ OKUMAYI DENE
+          const { data, error: selectError } = await supabase
               .from('puan_durumlari')
               .select('*')
               .eq('kategori_adi', analizAcikMac.kategori_adi)
               .order('puan', { ascending: false })
               .order('averaj', { ascending: false });
               
-          setCanliPuanDurumu(data || []);
-          alert("✅ Ajan Bot başarıyla çalıştı!\nGüncel SofaScore / TFF verileri Supabase veritabanına kaydedildi ve ekrana yansıtıldı.");
-      } catch (e) {
-          alert("Veri çekilirken hata oluştu!");
+          if (selectError) {
+              alert("Supabase Veritabanı Hatası (Okuma Reddedildi):\n" + selectError.message);
+          }
+          
+          // 3. EKRANA ZORLA YANSIT (Veritabanı hata verse bile arayüzü görebilmen için!)
+          if (data && data.length > 0) {
+              setCanliPuanDurumu(data);
+          } else {
+              // Veritabanı boş dönse bile test simülasyonunu ekrana zorla basıyoruz!
+              setCanliPuanDurumu([evPayload, misafirPayload].sort((a, b) => b.puan - a.puan));
+          }
+      } catch (e: any) {
+          alert("Beklenmeyen Hata: " + e.message);
       }
       setAnalizYukleniyor(false);
   };
