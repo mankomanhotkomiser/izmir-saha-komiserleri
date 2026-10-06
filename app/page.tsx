@@ -218,9 +218,9 @@ const isBordroKategori = (kategoriAdi: string) => {
       // SÜPER ZEKA DOKUNUŞU: Kategori adındaki TÜM BOŞLUKLARI siliyoruz. 
       const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
 
-      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Gelişim, Akademi, Paf, Kadın/Kız Ligleri)
+      // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Türkçe karakter hatalarına karşı zırhlı)
       const yasakliKelimeler = [
-          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'
+          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'GELISIM', 'AKADEMİ', 'AKADEMI', 'ELİT', 'ELIT'
       ];
       
       for (let i = 0; i < yasakliKelimeler.length; i++) {
