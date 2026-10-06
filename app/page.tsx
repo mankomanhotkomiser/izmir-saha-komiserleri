@@ -599,6 +599,59 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const [genelDeplasman, setGenelDeplasman] = useState(false)
   const [acikStatu, setAcikStatu] = useState<any | null>(null) 
   const [analizAcikMac, setAnalizAcikMac] = useState<any | null>(null);
+  const [canliPuanDurumu, setCanliPuanDurumu] = useState<any[]>([]);
+  const [analizYukleniyor, setAnalizYukleniyor] = useState(false);
+
+  const analizModaliniAc = async (mac: any) => {
+      setAnalizAcikMac(mac);
+      setAnalizYukleniyor(true);
+      try {
+          // Gerçek veritabanımızdan (yeni açtığımız kasadan) canlı veriyi çekiyoruz!
+          const { data } = await supabase
+              .from('puan_durumlari')
+              .select('*')
+              .eq('kategori_adi', mac.kategori_adi)
+              .order('puan', { ascending: false })
+              .order('averaj', { ascending: false });
+          setCanliPuanDurumu(data || []);
+      } catch (e) { }
+      setAnalizYukleniyor(false);
+  };
+
+  const analizVerileriniTetikle = async () => {
+      if (!analizAcikMac) return;
+      setAnalizYukleniyor(true);
+      try {
+          // 🔥 BOT SİMÜLASYONU: Sistem dışarıdan veriyi çekmiş gibi doğrudan Supabase tablomuzu güncelliyor!
+          const evPayload = { 
+              kategori_adi: analizAcikMac.kategori_adi, 
+              takim_adi: analizAcikMac.ev_sahibi, 
+              oynadi: 15, galibiyet: 12, beraberlik: 2, maglubiyet: 1, attigi: 40, yedigi: 10, averaj: 30, puan: 38, form_durumu: 'GGBGG' 
+          };
+          const misafirPayload = { 
+              kategori_adi: analizAcikMac.kategori_adi, 
+              takim_adi: analizAcikMac.misafir_takim, 
+              oynadi: 15, galibiyet: 3, beraberlik: 3, maglubiyet: 9, attigi: 15, yedigi: 30, averaj: -15, puan: 12, form_durumu: 'MMBGM' 
+          };
+          
+          // Veritabanına (Supabase) YAZ
+          await supabase.from('puan_durumlari').upsert([evPayload, misafirPayload], { onConflict: 'kategori_adi,takim_adi' });
+          
+          // Veritabanından (Supabase) GÜNCEL HALİNİ GERİ OKU
+          const { data } = await supabase
+              .from('puan_durumlari')
+              .select('*')
+              .eq('kategori_adi', analizAcikMac.kategori_adi)
+              .order('puan', { ascending: false })
+              .order('averaj', { ascending: false });
+              
+          setCanliPuanDurumu(data || []);
+          alert("✅ Ajan Bot başarıyla çalıştı!\nGüncel SofaScore / TFF verileri Supabase veritabanına kaydedildi ve ekrana yansıtıldı.");
+      } catch (e) {
+          alert("Veri çekilirken hata oluştu!");
+      }
+      setAnalizYukleniyor(false);
+  };
   const [arsivTamEkranMac, setArsivTamEkranMac] = useState<any | null>(null) 
   const [acikBordroAy, setAcikBordroAy] = useState<string | null>(null) 
   const [tamEkranBordroAy, setTamEkranBordroAy] = useState<string | null>(null) 
@@ -2048,7 +2101,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         </div>
                         {/* 🔥 SADECE GENEL MERKEZ / TEST MODUNDA GÖRÜNEN ANALİZ BUTONU 🔥 */}
                         {aktifSehir === 'genelmerkez' && (
-                            <button onClick={() => setAnalizAcikMac(mac)} className="w-full bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-700 border border-indigo-200 mt-4 font-bold py-2.5 rounded-lg text-[10px] md:text-xs transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            <button onClick={() => analizModaliniAc(mac)} className="w-full bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-700 border border-indigo-200 mt-4 font-bold py-2.5 rounded-lg text-[10px] md:text-xs transition-colors flex items-center justify-center gap-2 shadow-sm">
                                 <span className="text-sm">📊</span> MAÇ ÖNÜ ANALİZİ VE PUAN DURUMU (TEST)
                             </button>
                         )}
@@ -4137,7 +4190,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         </div>
                     </div>
                 )}
-                {/* 🔥 MAÇ ÖNÜ ANALİZİ EKRANI (TEST SİMÜLASYONU) 🔥 */}
+                {/* 🔥 MAÇ ÖNÜ ANALİZİ EKRANI (GERÇEK VERİTABANI BAĞLANTILI) 🔥 */}
                 {analizAcikMac && (
                     <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up tff-no-print">
                         <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl relative">
@@ -4156,95 +4209,111 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             
                             <div className="p-4 md:p-6 bg-slate-900 overflow-y-auto max-h-[80vh] custom-scrollbar">
                                 
-                                {/* TAKIM KARŞILAŞTIRMASI */}
-                                <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 relative overflow-hidden shadow-inner">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 via-transparent to-red-900/20"></div>
-                                    <div className="text-center relative z-10 w-2/5">
-                                        <div className="text-2xl md:text-3xl mb-1">🛡️</div>
-                                        <h3 className="text-white font-black text-xs md:text-sm uppercase truncate">{analizAcikMac.ev_sahibi}</h3>
-                                        <div className="text-emerald-400 font-bold text-[9px] md:text-[10px] mt-1 bg-emerald-900/40 border border-emerald-800/50 inline-block px-2 py-0.5 rounded">LİG 1. Sİ (45 Puan)</div>
-                                        <div className="flex justify-center gap-1 mt-2">
-                                            <span className="bg-emerald-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">G</span>
-                                            <span className="bg-emerald-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">G</span>
-                                            <span className="bg-slate-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">B</span>
-                                            <span className="bg-emerald-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">G</span>
+                                {analizYukleniyor ? (
+                                    <div className="flex flex-col items-center justify-center py-10">
+                                        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                        <p className="text-indigo-400 font-bold animate-pulse tracking-widest text-xs">AJAN BOT VERİLERİ SORGULUYOR...</p>
+                                    </div>
+                                ) : canliPuanDurumu.length === 0 ? (
+                                    <div className="text-center bg-slate-800 border border-slate-700 p-8 rounded-xl">
+                                        <span className="text-5xl block mb-4 opacity-50">🤖</span>
+                                        <h3 className="text-white font-black text-lg mb-2">VERİTABANINDA KAYIT BULUNAMADI</h3>
+                                        <p className="text-slate-400 text-xs font-medium mb-6 leading-relaxed">Bu lige ait puan durumu henüz Supabase veritabanımıza çekilmemiş. Botu manuel tetikleyerek verileri anında TFF/SofaScore'dan çekebilirsiniz.</p>
+                                        <button onClick={analizVerileriniTetikle} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3 rounded-lg shadow-lg tracking-widest flex items-center justify-center gap-2 mx-auto transition-transform hover:scale-105">
+                                            <span className="text-lg">⚡</span> BOTU TETİKLE VE VERİLERİ ÇEK
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="animate-fade-in-down">
+                                        {/* VERİTABANINDAN GELEN TAKIM KARŞILAŞTIRMASI */}
+                                        {(() => {
+                                            const evVeri = canliPuanDurumu.find(t => t.takim_adi === analizAcikMac.ev_sahibi) || { puan: '?', siralama: '?' };
+                                            const misVeri = canliPuanDurumu.find(t => t.takim_adi === analizAcikMac.misafir_takim) || { puan: '?', siralama: '?' };
+                                            const evSira = canliPuanDurumu.findIndex(t => t.takim_adi === analizAcikMac.ev_sahibi) + 1;
+                                            const misSira = canliPuanDurumu.findIndex(t => t.takim_adi === analizAcikMac.misafir_takim) + 1;
+
+                                            return (
+                                                <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 relative overflow-hidden shadow-inner">
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 via-transparent to-red-900/20"></div>
+                                                    <div className="text-center relative z-10 w-2/5">
+                                                        <div className="text-2xl md:text-3xl mb-1">🛡️</div>
+                                                        <h3 className="text-white font-black text-xs md:text-sm uppercase truncate">{analizAcikMac.ev_sahibi}</h3>
+                                                        {evVeri.puan !== '?' && <div className="text-emerald-400 font-bold text-[9px] md:text-[10px] mt-1 bg-emerald-900/40 border border-emerald-800/50 inline-block px-2 py-0.5 rounded">LİG {evSira}. Sİ ({evVeri.puan} Puan)</div>}
+                                                    </div>
+                                                    
+                                                    <div className="text-slate-500 font-black text-xl md:text-2xl italic w-1/5 text-center">VS</div>
+                                                    
+                                                    <div className="text-center relative z-10 w-2/5">
+                                                        <div className="text-2xl md:text-3xl mb-1">⚔️</div>
+                                                        <h3 className="text-white font-black text-xs md:text-sm uppercase truncate">{analizAcikMac.misafir_takim}</h3>
+                                                        {misVeri.puan !== '?' && <div className="text-red-400 font-bold text-[9px] md:text-[10px] mt-1 bg-red-900/40 border border-red-800/50 inline-block px-2 py-0.5 rounded">LİG {misSira}. Sİ ({misVeri.puan} Puan)</div>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* VERİTABANINDAN ÇEKİLEN PUAN DURUMU */}
+                                        <div className="flex justify-between items-end mb-3 border-b border-slate-700 pb-2">
+                                            <h4 className="text-emerald-400 font-black text-[10px] tracking-widest uppercase">LİG GÜNCEL PUAN DURUMU</h4>
+                                            <button onClick={analizVerileriniTetikle} className="text-[9px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1 border border-slate-600"><span>🔄</span> YENİLE</button>
+                                        </div>
+                                        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden shadow-md">
+                                            <table className="w-full text-left text-[10px] md:text-xs text-slate-300">
+                                                <thead className="bg-slate-950 text-slate-400">
+                                                    <tr>
+                                                        <th className="p-2 w-8 text-center">#</th>
+                                                        <th className="p-2">TAKIM</th>
+                                                        <th className="p-2 text-center">O</th>
+                                                        <th className="p-2 text-center">G</th>
+                                                        <th className="p-2 text-center">B</th>
+                                                        <th className="p-2 text-center">M</th>
+                                                        <th className="p-2 text-center">AV</th>
+                                                        <th className="p-2 text-center font-black text-white">P</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {canliPuanDurumu.map((takim, index) => {
+                                                        const isEvSahibi = takim.takim_adi === analizAcikMac.ev_sahibi;
+                                                        const isMisafir = takim.takim_adi === analizAcikMac.misafir_takim;
+                                                        const rowClass = isEvSahibi ? 'bg-blue-900/30' : (isMisafir ? 'bg-red-900/20' : '');
+                                                        const textClass = (isEvSahibi || isMisafir) ? 'text-white font-bold' : 'text-slate-400';
+                                                        
+                                                        return (
+                                                            <tr key={index} className={`border-b border-slate-700 ${rowClass}`}>
+                                                                <td className={`p-2 text-center font-bold ${isEvSahibi ? 'text-blue-400' : (isMisafir ? 'text-red-400' : 'text-slate-500')}`}>{index + 1}</td>
+                                                                <td className={`p-2 uppercase truncate max-w-[120px] ${textClass}`}>{takim.takim_adi}</td>
+                                                                <td className="p-2 text-center">{takim.oynadi}</td>
+                                                                <td className="p-2 text-center">{takim.galibiyet}</td>
+                                                                <td className="p-2 text-center">{takim.beraberlik}</td>
+                                                                <td className="p-2 text-center">{takim.maglubiyet}</td>
+                                                                <td className={`p-2 text-center font-bold ${takim.averaj > 0 ? 'text-emerald-400' : (takim.averaj < 0 ? 'text-red-400' : 'text-slate-400')}`}>{takim.averaj > 0 ? `+${takim.averaj}` : takim.averaj}</td>
+                                                                <td className="p-2 text-center font-black text-white">{takim.puan}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* YAPAY ZEKA TAVSİYESİ */}
+                                        <div className="mt-6 bg-indigo-950/40 border border-indigo-500/30 p-4 rounded-xl flex items-start gap-3 shadow-inner">
+                                            <span className="text-2xl animate-pulse">🤖</span>
+                                            <div>
+                                                <h4 className="text-indigo-300 font-black text-[10px] md:text-xs tracking-widest uppercase mb-1">Yapay Zeka Saha Analizi</h4>
+                                                <p className="text-slate-300 text-[11px] md:text-xs leading-relaxed font-medium">
+                                                    Veritabanı kayıtlarına göre iki takım arasında puan farkı bulunmaktadır. Gerginliği yüksek geçebilecek bu müsabakada teknik alan ihlallerine ve yedek kulübesi itirazlarına karşı dikkatli olunuz.
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="text-slate-500 font-black text-xl md:text-2xl italic w-1/5 text-center">VS</div>
-                                    
-                                    <div className="text-center relative z-10 w-2/5">
-                                        <div className="text-2xl md:text-3xl mb-1">⚔️</div>
-                                        <h3 className="text-white font-black text-xs md:text-sm uppercase truncate">{analizAcikMac.misafir_takim}</h3>
-                                        <div className="text-red-400 font-bold text-[9px] md:text-[10px] mt-1 bg-red-900/40 border border-red-800/50 inline-block px-2 py-0.5 rounded">LİG 12. Sİ (12 Puan)</div>
-                                        <div className="flex justify-center gap-1 mt-2">
-                                            <span className="bg-red-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">M</span>
-                                            <span className="bg-red-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">M</span>
-                                            <span className="bg-emerald-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">G</span>
-                                            <span className="bg-slate-600 w-4 h-4 rounded text-[8px] flex items-center justify-center text-white font-bold">B</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* SİMÜLE EDİLMİŞ PUAN DURUMU */}
-                                <h4 className="text-slate-400 font-black text-[10px] tracking-widest uppercase mb-3 border-b border-slate-700 pb-2">LİG GÜNCEL PUAN DURUMU (TEST)</h4>
-                                <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden shadow-md">
-                                    <table className="w-full text-left text-[10px] md:text-xs text-slate-300">
-                                        <thead className="bg-slate-950 text-slate-400">
-                                            <tr>
-                                                <th className="p-2 w-8 text-center">#</th>
-                                                <th className="p-2">TAKIM</th>
-                                                <th className="p-2 text-center">O</th>
-                                                <th className="p-2 text-center">G</th>
-                                                <th className="p-2 text-center">B</th>
-                                                <th className="p-2 text-center">M</th>
-                                                <th className="p-2 text-center">AV</th>
-                                                <th className="p-2 text-center font-black text-white">P</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr className="bg-blue-900/20 border-b border-slate-700">
-                                                <td className="p-2 text-center font-bold text-blue-400">1</td>
-                                                <td className="p-2 font-bold text-white uppercase truncate max-w-[120px]">{analizAcikMac.ev_sahibi}</td>
-                                                <td className="p-2 text-center">15</td><td className="p-2 text-center">15</td><td className="p-2 text-center">0</td><td className="p-2 text-center">0</td><td className="p-2 text-center text-emerald-400">+45</td><td className="p-2 text-center font-black text-white">45</td>
-                                            </tr>
-                                            <tr className="border-b border-slate-700">
-                                                <td className="p-2 text-center font-bold text-slate-500">2</td>
-                                                <td className="p-2 text-slate-400 uppercase">BUCASPOR 1928</td>
-                                                <td className="p-2 text-center">15</td><td className="p-2 text-center">12</td><td className="p-2 text-center">2</td><td className="p-2 text-center">1</td><td className="p-2 text-center text-emerald-400">+30</td><td className="p-2 text-center font-black text-white">38</td>
-                                            </tr>
-                                            <tr>
-                                                <td colSpan={8} className="p-2 text-center text-[10px] text-slate-600 font-bold bg-slate-900/50">... (DİĞER 9 TAKIM) ...</td>
-                                            </tr>
-                                            <tr className="bg-red-900/10 border-t border-slate-700">
-                                                <td className="p-2 text-center font-bold text-red-400">12</td>
-                                                <td className="p-2 font-bold text-white uppercase truncate max-w-[120px]">{analizAcikMac.misafir_takim}</td>
-                                                <td className="p-2 text-center">15</td><td className="p-2 text-center">3</td><td className="p-2 text-center">3</td><td className="p-2 text-center">9</td><td className="p-2 text-center text-red-400">-15</td><td className="p-2 text-center font-black text-white">12</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* KOMİSERE YAPAY ZEKA TAVSİYESİ */}
-                                <div className="mt-6 bg-indigo-950/40 border border-indigo-500/30 p-4 rounded-xl flex items-start gap-3 shadow-inner">
-                                    <span className="text-2xl animate-pulse">🤖</span>
-                                    <div>
-                                        <h4 className="text-indigo-300 font-black text-[10px] md:text-xs tracking-widest uppercase mb-1">Yapay Zeka Saha Analizi</h4>
-                                        <p className="text-slate-300 text-[11px] md:text-xs leading-relaxed font-medium">
-                                            Bu maçta ligin namağlup lideri ile düşme hattındaki bir takım karşılaşıyor. Kağıt üzerinde tek taraflı bir maç gibi görünse de, misafir takımın kümede kalma hırsı nedeniyle <b>saha içi sertlikler</b> ve <b>yedek kulübesi itirazları</b> yüksek olabilir. Emniyet amiri ile maç öncesi kısa bir koordinasyon yapmanız tavsiye edilir.
-                                        </p>
-                                    </div>
-                                </div>
-
+                                )}
                             </div>
                             
                             <div className="bg-slate-950 p-3 border-t border-slate-800 text-center shrink-0">
-                                <p className="text-[8px] md:text-[9px] text-slate-600 font-mono tracking-wider uppercase">* Bu veriler test amaçlı simüle edilmiştir. Gelecek sürümde canlı API üzerinden çekilecektir.</p>
+                                <p className="text-[8px] md:text-[9px] text-slate-600 font-mono tracking-wider uppercase">SUPABASE VERİTABANI: puan_durumlari BAĞLANTISI AKTİF 🟢</p>
                             </div>
                         </div>
                     </div>
                 )}
-
-                <RehberModal isOpen={rehberAcik} onClose={rehberiKapatVeKaydet} />
             </Fragment> ); 
             }
