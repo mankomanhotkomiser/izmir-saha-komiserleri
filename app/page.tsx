@@ -220,7 +220,7 @@ const isBordroKategori = (kategoriAdi: string) => {
 
       // 1. KESİNLİKLE BORDRO DIŞI KALACAKLAR (Türkçe karakter hatalarına karşı zırhlı)
       const yasakliKelimeler = [
-          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'GELISIM', 'AKADEMİ', 'AKADEMI', 'ELİT', 'ELIT'
+          'PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'GELISIM', 'GELŞİM', 'AKADEMİ', 'AKADEMI', 'ELİT', 'ELIT'  
       ];
       
       for (let i = 0; i < yasakliKelimeler.length; i++) {
