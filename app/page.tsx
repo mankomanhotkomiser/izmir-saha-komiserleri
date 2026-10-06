@@ -4276,11 +4276,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                             );
                                         })()}
 
-                                        {/* VERİTABANINDAN ÇEKİLEN PUAN DURUMU */}
-                                        <div className="flex justify-between items-end mb-3 border-b border-slate-700 pb-2">
-                                            <h4 className="text-emerald-400 font-black text-[10px] tracking-widest uppercase">LİG GÜNCEL PUAN DURUMU</h4>
-                                            <button onClick={analizVerileriniTetikle} className="text-[9px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1 border border-slate-600"><span>🔄</span> YENİLE</button>
-                                        </div>
+                                        
                                         {/* VERİTABANINDAN ÇEKİLEN PUAN DURUMU */}
                                         <div className="flex justify-between items-end mb-3 border-b border-slate-700 pb-2">
                                             <h4 className="text-emerald-400 font-black text-[10px] tracking-widest uppercase">LİG GÜNCEL PUAN DURUMU</h4>
