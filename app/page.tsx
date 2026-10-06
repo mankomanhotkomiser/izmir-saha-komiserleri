@@ -2100,8 +2100,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             <span className="font-extrabold text-blue-700 text-xs md:text-sm">{turkceBuyukHarf(gorevTuruBelirle(mac.kategori_adi, mac.mac_kodu))}</span>
                         </div>
                         {/* 🔥 SADECE ÖNDER ASLAN (SÜPER ADMİN) İÇİN GÖRÜNEN ANALİZ BUTONU 🔥 */}
-                        {(seciliKomiser?.komiser_id === 'mankoman' || seciliKomiser?.komiser_id?.startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735')) && (
-                            <button onClick={() => setAnalizAcikMac(mac)} className="w-full bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-700 border border-indigo-200 mt-4 font-bold py-2.5 rounded-lg text-[10px] md:text-xs transition-colors flex items-center justify-center gap-2 shadow-sm">
+                        {(String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735')) && (
+                            <button onClick={() => { if(typeof analizModaliniAc !== 'undefined') { analizModaliniAc(mac); } else { setAnalizAcikMac(mac); } }} className="w-full bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-700 border border-indigo-200 mt-4 font-bold py-2.5 rounded-lg text-[10px] md:text-xs transition-colors flex items-center justify-center gap-2 shadow-sm">
                                 <span className="text-sm">📊</span> MAÇ ÖNÜ ANALİZİ VE PUAN DURUMU (TEST)
                             </button>
                         )}
