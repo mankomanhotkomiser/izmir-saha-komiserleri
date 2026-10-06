@@ -622,11 +622,34 @@ const [kucukHeader, setKucukHeader] = useState(false);
       if (!analizAcikMac) return;
       setAnalizYukleniyor(true);
       try {
-          // ARTIK KOD ŞİŞİRMEK YOK! Sadece Supabase'e "Bana bu kategoriyi (Örn: U15) getir" diyoruz.
+          // 1. YAPAY ZEKA RADARI: Admin ne yazarsa yazsın, takımdan yola çıkarak doğru grubu bulur!
+          const evSahibiKok = analizAcikMac.ev_sahibi.split(' ')[0]; // Örn: GÖZTEPE
+          
+          // Kategoriden yaş grubunu/numarayı yakala (Örn: "TFF U-14" içinden "14"ü alır)
+          const yasGrubuMatch = analizAcikMac.kategori_adi.match(/\d+/); 
+          const yasGrubu = yasGrubuMatch ? yasGrubuMatch[0] : ''; 
+
+          let gercekGrupKategorisi = analizAcikMac.kategori_adi;
+
+          if (yasGrubu) {
+              // Supabase'e sor: "İçinde Göztepe geçen ve yaş kategorisinde 14 olan takımın ASIL grubu nedir?"
+              const { data: takimBulgu } = await supabase
+                  .from('puan_durumlari')
+                  .select('kategori_adi')
+                  .ilike('takim_adi', `%${evSahibiKok}%`)
+                  .ilike('kategori_adi', `%${yasGrubu}%`)
+                  .limit(1);
+
+              if (takimBulgu && takimBulgu.length > 0) {
+                  gercekGrupKategorisi = takimBulgu[0].kategori_adi; // Örn: "U14 GELİŞİM LİGİ 6. GRUP"
+              }
+          }
+
+          // 2. RADARIN BULDUĞU NOKTA ATIŞI GRUBU ÇEK VE EKRANA YANSIT
           const { data, error } = await supabase
               .from('puan_durumlari')
               .select('*')
-              .eq('kategori_adi', analizAcikMac.kategori_adi)
+              .eq('kategori_adi', gercekGrupKategorisi)
               .order('puan', { ascending: false })
               .order('averaj', { ascending: false });
               
@@ -636,7 +659,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
               setCanliPuanDurumu(data);
           } else {
               setCanliPuanDurumu([]);
-              alert(`Veritabanında "${analizAcikMac.kategori_adi}" için henüz puan durumu bulunmuyor. Lütfen Supabase üzerinden verileri güncelleyin.`);
+              alert(`Veritabanında "${evSahibiKok}" takımına ait güncel bir tablo bulunamadı!`);
           }
       } catch (e: any) {
           alert("Beklenmeyen Hata: " + e.message);
