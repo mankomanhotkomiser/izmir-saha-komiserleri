@@ -249,7 +249,14 @@ const isBordroKategori = (kategoriAdi: string) => {
 
       return false; 
   };
+// 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
+const SEZON_BASLANGIC_CUMASI = new Date(2026, 9, 16).getTime(); // JS'de Aylar 0'dan başlar (9 = Ekim)
+const BIR_HAFTA_MS = 7 * 24 * 60 * 60 * 1000;
 
+const haftaNoHesapla = (cumaZaman: number) => {
+    if (!cumaZaman || cumaZaman < SEZON_BASLANGIC_CUMASI) return 0; // 16 Ekim öncesi tüm maçlar 0. Hafta olur!
+    return Math.floor((cumaZaman - SEZON_BASLANGIC_CUMASI) / BIR_HAFTA_MS) + 1;
+};
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
@@ -736,27 +743,24 @@ const [kucukHeader, setKucukHeader] = useState(false);
   let gecerliAktifMaclar: any[] = [];
   const gecmisHaftalar: Record<number, any[]> = {};
 
-  if (haftaReferanslari.length > 0 && seciliKomiser && Array.isArray(komiserMaclari)) {
+  if (seciliKomiser && Array.isArray(komiserMaclari)) {
     komiserMaclari.forEach((mac: any) => {
       if (!mac || !mac.tarih) return; 
       const macCuma = cumaBul(mac.tarih);
-      const macHaftaNo = haftaReferanslari.indexOf(macCuma) + 1;
       
+      // 🔥 DİNAMİK DİZİ YERİNE SABİT MATEMATİK 🔥
+      const macHaftaNo = haftaNoHesapla(macCuma);      
       // 🔥 SINIRSIZ YAPIŞKAN RADAR KONTROLÜ 🔥
-      // Eğer komiser bu maçla ilgili hiçbir işlem yapmadıysa (Tebellüğ yok)
       const eksikTebellugMu = !mac.tebellug_edildi && mac.mac_durumu !== 'iptal_edildi';
-      // Veya tebellüğ etmiş ama henüz skoru girmemişse
       const eksikSkorMu = mac.tebellug_edildi && !mac.skor_girildi && mac.mac_durumu !== 'iptal_edildi';
-      // Veya skor girmiş ama zorunlu TFF Detaylı raporunu yüklememişse
       const eksikDetayliMi = mac.skor_girildi && mac.mac_durumu !== 'iptal_edildi' && detayliRaporGosterilirMi(mac.kategori_adi) && !parseDetay(mac.tff_rapor_detaylari).detayli_kaydedildi;
       
       const yapiskanMi = eksikTebellugMu || eksikSkorMu || eksikDetayliMi;
 
-      // KURAL: Eğer bu maç o haftanın maçıysa VEYA yapışkan (bitmemiş) bir görevse DAİMA KOMİSERİN EKRANINA YAPIŞTIR!
       if (macHaftaNo === globalAktifHaftaNo || yapiskanMi) { 
         gecerliAktifMaclar.push(mac); 
-      } else if (macHaftaNo > 0 && macHaftaNo < globalAktifHaftaNo && !yapiskanMi) {
-        // Sadece işlemleri TAMAMEN BİTMİŞ geçmiş maçlar arşive düşebilir!
+      } else if (macHaftaNo >= 0 && macHaftaNo < globalAktifHaftaNo && !yapiskanMi) {
+        // 0. HAFTA DAHİL geçmiş arşive atıyoruz!
         if (!gecmisHaftalar[macHaftaNo]) gecmisHaftalar[macHaftaNo] = [];
         gecmisHaftalar[macHaftaNo].push(mac);
       }
@@ -1024,21 +1028,19 @@ const [kucukHeader, setKucukHeader] = useState(false);
           const essizCumalar = Array.from(new Set(cumalar)).sort((a: any, b: any) => a - b)
           
           if(essizCumalar.length > 0) {
-            setHaftaReferanslari(essizCumalar as number[])
+            // 🔥 YENİ SİSTEM: Matematiksel Sabit Takvim 🔥
+            const suAnCuma = cumaBul(Date.now());
+            const gercekHaftaNo = haftaNoHesapla(suAnCuma);
+            const enYakinHaftaNo = gercekHaftaNo === 0 ? 0 : gercekHaftaNo; // Şu an 16 Ekim'den önceysek 0. Hafta olacak.
             
-            const suAn = Date.now();
-            let enYakinHaftaNo = 1;
-            essizCumalar.forEach((cuma: any, idx: number) => {
-                // 🔥 TFF KATI TAKVİMİ: Tam Cuma 00:00 olana kadar asla diğer haftaya atlama! 🔥
-                if (suAn >= cuma) {
-                    enYakinHaftaNo = idx + 1;
-                }
-            });
-            
-            setGlobalAktifHaftaNo(enYakinHaftaNo)
+            setGlobalAktifHaftaNo(enYakinHaftaNo);
 
-            const aktifCumaTarihi = essizCumalar[enYakinHaftaNo - 1]
-            let aktifHaftaMaclari = tumMaclarGecici.filter((mac: any) => mac?.tarih && cumaBul(mac.tarih) === aktifCumaTarihi)
+            // Eğer sıfırıncı haftadaysak, sadece son cumaya ait maçları veya gelecekteki test maçlarını göster
+            const aktifHaftaMaclari = tumMaclarGecici.filter((mac: any) => {
+                if (!mac?.tarih) return false;
+                const macCuma = cumaBul(mac.tarih);
+                return haftaNoHesapla(macCuma) === enYakinHaftaNo;
+            });
             
             if(aktifHaftaMaclari.length > 0) {
                 const tarihler = aktifHaftaMaclari.map((m: any) => new Date(String(m.tarih)).getTime()).filter((t: number) => !isNaN(t));
