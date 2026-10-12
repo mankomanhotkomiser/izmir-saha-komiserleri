@@ -2095,10 +2095,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
                 return tumStatuler.find((st: any) => st.kategori_anahtar && s.includes(turkceBuyukHarf(st.kategori_anahtar)));
             };
             const bagliStatu = statuBul(mac.kategori_adi);
-            const skorGoster = isArsiv && mac.skor_girildi;
-            const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
+        const skorGoster = isArsiv && mac.skor_girildi;
+        const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
 
-            return (
+        // 🔥 GİZLİLİK ZIRHI: Raporu ve Hakemleri Kim Görebilir? 🔥
+        const kendiMaciMi = String(seciliKomiser?.komiser_id) === String(mac.komiser_id);
+        const isSuperAdminLocal = String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735');
+        const raporGormeyeYetkili = isSuperAdminLocal || kendiMaciMi;
+
+        return (
                 <div className="bg-white border-l-4 border-slate-800 shadow-sm rounded-r-xl p-4 md:p-5 mb-4 transition-shadow hover:shadow-md border border-slate-200">
                     <div className="mb-3 border-b border-slate-100 pb-3">
                         {skorGoster ? (
@@ -2151,7 +2156,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 <span className="text-sm">📊</span> MAÇ ÖNÜ ANALİZİ VE PUAN DURUMU (TEST)
                             </button>
                         )}
-                        {isArsiv && mac.skor_girildi && (
+                        {isArsiv && mac.skor_girildi && raporGormeyeYetkili && (
                             <div className="col-span-1 sm:col-span-2 flex flex-col sm:mt-2 pt-2 sm:pt-3 border-t border-slate-200">
                                 <span className="text-[10px] md:text-xs text-slate-400 mb-2 font-semibold tracking-wider">MÜSABAKA GÖREVLİLERİ</span>
                                 <div className="flex flex-col gap-1.5">
@@ -2168,7 +2173,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                             </div>
                         )}
                     </div>
-                    {isArsiv && mac.skor_girildi && parsedDetay.detayli_kaydedildi && (
+                    {isArsiv && mac.skor_girildi && parsedDetay.detayli_kaydedildi && raporGormeyeYetkili && (
                         <div className="mt-3 pt-3 border-t border-slate-200">
                             <button onClick={() => setArsivTamEkranMac(mac)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-lg shadow-sm text-xs md:text-sm tracking-widest flex items-center justify-center gap-2 transition-colors">
                                 📄 TFF DETAYLI RAPORUNU GÖRÜNTÜLE
