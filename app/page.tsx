@@ -4321,13 +4321,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         {/* VERİTABANINDAN ÇEKİLEN PUAN DURUMU */}
                                         <div className="flex justify-between items-end mb-3 border-b border-slate-700 pb-2">
                                             <h4 className="text-emerald-400 font-black text-[10px] tracking-widest uppercase">LİG GÜNCEL PUAN DURUMU</h4>
-                                            <button onClick={analizVerileriniTetikle} className="text-[9px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1 border border-slate-600"><span>🔄</span> YENİLE</button>
+                                            <button onClick={analizVerileriniTetikle} className="text-[9px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors flex items-center gap-1 border border-slate-600 active:scale-95"><span>🔄</span> YENİLE</button>
                                         </div>
                                         
-                                        {/* 🔥 TİTREMEYİ KESEN VE TABLOYU ORTALAYAN YENİ ZIRH 🔥 */}
-                                        <div className="w-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden shadow-md touch-pan-x">
-                                            <div className="w-full overflow-x-auto scrollbar-hide overscroll-x-contain">
-                                                <table className="w-full min-w-[420px] text-left text-[10px] md:text-xs text-slate-300">
+                                        {/* 🔥 120Hz ADAPTİF SIVI KAYDIRMA MOTORU (DONANIM HIZLANDIRMALI) 🔥 */}
+                                        <div className="w-full bg-slate-800 rounded-lg border border-slate-700 overflow-hidden shadow-lg transform-gpu">
+                                            <div className="w-full overflow-x-auto overscroll-x-none scrollbar-hide [-webkit-overflow-scrolling:touch] will-change-scroll">
+                                                <table className="w-full min-w-[480px] text-left text-[10px] md:text-xs text-slate-300">
                                                     <thead className="bg-slate-950 text-slate-400">
                                                         <tr>
                                                             <th className="p-2 w-8 text-center">#</th>
@@ -4352,9 +4352,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                             const textClass = (isEvSahibi || isMisafir) ? 'text-white font-bold' : 'text-slate-400';
                                                                                                             
                                                             return (
-                                                                <tr key={index} className={`border-b border-slate-700 ${rowClass}`}>
+                                                                <tr key={index} className={`border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${rowClass}`}>
                                                                     <td className={`p-2 text-center font-bold ${isEvSahibi ? 'text-blue-400' : (isMisafir ? 'text-red-400' : 'text-slate-500')}`}>{index + 1}</td>
-                                                                    {/* Takım ismi kolonuna max-w-[140px] truncate verdik ki sündürmesin */}
                                                                     <td className={`p-2 uppercase max-w-[140px] truncate ${textClass}`}>{takim.takim_adi}</td>
                                                                     <td className="p-2 text-center">{takim.oynadi}</td>
                                                                     <td className="p-2 text-center">{takim.galibiyet}</td>

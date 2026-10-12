@@ -180,7 +180,8 @@ const isBordroKategori = (kategoriAdi: string) => {
       if (!kategoriAdi) return false;
       const kat = kategoriAdi.toLocaleUpperCase('tr-TR').replace(/\s+/g, ''); 
 
-      const yasakliKelimeler = ['PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'AKADEMİ', 'ELİT'];
+      // ASLA BOŞLUKLU KELİME YAZMA (Çünkü üst satırda tüm boşlukları sildik)
+      const yasakliKelimeler = ['PAF', 'KADIN', 'KIZ', 'GELİŞİM', 'GELISIM', 'GELŞİM', 'GELSIM', 'AKADEMİ', 'AKADEMI', 'ELİT', 'ELIT'];
       for (let i = 0; i < yasakliKelimeler.length; i++) {
           if (kat.includes(yasakliKelimeler[i])) return false;
       }
