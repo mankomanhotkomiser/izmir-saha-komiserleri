@@ -191,7 +191,14 @@ const isBordroKategori = (kategoriAdi: string) => {
 
       return false; 
   };
+// 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
+const SEZON_BASLANGIC_CUMASI = new Date(2026, 9, 16).getTime(); // JS'de Aylar 0'dan başlar (9 = Ekim)
+const BIR_HAFTA_MS = 7 * 24 * 60 * 60 * 1000;
 
+const haftaNoHesapla = (cumaZaman: number) => {
+    if (!cumaZaman || cumaZaman < SEZON_BASLANGIC_CUMASI) return 0; // 16 Ekim öncesi tüm maçlar 0. Hafta olur!
+    return Math.floor((cumaZaman - SEZON_BASLANGIC_CUMASI) / BIR_HAFTA_MS) + 1;
+};
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
     try {
@@ -603,14 +610,15 @@ useEffect(() => {
       if (!fError && fData) setFinansVerileri(fData || []);
 
       if (maclarVerisi.length > 0) {
-        const cumalar = Array.from(new Set(maclarVerisi.map(mac => mac?.tarih ? cumaBul(mac.tarih) : 0).filter(t => t > 0))).sort((a, b) => a - b);
         const gruplar: Record<number, any[]> = {};
         
         maclarVerisi.forEach(mac => {
             if(!mac.tarih) return;
             const hCuma = cumaBul(mac.tarih);
-            const hIndex = cumalar.indexOf(hCuma) + 1;
-            if(hIndex > 0) {
+            // 🔥 YENİ SİSTEM: Matematiksel Hafta Hesaplama 🔥
+            const hIndex = haftaNoHesapla(hCuma);
+            
+            if(hIndex >= 0) { // 0. Hafta dahil gruplara ekle!
                 if(!gruplar[hIndex]) gruplar[hIndex] = [];
                 gruplar[hIndex].push(mac);
             }
@@ -619,14 +627,9 @@ useEffect(() => {
         Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
         setHaftalikGruplar(gruplar);
         
-        const suAn = Date.now();
-        let enYakinHaftaNo = 1;
-        cumalar.forEach((cuma: any, idx: number) => {
-            // 🔥 TFF KATI TAKVİMİ: Tam Cuma 00:00 olana kadar asla diğer haftaya atlama! 🔥
-            if (suAn >= cuma) {
-                enYakinHaftaNo = idx + 1;
-            }
-        });
+        const suAnCuma = cumaBul(Date.now());
+        const gercekHaftaNo = haftaNoHesapla(suAnCuma);
+        const enYakinHaftaNo = gercekHaftaNo === 0 ? 0 : gercekHaftaNo; // 16 Ekim öncesiyse 0. Hafta göster
         
         setGlobalAktifHaftaNo(enYakinHaftaNo);
         if (goruntulenenHafta === null) {
@@ -896,7 +899,8 @@ useEffect(() => {
       } catch (err) { alert("PDF ekranı hazırlanırken sorun oluştu."); }
   }
 
-  const siraliBultenMaclari = [...(haftalikGruplar[goruntulenenHafta || 1] || [])].sort((a, b) => {
+  const aktifHaftaGoster = goruntulenenHafta !== null ? goruntulenenHafta : 1;
+  const siraliBultenMaclari = [...(haftalikGruplar[aktifHaftaGoster] || [])].sort((a, b) => {
       const kA = String(komiserIsmiBul(a?.komiser_id) || '');
       const kB = String(komiserIsmiBul(b?.komiser_id) || '');
       return kA.localeCompare(kB, 'tr-TR');
