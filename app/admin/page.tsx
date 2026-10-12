@@ -899,7 +899,7 @@ useEffect(() => {
       } catch (err) { alert("PDF ekranı hazırlanırken sorun oluştu."); }
   }
 
-  const aktifHaftaGoster = goruntulenenHafta !== null ? goruntulenenHafta : 1;
+  const aktifHaftaGoster = goruntulenenHafta !== null ? goruntulenenHafta : 0;
   const siraliBultenMaclari = [...(haftalikGruplar[aktifHaftaGoster] || [])].sort((a, b) => {
       const kA = String(komiserIsmiBul(a?.komiser_id) || '');
       const kB = String(komiserIsmiBul(b?.komiser_id) || '');
@@ -2190,7 +2190,7 @@ useEffect(() => {
     )
   }
 
-  const gosterilenMaclar = goruntulenenHafta ? (haftalikGruplar[goruntulenenHafta] || []) : [];
+  const gosterilenMaclar = goruntulenenHafta !== null ? (haftalikGruplar[goruntulenenHafta] || []) : [];
   // 🔥 DÜZELTME: Sadece geçmiş haftalar arşivdir. Gelecek haftalar tam erişime açıktır! 🔥
   const isArsiv = goruntulenenHafta !== null && goruntulenenHafta < globalAktifHaftaNo;
 
