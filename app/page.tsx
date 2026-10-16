@@ -148,17 +148,23 @@ const getHakemGosterimModu = (kategori: any) => {
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
     let kat = turkceBuyukHarf(rawKategori).trim();
+    
+    kat = kat.replace(/\s+LİGİ/g, '').replace(/\s+LİG/g, '').trim();
+
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U')) {
         const yasMatch = kat.match(/(\d{2})/);
         if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ`;
         return 'TFF GELİŞİM LİGİ';
     }
+    if (kat.includes('KADIN') || kat.includes('KIZ')) return kat + ' LİGİ';
     if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
     if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
     if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'BÖLGESEL AMATÖR LİG (BAL)';
+    
     const amatorYasMatch = kat.match(/U\s*(\d{2})/);
-    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('KADIN') && !kat.includes('ELİT') && !kat.includes('TFF')) return `U${amatorYasMatch[1]} YEREL AMATÖR LİG`;
-    return kat;
+    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} YEREL AMATÖR LİG`;
+    
+    return kat + ' LİGİ';
 }
 
 const formatMacKodu = (kod: any) => {
@@ -2112,8 +2118,21 @@ const [kucukHeader, setKucukHeader] = useState(false);
             if (!mac) return null;
             const statuBul = (katAdi: string) => {
                 if (!katAdi) return null;
-                const s = turkceBuyukHarf(katAdi);
-                return tumStatuler.find((st: any) => st.kategori_anahtar && s.includes(turkceBuyukHarf(st.kategori_anahtar)));
+                const macIsmi = turkceBuyukHarf(katAdi);
+                
+                if (getAnaKategori(macIsmi) !== 'amator') return null;
+                
+                return tumStatuler.find((st: any) => {
+                    if (!st.kategori_anahtar) return false;
+                    const stAnahtar = turkceBuyukHarf(st.kategori_anahtar);
+                    if (getAnaKategori(stAnahtar) !== 'amator') return false;
+                    
+                    const macYas = macIsmi.match(/U\s*(\d{2})/);
+                    const stYas = stAnahtar.match(/U\s*(\d{2})/);
+                    if (macYas && stYas) return macYas[1] === stYas[1];
+                    
+                    return macIsmi.includes(stAnahtar) || stAnahtar.includes(macIsmi);
+                });
             };
             const bagliStatu = statuBul(mac.kategori_adi);
         const skorGoster = isArsiv && mac.skor_girildi;
