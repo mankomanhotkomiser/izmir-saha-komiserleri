@@ -1046,6 +1046,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
           if(essizCumalar.length > 0) {
             // 🔥 YENİ SİSTEM: Matematiksel Sabit Takvim 🔥
             const suAnCuma = cumaBul(Date.now());
+            
             const gercekHaftaNo = haftaNoHesapla(suAnCuma);
             const enYakinHaftaNo = gercekHaftaNo === 0 ? 0 : gercekHaftaNo; // Şu an 16 Ekim'den önceysek 0. Hafta olacak.
             
