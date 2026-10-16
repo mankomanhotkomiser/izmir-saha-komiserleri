@@ -193,12 +193,25 @@ const isBordroKategori = (kategoriAdi: string) => {
       return false; 
   };
 // 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
-const SEZON_BASLANGIC_CUMASI = new Date(2026, 9, 16).getTime(); // JS'de Aylar 0'dan başlar (9 = Ekim)
-const BIR_HAFTA_MS = 7 * 24 * 60 * 60 * 1000;
-
-const haftaNoHesapla = (cumaZaman: number) => {
-    if (!cumaZaman || cumaZaman < SEZON_BASLANGIC_CUMASI) return 0; // 16 Ekim öncesi tüm maçlar 0. Hafta olur!
-    return Math.floor((cumaZaman - SEZON_BASLANGIC_CUMASI) / BIR_HAFTA_MS) + 1;
+// Vercel UTC sorunu çözüldü, net ISO tarihi ile saat farkı sıfırlandı
+const haftaNoHesapla = (zamanMs: number) => {
+    if (!zamanMs) return 0;
+    
+    const d = new Date(zamanMs);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const gun = String(d.getDate()).padStart(2, '0');
+    const islemTarihiStr = `${y}-${m}-${gun}`;
+    
+    // 16 Ekim 2026'dan önceyse 0. Hafta
+    if (islemTarihiStr < "2026-10-16") return 0;
+    
+    // Tarihleri UTC formatında milisaniyeye çevirip tam gün farkı alıyoruz
+    const msBaslangic = Date.parse("2026-10-16T00:00:00Z");
+    const msIslem = Date.parse(`${islemTarihiStr}T00:00:00Z`);
+    
+    const farkGun = Math.floor((msIslem - msBaslangic) / (1000 * 60 * 60 * 24));
+    return Math.floor(farkGun / 7) + 1;
 };
 const getZaman = (mac: any) => {
     if (!mac || !mac.tarih) return 0;
@@ -628,9 +641,11 @@ useEffect(() => {
         Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
         setHaftalikGruplar(gruplar);
         
-        const suAnCuma = cumaBul(Date.now());
-        const gercekHaftaNo = haftaNoHesapla(suAnCuma);
-        const enYakinHaftaNo = gercekHaftaNo === 0 ? 0 : gercekHaftaNo; // 16 Ekim öncesiyse 0. Hafta göster
+        Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
+        setHaftalikGruplar(gruplar);
+        
+        // 🔥 VERCEL SAAT TUZAĞI YOK EDİLDİ - SADECE ANA MOTORU ÇAĞIR 🔥
+        const enYakinHaftaNo = haftaNoHesapla(Date.now());
         
         setGlobalAktifHaftaNo(enYakinHaftaNo);
         if (goruntulenenHafta === null) {
