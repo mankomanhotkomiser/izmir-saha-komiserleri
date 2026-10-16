@@ -256,12 +256,22 @@ const isBordroKategori = (kategoriAdi: string) => {
       return false; 
   };
 // 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
-const SEZON_BASLANGIC_CUMASI = new Date(2026, 9, 16).getTime(); // JS'de Aylar 0'dan başlar (9 = Ekim)
-const BIR_HAFTA_MS = 7 * 24 * 60 * 60 * 1000;
+// Zaman dilimi (Timezone) çökmesini engellemek için direkt gün hesaplaması:
+const haftaNoHesapla = (zamanMs: number) => {
+    if (!zamanMs) return 0;
+    const islemGunu = new Date(zamanMs);
+    const yil = islemGunu.getFullYear();
+    const ay = islemGunu.getMonth();
+    const gun = islemGunu.getDate();
+    
+    // 16 Ekim 2026'dan önceyse 0. Hafta
+    if (yil < 2026 || (yil === 2026 && ay < 9) || (yil === 2026 && ay === 9 && gun < 16)) return 0;
 
-const haftaNoHesapla = (cumaZaman: number) => {
-    if (!cumaZaman || cumaZaman < SEZON_BASLANGIC_CUMASI) return 0; // 16 Ekim öncesi tüm maçlar 0. Hafta olur!
-    return Math.floor((cumaZaman - SEZON_BASLANGIC_CUMASI) / BIR_HAFTA_MS) + 1;
+    const baslangic = new Date(2026, 9, 16).getTime();
+    const suAn = new Date(yil, ay, gun).getTime();
+    const gecenGunSayisi = Math.round((suAn - baslangic) / (1000 * 60 * 60 * 24));
+    
+    return Math.floor(gecenGunSayisi / 7) + 1;
 };
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
