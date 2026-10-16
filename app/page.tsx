@@ -255,23 +255,26 @@ const isBordroKategori = (kategoriAdi: string) => {
 
       return false; 
   };
-// 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
-// Zaman dilimi (Timezone) çökmesini engellemek için direkt gün hesaplaması:
-const haftaNoHesapla = (zamanMs: number) => {
-    if (!zamanMs) return 0;
-    const islemGunu = new Date(zamanMs);
-    const yil = islemGunu.getFullYear();
-    const ay = islemGunu.getMonth();
-    const gun = islemGunu.getDate();
+// 🔥 SIFIR HATA: KESİN HAFTA MOTORU 🔥
+const haftaNoHesapla = (islemZamaniMs: number) => {
+    if (!islemZamaniMs) return 0;
     
-    // 16 Ekim 2026'dan önceyse 0. Hafta
-    if (yil < 2026 || (yil === 2026 && ay < 9) || (yil === 2026 && ay === 9 && gun < 16)) return 0;
-
-    const baslangic = new Date(2026, 9, 16).getTime();
-    const suAn = new Date(yil, ay, gun).getTime();
-    const gecenGunSayisi = Math.round((suAn - baslangic) / (1000 * 60 * 60 * 24));
+    const d = new Date(islemZamaniMs);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const gun = String(d.getDate()).padStart(2, '0');
+    const islemTarihiStr = `${y}-${m}-${gun}`;
     
-    return Math.floor(gecenGunSayisi / 7) + 1;
+    // Eğer tarih 16 Ekim 2026'dan önceyse 0. Hafta
+    if (islemTarihiStr < "2026-10-16") return 0;
+    
+    // Saat farklarını ve Vercel timezone sapmalarını önlemek için net UTC tarihi:
+    const msBaslangic = Date.parse("2026-10-16T00:00:00Z");
+    const msIslem = Date.parse(`${islemTarihiStr}T00:00:00Z`);
+    
+    const farkGun = Math.floor((msIslem - msBaslangic) / (1000 * 60 * 60 * 24));
+    
+    return Math.floor(farkGun / 7) + 1;
 };
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
@@ -1054,12 +1057,10 @@ const [kucukHeader, setKucukHeader] = useState(false);
           const essizCumalar = Array.from(new Set(cumalar)).sort((a: any, b: any) => a - b)
           
           if(essizCumalar.length > 0) {
-            // 🔥 %100 KESİN ÇÖZÜM: SİSTEM SAATİNE GÖRE HAFTA HESABI 🔥
-                    const sezonBaslangicZamani = new Date(2026, 9, 16, 0, 0, 0).getTime();
-                    const suAnkiZaman = Date.now();
-                    const enYakinHaftaNo = suAnkiZaman >= sezonBaslangicZamani ? Math.floor((suAnkiZaman - sezonBaslangicZamani) / (7 * 24 * 60 * 60 * 1000)) + 1 : 0;
-                    
-                    setGlobalAktifHaftaNo(enYakinHaftaNo);
+            // 🔥 SAAT VE ZAMAN DİLİMİ TUZAĞI TAMAMEN YOK EDİLDİ 🔥
+            const enYakinHaftaNo = haftaNoHesapla(Date.now());
+            
+            setGlobalAktifHaftaNo(enYakinHaftaNo);
 
             // Eğer sıfırıncı haftadaysak, sadece son cumaya ait maçları veya gelecekteki test maçlarını göster
             const aktifHaftaMaclari = tumMaclarGecici.filter((mac: any) => {
