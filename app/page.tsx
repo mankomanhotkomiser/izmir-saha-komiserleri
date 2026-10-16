@@ -266,6 +266,16 @@ const haftaNoHesapla = (cumaZaman: number) => {
 const cumaBul = (tarihMetni: any) => {
     if (!tarihMetni) return 0
     try {
+      // 🔥 SAYISAL ZAMAN (Date.now) GELDİĞİNDE DOĞRUDAN CUMAYI HESAPLA 🔥
+      if (typeof tarihMetni === 'number') {
+        const d = new Date(tarihMetni);
+        if (isNaN(d.getTime())) return 0;
+        const gun = d.getDay();
+        const fark = gun >= 5 ? gun - 5 : gun + 2;
+        d.setDate(d.getDate() - fark);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
       const str = String(tarihMetni).trim();
       let y = 0, m = 0, dNum = 0;
       if (str.includes('.')) {
