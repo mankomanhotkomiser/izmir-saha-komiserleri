@@ -1044,13 +1044,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
           const essizCumalar = Array.from(new Set(cumalar)).sort((a: any, b: any) => a - b)
           
           if(essizCumalar.length > 0) {
-            // 🔥 YENİ SİSTEM: Matematiksel Sabit Takvim 🔥
-            const suAnCuma = cumaBul(Date.now());
-            
-            const gercekHaftaNo = haftaNoHesapla(suAnCuma);
-            const enYakinHaftaNo = gercekHaftaNo === 0 ? 0 : gercekHaftaNo; // Şu an 16 Ekim'den önceysek 0. Hafta olacak.
-            
-            setGlobalAktifHaftaNo(enYakinHaftaNo);
+            // 🔥 %100 KESİN ÇÖZÜM: SİSTEM SAATİNE GÖRE HAFTA HESABI 🔥
+                    const sezonBaslangicZamani = new Date(2026, 9, 16, 0, 0, 0).getTime();
+                    const suAnkiZaman = Date.now();
+                    const enYakinHaftaNo = suAnkiZaman >= sezonBaslangicZamani ? Math.floor((suAnkiZaman - sezonBaslangicZamani) / (7 * 24 * 60 * 60 * 1000)) + 1 : 0;
+                    
+                    setGlobalAktifHaftaNo(enYakinHaftaNo);
 
             // Eğer sıfırıncı haftadaysak, sadece son cumaya ait maçları veya gelecekteki test maçlarını göster
             const aktifHaftaMaclari = tumMaclarGecici.filter((mac: any) => {
