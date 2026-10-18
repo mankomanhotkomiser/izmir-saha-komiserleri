@@ -73,12 +73,15 @@ const getAnaKategori = (kategori: any) => {
 
 const detayliRaporGosterilirMi = (kategori: any) => {
     const katStr = turkceBuyukHarf(kategori);
-    if (raporTurunuBelirle(kategori) === 'yok') return false; // Profesyonel liglerde rapor yok
-    if (katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return false; // BAL Liginde detaylı rapor yok
+    if (raporTurunuBelirle(kategori) === 'yok') return false; 
+    if (katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return false; 
+    
+    // 🔥 PGL ZIRHI: PGL maçlarında profesyonel gibi davranıp detaylı raporu GİZLER 🔥
+    if (katStr.includes('PGL') || katStr.includes('P.G.L') || katStr.includes('PROFESYONELLİĞE GEÇİŞ')) return false;
+    
     return true; 
 };
-// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
-// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
+
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'dort_kutu';
@@ -248,6 +251,7 @@ const isBordroKategori = (kategoriAdi: string) => {
           kat.includes('KUPA') ||
           kat.includes('ZİRAAT') ||
           kat.includes('PROFESYONEL') ||
+          kat.includes('PGL') || kat.includes('P.G.L') || // 🔥 PGL'NİN BORDROYA GİRMESİ GARANTİLENDİ 🔥
           kat.includes('U1') || // U19, U18, U17, ..., U10 (Yerel Ligler)
           kat.includes('U2') || // U21 vb.
           kat.includes('U-') ||
