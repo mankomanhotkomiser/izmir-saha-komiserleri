@@ -67,6 +67,8 @@ const raporTurunuBelirle = (kategori: any) => {
 }
 
 const detayliRaporGosterilirMi = (kategori: any) => {
+  const katStr = turkceBuyukHarf(kategori);
+  if (katStr.includes('PGL') || katStr.includes('P.G.L') || katStr.includes('PROFESYONELLİĞE GEÇİŞ')) return false;
   const tur = raporTurunuBelirle(kategori);
   return tur !== 'yok'; 
 }
@@ -186,7 +188,7 @@ const isBordroKategori = (kategoriAdi: string) => {
           if (kat.includes(yasakliKelimeler[i])) return false;
       }
 
-      if (kat.includes('SÜPERLİG') || kat.includes('1.LİG') || kat.includes('2.LİG') || kat.includes('3.LİG') || kat.includes('BAL') || kat.includes('BÖLGESEL') || kat.includes('AMATÖR') || kat.includes('İZMİR') || kat.includes('KOCAELİ') || kat.includes('KUPA') || kat.includes('ZİRAAT') || kat.includes('PROFESYONEL') || kat.includes('U1') || kat.includes('U2') || kat.includes('U-') || kat.includes('TRENDYOL') || kat.includes('NESİNE') || kat.includes('ZTK') || kat.includes('TFFSÜPER')) {
+      if (kat.includes('SÜPERLİG') || kat.includes('1.LİG') || kat.includes('2.LİG') || kat.includes('3.LİG') || kat.includes('BAL') || kat.includes('BÖLGESEL') || kat.includes('AMATÖR') || kat.includes('İZMİR') || kat.includes('KOCAELİ') || kat.includes('KUPA') || kat.includes('ZİRAAT') || kat.includes('PROFESYONEL') || kat.includes('PGL') || kat.includes('P.G.L') || kat.includes('U1') || kat.includes('U2') || kat.includes('U-') || kat.includes('TRENDYOL') || kat.includes('NESİNE') || kat.includes('ZTK') || kat.includes('TFFSÜPER')) {
           return true;
       }
 
@@ -713,13 +715,14 @@ useEffect(() => {
       
       const anaKat = getAnaKategori(mac.kategori_adi);
       const isBAL = turkceBuyukHarf(mac.kategori_adi).includes('BAL') || turkceBuyukHarf(mac.kategori_adi).includes('BÖLGESEL');
+      const isPGL = turkceBuyukHarf(mac.kategori_adi).includes('PGL') || turkceBuyukHarf(mac.kategori_adi).includes('PROFESYONELLİĞE GEÇİŞ');
       
-      // Eğer lig Yerel Amatör ise (BAL değilse), kesinlikle Detaylı Rapor ŞARTI ara
-      if (anaKat === 'amator' && !isBAL) {
+      // Eğer lig Yerel Amatör ise (BAL değilse ve PGL değilse), kesinlikle Detaylı Rapor ŞARTI ara
+      if (anaKat === 'amator' && !isBAL && !isPGL) {
           const detay = parseDetay(mac.tff_rapor_detaylari);
           if (!detay.detayli_kaydedildi) return false;
       }
-      return true; // Profesyonel, BAL veya raporu tam Amatör ise onay ver
+      return true; // Profesyonel, BAL, PGL veya raporu tam Amatör ise onay ver
   };
 
   const tumAylarSet = new Set<string>();
