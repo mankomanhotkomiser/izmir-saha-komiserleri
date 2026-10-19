@@ -366,6 +366,19 @@ const EvetHayirBox = ({ val }: { val: any }) => (
         </div>
     </div>
 );
+// 🔥 Mazeret Ekranı İçin Akıllı Tarih Aralığı Motoru 🔥
+const getHaftaTarihAraligi = (haftaNo: number) => {
+    if (haftaNo <= 0) return '';
+    // Sistem 1. Hafta olarak 16 Ekim 2026 Cuma'yı baz alır
+    const baslangicTarihi = new Date('2026-10-16T00:00:00Z');
+    baslangicTarihi.setDate(baslangicTarihi.getDate() + ((haftaNo - 1) * 7));
+    
+    const bitisTarihi = new Date(baslangicTarihi);
+    bitisTarihi.setDate(baslangicTarihi.getDate() + 6);
+    
+    const formatOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+    return `${baslangicTarihi.toLocaleDateString('tr-TR', formatOptions)} Cuma - ${bitisTarihi.toLocaleDateString('tr-TR', formatOptions)} Perşembe`;
+};
 
 export default function AdminPage() {
   const [adminKodu, setAdminKodu] = useState('')
