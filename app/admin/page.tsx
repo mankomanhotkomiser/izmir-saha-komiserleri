@@ -3452,7 +3452,27 @@ useEffect(() => {
                         
                         {kategoriMazeretAcik && (
                             <div className="mt-4 pt-4 border-t border-slate-700 animate-fade-in-down relative z-10">
-                                <div className="flex justify-end mb-4 border-b border-slate-700 pb-4">
+                                <div className="flex justify-end gap-3 mb-4 border-b border-slate-700 pb-4">
+                                    <button 
+                                        onClick={async () => {
+                                            if(!window.confirm(`DİKKAT: Sadece geçen haftadan sızan (18 Ekim öncesi) "Hayalet" kayıtlar silinecek. Dün akşamdan beri mazeret bildirenlerin kaydı GÜVENDE KALACAK. Sessiz temizliği onaylıyor musunuz?`)) return;
+                                            try {
+                                                // 🔥 KESKİN NİŞANCI: Sadece 18 Ekim 2026'dan önce kaydedilenleri vurur 🔥
+                                                const { error } = await supabase.from('mazeretler')
+                                                    .delete()
+                                                    .eq('hafta_no', gelecekHaftaNo)
+                                                    .eq('sehir', aktifAdmin?.sehir || 'izmir')
+                                                    .lt('created_at', '2026-10-18T00:00:00Z');
+                                                
+                                                if (error) throw error;
+                                                alert(`✅ Operasyon Başarılı! Geçen haftadan sızan tüm eski kayıtlar sessizce temizlendi.`);
+                                                window.location.reload();
+                                            } catch(e:any) { alert("Hata: " + e.message); }
+                                        }}
+                                        className="bg-red-700 hover:bg-red-600 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-red-500"
+                                    >
+                                        <span className="text-lg">🎯</span> HAYALET KAYITLARI TEMİZLE
+                                    </button>
                                     <button onClick={() => mazeretleriExceleIndir(gelecekHaftaNo)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-emerald-500">
                                         <span className="text-lg">📥</span> MAZERETLERİ EXCEL İNDİR
                                     </button>
