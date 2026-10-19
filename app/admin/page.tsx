@@ -197,6 +197,19 @@ const isBordroKategori = (kategoriAdi: string) => {
 // 🔥 SABİT SEZON TAKVİMİ (16 EKİM 2026 CUMA = 1. HAFTA) 🔥
 // Vercel UTC sorunu çözüldü, net ISO tarihi ile saat farkı sıfırlandı
 const haftaNoHesapla = (zamanMs: number) => {
+    // 🔥 Mazeret Ekranı İçin Akıllı Tarih Aralığı Motoru 🔥
+const getHaftaTarihAraligi = (haftaNo: number) => {
+    if (haftaNo <= 0) return '';
+    // Sistem 1. Hafta olarak 16 Ekim 2026 Cuma'yı baz alır
+    const baslangicTarihi = new Date('2026-10-16T00:00:00Z');
+    baslangicTarihi.setDate(baslangicTarihi.getDate() + ((haftaNo - 1) * 7));
+    
+    const bitisTarihi = new Date(baslangicTarihi);
+    bitisTarihi.setDate(baslangicTarihi.getDate() + 6);
+    
+    const formatOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+    return `${baslangicTarihi.toLocaleDateString('tr-TR', formatOptions)} Cuma - ${bitisTarihi.toLocaleDateString('tr-TR', formatOptions)} Perşembe`;
+}
     if (!zamanMs) return 0;
     
     const d = new Date(zamanMs);
@@ -3444,7 +3457,7 @@ useEffect(() => {
                                 <span className="text-2xl">📅</span>
                                 <div>
                                     <h2 className="text-white font-black text-lg uppercase tracking-widest group-hover:text-blue-400 transition-colors">GELECEK HAFTA MAZERETLERİ</h2>
-                                    <p className="text-xs text-slate-400 font-bold">{gelecekHaftaNo}. Hafta ({gelecekHaftaMazeretleri.length} Komiser Mazeret Bildirdi)</p>
+                                    <p className="text-xs text-slate-400 font-bold">{gelecekHaftaNo}. Hafta ({getHaftaTarihAraligi(gelecekHaftaNo)}) • {gelecekHaftaMazeretleri.length} Komiser Bildirdi</p>
                                 </div>
                             </div>
                             <span className={`text-2xl text-slate-500 transition-transform ${kategoriMazeretAcik ? 'rotate-180' : ''}`}>▼</span>
@@ -3452,27 +3465,7 @@ useEffect(() => {
                         
                         {kategoriMazeretAcik && (
                             <div className="mt-4 pt-4 border-t border-slate-700 animate-fade-in-down relative z-10">
-                                <div className="flex justify-end gap-3 mb-4 border-b border-slate-700 pb-4">
-                                    <button 
-                                        onClick={async () => {
-                                            if(!window.confirm(`DİKKAT: Sadece geçen haftadan sızan (18 Ekim öncesi) "Hayalet" kayıtlar silinecek. Dün akşamdan beri mazeret bildirenlerin kaydı GÜVENDE KALACAK. Sessiz temizliği onaylıyor musunuz?`)) return;
-                                            try {
-                                                // 🔥 KESKİN NİŞANCI: Sadece 18 Ekim 2026'dan önce kaydedilenleri vurur 🔥
-                                                const { error } = await supabase.from('mazeretler')
-                                                    .delete()
-                                                    .eq('hafta_no', gelecekHaftaNo)
-                                                    .eq('sehir', aktifAdmin?.sehir || 'izmir')
-                                                    .lt('created_at', '2026-10-18T00:00:00Z');
-                                                
-                                                if (error) throw error;
-                                                alert(`✅ Operasyon Başarılı! Geçen haftadan sızan tüm eski kayıtlar sessizce temizlendi.`);
-                                                window.location.reload();
-                                            } catch(e:any) { alert("Hata: " + e.message); }
-                                        }}
-                                        className="bg-red-700 hover:bg-red-600 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-red-500"
-                                    >
-                                        <span className="text-lg">🎯</span> HAYALET KAYITLARI TEMİZLE
-                                    </button>
+                                <div className="flex justify-end mb-4 border-b border-slate-700 pb-4">
                                     <button onClick={() => mazeretleriExceleIndir(gelecekHaftaNo)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-emerald-500">
                                         <span className="text-lg">📥</span> MAZERETLERİ EXCEL İNDİR
                                     </button>
@@ -3507,7 +3500,7 @@ useEffect(() => {
                                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/50 pb-3 mb-3 gap-3">
                                                         <div>
                                                             <div className="font-black text-white uppercase text-base">{m.isim}</div>
-                                                            <div className="text-xs text-slate-400 font-mono mt-1">SİCİL: {m.komiser_id} | BİLDİRİM: <span className="text-slate-300">{new Date(m.olusturulma_tarihi).toLocaleString('tr-TR')}</span></div>
+                                                            <div className="text-xs text-slate-400 font-mono mt-1">SİCİL: {m.komiser_id} | BİLDİRİM: <span className="text-slate-300">{m.created_at ? new Date(m.created_at).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</span></div>
                                                         </div>
                                                         <div className="flex shrink-0">
                                                             <span className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-lg text-xs font-black tracking-widest border border-slate-800 shadow-inner">
