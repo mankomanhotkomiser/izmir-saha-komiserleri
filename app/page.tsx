@@ -418,6 +418,19 @@ const temizHakem = (isim: any) => {
     if (s.includes('TIKLA VE')) return '';
     return s;
 };
+// 🔥 Mazeret Ekranı İçin Akıllı Tarih Aralığı Motoru 🔥
+const getHaftaTarihAraligi = (haftaNo: number) => {
+    if (haftaNo <= 0) return '';
+    // Sistem 1. Hafta olarak 16 Ekim 2026 Cuma'yı baz alır
+    const baslangicTarihi = new Date('2026-10-16T00:00:00Z');
+    baslangicTarihi.setDate(baslangicTarihi.getDate() + ((haftaNo - 1) * 7));
+    
+    const bitisTarihi = new Date(baslangicTarihi);
+    bitisTarihi.setDate(baslangicTarihi.getDate() + 6);
+    
+    const formatOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+    return `${baslangicTarihi.toLocaleDateString('tr-TR', formatOptions)} Cuma - ${bitisTarihi.toLocaleDateString('tr-TR', formatOptions)} Perşembe`;
+};
 
 export default function Home() {
     // --- 🔥 TUSOM AKILLI ŞEHİR RADARI (HİBRİT BEYİN) 🔥 ---
@@ -2884,8 +2897,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     return (
                                         <div className="text-sm md:text-base font-medium text-slate-600 leading-relaxed text-left space-y-4">
                                             <p className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-900 font-bold text-center">
-                                                {hedefHafta}. Hafta programı için mazeret bildirimi <br/><span className="text-lg text-blue-700">{pazarStr} saat 21:00'da</span><br/> aktif olacaktır.
-                                            </p>
+    {hedefHafta}. Hafta ({getHaftaTarihAraligi(hedefHafta)}) programı için mazeret bildirimi <br/><span className="text-lg text-blue-700">{pazarStr} saat 21:00'da</span><br/> aktif olacaktır.
+</p>
                                             <p>
                                                 Sistem <strong>{kapanisStr} saat 23:59'a kadar</strong> açık kalacaktır. Bu süre içerisinde dilediğiniz gibi müsait olduğunuz zamanları güncelleyebilirsiniz.
                                             </p>
@@ -2925,7 +2938,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     </div>
                                 )}
 
-                                <div className="text-center md:text-left border-b border-slate-100 pb-4 mb-6"><h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">MÜSAİTLİK VE MAZERET BİLDİRİMİ</h2><p className="text-sm md:text-base font-bold text-slate-500 mt-2">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta için görev alma durumunuzu belirtiniz.</p></div>
+                                <div className="text-center md:text-left border-b border-slate-100 pb-4 mb-6"><h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">MÜSAİTLİK VE MAZERET BİLDİRİMİ</h2><p className="text-sm md:text-base font-bold text-slate-500 mt-2">Önümüzdeki {globalAktifHaftaNo + 1}. Hafta ({getHaftaTarihAraligi(globalAktifHaftaNo + 1)}) için görev alma durumunuzu belirtiniz.</p></div>
                                 
                                 {/* 🔥 YENİ: OKUMA (ÖZET) MODU 🔥 */}
                                 {mevcutMazeret && !mazeretDuzenleModu ? (
