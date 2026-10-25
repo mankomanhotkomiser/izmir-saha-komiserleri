@@ -3557,7 +3557,27 @@ useEffect(() => {
                         
                         {kategoriMazeretAcik && (
                             <div className="mt-4 pt-4 border-t border-slate-700 animate-fade-in-down relative z-10">
-                                <div className="flex justify-end mb-4 border-b border-slate-700 pb-4">
+                                <div className="flex justify-end gap-3 mb-4 border-b border-slate-700 pb-4">
+                                    {/* 🔥 ZAMAN MAKİNESİ KESKİN NİŞANCISI: 25 Ekim 21:00 (UTC 18:00) Öncesini Vurur 🔥 */}
+                                    <button 
+                                        onClick={async () => {
+                                            if(!window.confirm(`DİKKAT: Sadece bugün (25 Ekim) saat 21:00'dan ÖNCE sızmış eski kayıtlar silinecek. 21:00'dan sonra giren gerçek kayıtlar GÜVENDE KALACAK. Onaylıyor musunuz?`)) return;
+                                            try {
+                                                const { error } = await supabase.from('mazeretler')
+                                                    .delete()
+                                                    .eq('hafta_no', gelecekHaftaNo)
+                                                    .eq('sehir', aktifAdmin?.sehir || 'izmir')
+                                                    .lt('created_at', '2026-10-25T18:00:00Z'); // 18:00 UTC = 21:00 Türkiye Saati
+                                                
+                                                if (error) throw error;
+                                                alert(`✅ Temizlik Başarılı! Sadece bugün 21:00'dan sonra bildirenler kaldı.`);
+                                                window.location.reload();
+                                            } catch(e:any) { alert("Hata: " + e.message); }
+                                        }}
+                                        className="bg-red-700 hover:bg-red-600 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-red-500"
+                                    >
+                                        <span className="text-lg">🎯</span> 21:00 ÖNCESİNİ TEMİZLE
+                                    </button>
                                     <button onClick={() => mazeretleriExceleIndir(gelecekHaftaNo)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-emerald-500">
                                         <span className="text-lg">📥</span> MAZERETLERİ EXCEL İNDİR
                                     </button>
