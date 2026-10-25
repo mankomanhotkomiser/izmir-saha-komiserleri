@@ -67,11 +67,20 @@ const raporTurunuBelirle = (kategori: any) => {
 }
 
 const detayliRaporGosterilirMi = (kategori: any) => {
-  const katStr = turkceBuyukHarf(kategori);
-  if (katStr.includes('PGL') || katStr.includes('P.G.L') || katStr.includes('PROFESYONELLİĞE GEÇİŞ')) return false;
-  const tur = raporTurunuBelirle(kategori);
-  return tur !== 'yok'; 
-}
+    const katStr = turkceBuyukHarf(kategori);
+    
+    // 1. Ziraat Kupası, Süper Lig, 1. Lig, 2. Lig, 3. Lig vb. Profesyoneller
+    if (raporTurunuBelirle(kategori) === 'yok') return false; 
+    
+    // 2. BAL Ligi (Bölgesel Amatör)
+    if (katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return false;
+    
+    // 3. PGL (Profesyonelliğe Geçiş Ligi)
+    if (katStr.includes('PGL') || katStr.includes('P.G.L') || katStr.includes('PROFESYONELLİĞE GEÇİŞ')) return false;
+    
+    // Geri kalan (Gelişim ve Yerel Amatör) ligler rapor göstermek zorundadır
+    return true; 
+};
 
 // 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
 const getHakemGosterimModu = (kategori: any) => {
@@ -3576,7 +3585,7 @@ useEffect(() => {
                                         }}
                                         className="bg-red-700 hover:bg-red-600 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-red-500"
                                     >
-                                        <span className="text-lg">🎯</span> 21:00 ÖNCESİNİ TEMİZLE
+                                        <span className="text-lg">🎯</span> PAZAR 21:00 ÖNCESİNİ TEMİZLE
                                     </button>
                                     <button onClick={() => mazeretleriExceleIndir(gelecekHaftaNo)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-4 rounded-lg shadow-md flex items-center gap-2 transition-transform hover:scale-105 text-xs tracking-widest border border-emerald-500">
                                         <span className="text-lg">📥</span> MAZERETLERİ EXCEL İNDİR
