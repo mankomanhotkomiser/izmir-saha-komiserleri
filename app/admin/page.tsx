@@ -2083,43 +2083,49 @@ useEffect(() => {
                           ));
                       })()}
 
-                      {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ (ESKİ SİSTEM 4'LÜ GRID) 🔥 */}
-                      {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
-                          <div className="print-page flex flex-col relative">
-                              <RenderA4Header />
-                              <RenderA4MatchInfo isEk={true} />
+                      {/* 🔥 SAĞLIK VE SAHA GÖREVLİLERİ (YENİ SİSTEM DİNAMİK GRID) 🔥 */}
+              {(gelisimPrintFotolar['gelisim_saglik'] || gelisimPrintFotolar['gelisim_att'] || gelisimPrintFotolar['gelisim_sedyeci1'] || gelisimPrintFotolar['gelisim_sedyeci2'] || gelisimPrintFotolar['gelisim_saha_gor']) && (
+                  <div className="print-page flex flex-col relative">
+                      <RenderA4Header />
+                      <RenderA4MatchInfo isEk={true} />
 
-                              <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded shrink-0">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
+                      <h3 className="text-center font-black text-lg tracking-widest uppercase mb-4 py-2 bg-slate-100 border border-slate-300 rounded shrink-0">SAĞLIK VE SAHA GÖREVLİLERİ</h3>
 
-                              <div className="flex-1 grid grid-cols-2 gap-4 content-start">
-                                  {gelisimPrintFotolar['gelisim_saglik'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR / ATT KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_sedyeci1'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_sedyeci2'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
-                                  {gelisimPrintFotolar['gelisim_saha_gor'] && (
-                                      <div className="border border-slate-300 p-2 text-center bg-slate-50">
-                                          <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
-                                          <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
-                                      </div>
-                                  )}
+                      <div className="flex-1 grid grid-cols-2 gap-4 content-start">
+                          {gelisimPrintFotolar['gelisim_saglik'] && (
+                              <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                  <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">DOKTOR KARTI</h4>
+                                  <img src={gelisimPrintFotolar['gelisim_saglik'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
                               </div>
-                              <RenderA4Footer />
-                          </div>
-                      )}
+                          )}
+                          {gelisimPrintFotolar['gelisim_att'] && (
+                              <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                  <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">ATT KARTI</h4>
+                                  <img src={gelisimPrintFotolar['gelisim_att'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                              </div>
+                          )}
+                          {gelisimPrintFotolar['gelisim_sedyeci1'] && (
+                              <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                  <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">1. SEDYECİ KARTI</h4>
+                                  <img src={gelisimPrintFotolar['gelisim_sedyeci1'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                              </div>
+                          )}
+                          {gelisimPrintFotolar['gelisim_sedyeci2'] && (
+                              <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                  <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">2. SEDYECİ KARTI</h4>
+                                  <img src={gelisimPrintFotolar['gelisim_sedyeci2'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                              </div>
+                          )}
+                          {gelisimPrintFotolar['gelisim_saha_gor'] && (
+                              <div className="border border-slate-300 p-2 text-center bg-slate-50">
+                                  <h4 className="text-xs font-black tracking-widest text-slate-700 mb-2 border-b border-slate-200 pb-1">SAHA TANZİM GÖREVLİSİ</h4>
+                                  <img src={gelisimPrintFotolar['gelisim_saha_gor'] as string} crossOrigin="anonymous" className="max-w-full h-[300px] mx-auto object-contain" />
+                              </div>
+                          )}
+                      </div>
+                      <RenderA4Footer />
+                  </div>
+              )}
                   </>
               )}
           </div>
