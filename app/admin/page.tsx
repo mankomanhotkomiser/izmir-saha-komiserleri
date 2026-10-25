@@ -2159,11 +2159,16 @@ useEffect(() => {
                       {(tip !== 'bekleyen' && tip !== 'iptal') && <span className="text-lg md:text-xl font-black text-white w-12 text-right tabular-nums">{mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-'}</span>}
                   </div>
                   <div className="flex justify-between items-center rounded px-2 py-1 bg-slate-900/30">
-                      <h3 className={`font-bold text-sm md:text-base uppercase pr-2 truncate w-full ${tip === 'iptal' ? 'text-red-400 line-through opacity-70' : 'text-white'}`}>{mac.misafir_takim || '-'}</h3>
-                      {(tip !== 'bekleyen' && tip !== 'iptal') && <span className="text-lg md:text-xl font-black text-white w-12 text-right tabular-nums">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span>}
-                  </div>
+                        <h3 className={`font-bold text-sm md:text-base uppercase pr-2 truncate w-full ${tip === 'iptal' ? 'text-red-400 line-through opacity-70' : 'text-white'}`}>{mac.misafir_takim || '-'}</h3>
+                        {(tip !== 'bekleyen' && tip !== 'iptal') && <span className="text-lg md:text-xl font-black text-white w-12 text-right tabular-nums">{mac.misafir_skor !== null ? mac.misafir_skor : '-'}</span>}
+                    </div>
                 </div>
-                <div className="text-[10px] text-slate-400 font-mono leading-snug mt-1">{mac.saha} <br/> <span className="text-blue-300">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span></div>
+                <div className="text-[10px] text-slate-400 font-mono leading-snug mt-1">
+                    {mac.saha} <br/> <span className="text-blue-300">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span>
+                    <div className="sm:hidden mt-2 pt-2 border-t border-slate-700/50 flex items-center gap-2">
+                        <span className="font-bold text-slate-500">KOMİSER:</span> <span className="text-emerald-400 font-black">{komiserTamIsim}</span>
+                    </div>
+                </div>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
                 <div className="text-right hidden sm:block">
@@ -2185,8 +2190,6 @@ useEffect(() => {
                      )}
                  </div>
              )}
-             <div className="sm:hidden mb-4 pb-4 border-b border-slate-800"><span className="block text-[10px] uppercase tracking-widest text-slate-500 mb-1">Müsabaka Komiseri</span><span className="bg-slate-950 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner inline-block">{komiserTamIsim}</span></div>
-             
              {tip !== 'bekleyen' && (
                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-4">
                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-800 pb-2">Komiserin Hızlı Olay Notu</h4>
