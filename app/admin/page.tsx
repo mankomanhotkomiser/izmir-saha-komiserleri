@@ -3523,24 +3523,14 @@ useEffect(() => {
                                                         <span className="text-slate-400 text-[10px] font-bold">📅 {guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)} | 📍 {mac.saha} | {mac.kategori_adi}</span>
                                                     </div>
                                                     <h4 className="text-white font-black text-xs uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</h4>
-                                                    <p className="text-pink-500 text-[10px] font-bold mt-2 animate-pulse">Hızlı skor girilmiş ({mac.ev_sahibi_skor} - {mac.misafir_skor}), ancak detaylı TFF raporu gönderilmedi!</p>
-                                                </div>
-                                                
-                                                <div className="flex flex-wrap justify-end gap-2 mt-3 pt-2 border-t border-slate-700/50">
-                                                    <button onClick={() => macIptalEt(mac.id)} className="bg-red-950/40 hover:bg-red-800/80 text-red-500 border border-red-900 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">⛔ İPTAL ET</button>
-                                                    <button onClick={() => setDegisimAcikMacId(degisimAcikMacId === mac.id ? null : mac.id)} className="bg-blue-900/40 hover:bg-blue-800/80 text-blue-400 border border-blue-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">🔄 KOMİSER DEĞİŞTİR</button>
-                                                    <button onClick={() => acBilgiGuncellePenceresi(mac)} className="bg-amber-900/40 hover:bg-amber-800/80 text-amber-400 border border-amber-800/50 px-3 py-1.5 rounded text-[10px] md:text-xs font-bold transition-colors">✏️ BİLGİ GÜNCELLE</button>
-                                                </div>
-
-                                                {degisimAcikMacId === mac.id && (
-                                                    <div className="mt-2 p-2 bg-slate-950 rounded border border-blue-900/50 flex flex-col gap-2 animate-fade-in-down">
-                                                        <select value={yeniKomiserId} onChange={(e) => setYeniKomiserId(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500 font-bold cursor-pointer">
-                                                            <option value="">-- Yeni Komiser Seç --</option>
-                                                            {tumKomiserler.sort((a:any,b:any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k:any) => <option key={k.komiser_id} value={k.komiser_id}>{k.ad_soyad}</option>)}
-                                                        </select>
-                                                        <button onClick={() => islemYapDevir(mac.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded mt-1 shadow-md">ONAYLA</button>
+                                                    
+                                                    <div className="mt-3 bg-pink-950/40 border border-pink-900/50 p-3 rounded-lg shadow-inner flex items-start gap-3">
+                                                        <span className="text-xl animate-pulse">🚨</span>
+                                                        <p className="text-pink-400 text-xs md:text-sm font-black leading-snug pt-0.5">
+                                                            Hızlı skor girilmiş ({mac.ev_sahibi_skor} - {mac.misafir_skor}), ancak detaylı TFF raporu GÖNDERİLMEDİ!
+                                                        </p>
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
