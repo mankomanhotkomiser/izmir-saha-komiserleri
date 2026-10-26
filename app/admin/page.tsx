@@ -2565,7 +2565,7 @@ useEffect(() => {
                                   </thead>
                                   <tbody>
                                       {(() => {
-                                          const profMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) === 'profesyonel');
+                                          const profMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) === 'profesyonel').sort(siralamaFiltresi);
                                           
                                           if (profMaclar.length === 0) {
                                               return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-slate-300">-</td></tr>;
@@ -2598,7 +2598,7 @@ useEffect(() => {
                                   </thead>
                                   <tbody>
                                       {(() => {
-                                          const amatorMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) !== 'profesyonel');
+                                          const amatorMaclar = acikAdminBordroKomiser.maclar.filter((m:any) => getAnaKategori(m.kategori_adi) !== 'profesyonel').sort(siralamaFiltresi);
                                           
                                           if (amatorMaclar.length === 0) {
                                               return <tr><td className="border border-black p-1 h-6"></td><td className="border border-black p-1"></td><td className="border border-black p-1 text-left"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>;
