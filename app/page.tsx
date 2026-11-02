@@ -798,10 +798,10 @@ const [kucukHeader, setKucukHeader] = useState(false);
   
   const [raporDetay, setRaporDetay] = useState<any>(defaultRaporDetay);
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
-  // 🔥 WHATSAPP KOPYALAMA MOTORU (EMOJİSİZ RESMİ FORMAT) 🔥
+  // 🔥 WHATSAPP KOPYALAMA MOTORU (NET VE RESMİ FORMAT) 🔥
   const macKopyala = (mac: any) => {
       const lig = turkceBuyukHarf(mac.kategori_adi);
-      const saatStr = guvenliSaat(mac.saat).replace(':', '.');
+      const saatStr = guvenliSaat(mac.saat); 
       const saha = turkceBuyukHarf(mac.saha);
       
       let evSkor = mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-';
@@ -823,15 +823,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
           durumNotu = "TAKIMLAR SAHAYA ÇIKMAMIŞTIR.";
           if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
       } else {
-          // Maç oynandıysa ve not yazıldıysa notu göster, yazılmadıysa default metin
           if (mac.rapor_notu && mac.rapor_notu.trim() !== '') {
-              durumNotu = mac.rapor_notu;
+              durumNotu = mac.rapor_notu.trim();
           } else {
-              durumNotu = "MÜSABAKA OLAYSIZ TAMAMLANMIŞTIR.";
+              durumNotu = "MÜSABAKA SONUCU";
           }
       }
       
-      const metin = `${lig}\nSAAT ${saatStr}\n${saha}\n${evTakim} ${evSkor} - ${misSkor} ${misTakim}\n\n${durumNotu}`;
+      const metin = `${lig}\nSaat: ${saatStr}\nSaha: ${saha}\n\n${evTakim}: ${evSkor}\n${misTakim}: ${misSkor}\n\n${durumNotu}`;
       
       navigator.clipboard.writeText(metin).then(() => {
           alert("Maç bilgileri kopyalandı! WhatsApp'a yapıştırabilirsiniz.");
