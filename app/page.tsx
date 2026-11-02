@@ -766,7 +766,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
   // 🔥 MAÇ ÖNÜ KAYITLARI (DİJİTAL AJANDA) 🔥
   const [macOnuAcikMac, setMacOnuAcikMac] = useState<any | null>(null);
-  const [macOnuForm, setMacOnuForm] = useState({ hakem: '', y_hakem_1: '', y_hakem_2: '', hakem_4: '', gozlemci: '', ozel_not: '' });
+  const [macOnuForm, setMacOnuForm] = useState({ hakem: '', y_hakem_1: '', y_hakem_2: '', hakem_4: '', gozlemci: '', saglik: '', guvenlik: '', ozel_not: '' });
   const [macOnuKaydediliyor, setMacOnuKaydediliyor] = useState(false);
 
   const macOnuPenceresiAc = (mac: any) => {
@@ -776,7 +776,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
       setMacOnuForm({
           hakem: detay.hakem || '', y_hakem_1: detay.y_hakem_1 || '',
           y_hakem_2: detay.y_hakem_2 || '', hakem_4: detay.hakem_4 || '',
-          gozlemci: detay.gozlemci || '', ozel_not: mac.rapor_notu || ''
+          gozlemci: detay.gozlemci || '', 
+          saglik: detay.saglik || '', guvenlik: detay.guvenlik || '',
+          ozel_not: mac.rapor_notu || ''
       });
       setMacOnuAcikMac(mac);
   };
@@ -793,7 +795,8 @@ const [kucukHeader, setKucukHeader] = useState(false);
               ...mevcutDetay,
               hakem: turkceBuyukHarf(macOnuForm.hakem), y_hakem_1: turkceBuyukHarf(macOnuForm.y_hakem_1),
               y_hakem_2: turkceBuyukHarf(macOnuForm.y_hakem_2), hakem_4: turkceBuyukHarf(macOnuForm.hakem_4),
-              gozlemci: turkceBuyukHarf(macOnuForm.gozlemci)
+              gozlemci: turkceBuyukHarf(macOnuForm.gozlemci),
+              saglik: macOnuForm.saglik, guvenlik: macOnuForm.guvenlik
           };
           
           const payload = { tff_rapor_detaylari: JSON.stringify(guncelDetay), rapor_notu: macOnuForm.ozel_not };
@@ -807,7 +810,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       } catch(err: any) { alert("Hata: " + err.message); }
       setMacOnuKaydediliyor(false);
   };
-  // 🔥 WHATSAPP KOPYALAMA MOTORU (NET VE RESMİ FORMAT) 🔥
+  // 🔥 WHATSAPP KOPYALAMA MOTORU (ÖZEL NOTLARDAN ARINDIRILMIŞ, TERTEMİZ FORMAT) 🔥
   const macKopyala = (mac: any) => {
       const lig = turkceBuyukHarf(mac.kategori_adi);
       const saatStr = guvenliSaat(mac.saat); 
@@ -818,25 +821,16 @@ const [kucukHeader, setKucukHeader] = useState(false);
       let evTakim = turkceBuyukHarf(mac.ev_sahibi);
       let misTakim = turkceBuyukHarf(mac.misafir_takim);
       
-      let durumNotu = "";
+      let durumNotu = "MÜSABAKA SONUCU";
       
       if (mac.mac_durumu === 'iptal_edildi') {
           durumNotu = "MÜSABAKA İPTAL EDİLMİŞTİR.";
       } else if (mac.mac_durumu === 'oynanmadi') {
           durumNotu = "MÜSABAKA OYNANMAMIŞTIR.";
-          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
       } else if (mac.mac_durumu === 'yarida_kaldi') {
-          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR.";
-          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
+          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR / TATİL EDİLMİŞTİR.";
       } else if (mac.mac_durumu === 'takimlar_cikmadi') {
           durumNotu = "TAKIMLAR SAHAYA ÇIKMAMIŞTIR.";
-          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
-      } else {
-          if (mac.rapor_notu && mac.rapor_notu.trim() !== '') {
-              durumNotu = mac.rapor_notu.trim();
-          } else {
-              durumNotu = "MÜSABAKA SONUCU";
-          }
       }
       
       const metin = `${lig}\nSaat: ${saatStr}\nSaha: ${saha}\n\n${evTakim}: ${evSkor}\n${misTakim}: ${misSkor}\n\n${durumNotu}`;
@@ -4477,6 +4471,26 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                             {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'uc_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci') && (
                                                 <RenderHakemSecici tip="gozlemci" alan="gozlemci" label="Müsabaka Gözlemcisi" />
                                             )}
+                                            
+                                            {/* 🔥 EMNİYET VE SAĞLIK EKLENTİSİ 🔥 */}
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 mt-2">
+                                                <div>
+                                                    <label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Sağlıkçı (Var/Yok)</label>
+                                                    <select value={macOnuForm.saglik} onChange={e => setMacOnuForm({...macOnuForm, saglik: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase text-xs cursor-pointer shadow-sm transition-colors">
+                                                        <option value="" disabled>-- SEÇ --</option>
+                                                        <option value="var">VAR</option>
+                                                        <option value="yok">YOK</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Emniyet (Var/Yok)</label>
+                                                    <select value={macOnuForm.guvenlik} onChange={e => setMacOnuForm({...macOnuForm, guvenlik: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase text-xs cursor-pointer shadow-sm transition-colors">
+                                                        <option value="" disabled>-- SEÇ --</option>
+                                                        <option value="var">VAR</option>
+                                                        <option value="yok">YOK</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })()}
