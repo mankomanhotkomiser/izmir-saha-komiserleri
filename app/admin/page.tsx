@@ -469,7 +469,7 @@ useEffect(() => {
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
-  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'hakem_ekle' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'mac_sil' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
   const [otomatikYenile, setOtomatikYenile] = useState(true) // 🔥 YENİ: RADAR KONTROLÜ 🔥
   
   const [tumStatuler, setTumStatuler] = useState<any[]>([])
@@ -1280,7 +1280,21 @@ useEffect(() => {
       } catch (err: any) { alert("Hata: " + err.message); }
       setHakemEkleniyor(false);
   }
+const [macSilArama, setMacSilArama] = useState('')
+  const [macSiliniyorId, setMacSiliniyorId] = useState<number | null>(null)
 
+  const tekilMacSistemdenSil = async (mac: any) => {
+      if (!window.confirm(`DİKKAT: ${mac.ev_sahibi} vs ${mac.misafir_takim} maçını sistemden TAMAMEN silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) return;
+      setMacSiliniyorId(mac.id);
+      try {
+          const { error } = await supabase.from('musabakalar').delete().eq('id', mac.id);
+          if (error) throw error;
+          alert("✅ Maç sistemden başarıyla silindi!");
+          setMacSilArama('');
+          veriGetir(true);
+      } catch (err: any) { alert("Hata: " + err.message); }
+      setMacSiliniyorId(null);
+  }
   const otomatikMacKoduBul = () => {
       if (sezonlukMaclar.length === 0) return '';
       let maxKod = 0;
@@ -2754,7 +2768,7 @@ useEffect(() => {
                     
                     <div className="flex bg-slate-800 border-b border-slate-700 flex-wrap">
                         <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
-                        <button onClick={() => setSistemTab('hakem_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'hakem_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏃 YENİ HAKEM EKLE</button>
+                        <button onClick={() => setSistemTab('mac_sil')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_sil' ? 'bg-red-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🗑️ MAÇ SİL</button>
                         <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA MAÇ EKLE</button>
                         <button onClick={() => setSistemTab('statu_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'statu_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📝 STATÜ YÖNETİMİ</button>
                         <button onClick={() => setSistemTab('talimat_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'talimat_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📜 GENEL ESASLAR</button>
@@ -2929,15 +2943,56 @@ useEffect(() => {
                             </div>
                         )}
 
-                        {sistemTab === 'hakem_ekle' && (
+                        {sistemTab === 'mac_sil' && (
                             <div className="space-y-6">
-                                <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-                                    <p className="text-slate-300 text-sm font-medium">Yeni aday hakemleri manuel olarak ekleyebilirsiniz. (Not: Komiserler maç raporu gönderirken yazdıkları yeni isimler de otomatik kaydedilir).</p>
+                                <div className="bg-slate-800 border border-red-900/50 p-4 rounded-xl shadow-inner">
+                                    <h3 className="text-red-400 font-bold mb-1 uppercase tracking-widest">Maç Silme Modülü</h3>
+                                    <p className="text-slate-300 text-xs">Aşağıdaki kutuya sileceğiniz maçın kodunu, takım adını, saha veya komiser ismini yazarak aratın. Mükerrer veya yanlış açılmış maçları sistemden tamamen silebilirsiniz.</p>
                                 </div>
-                                <form onSubmit={hakemEkleSubmit} className="space-y-5">
-                                    <div><label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Hakem Adı Soyadı</label><input type="text" value={yeniHakemAd} onChange={(e) => setYeniHakemAd(e.target.value)} placeholder="Örn: Ayşe Yılmaz" className="w-full bg-slate-900 border border-slate-600 text-white font-bold px-4 py-3 rounded-lg focus:border-indigo-500 focus:outline-none" required /></div>
-                                    <div className="pt-4"><button type="submit" disabled={hakemEkleniyor} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-lg uppercase tracking-widest flex items-center justify-center gap-2">{hakemEkleniyor ? '⚙️ EKLENİYOR...' : '🏃 VERİTABANINA HAKEM EKLE'}</button></div>
-                                </form>
+                                <div>
+                                    <input 
+                                        type="text" 
+                                        value={macSilArama} 
+                                        onChange={(e) => setMacSilArama(e.target.value)} 
+                                        placeholder="Silinecek maçı arat (En az 2 harf)..." 
+                                        className="w-full bg-slate-900 border-2 border-red-900/50 text-white font-bold px-4 py-3 rounded-lg focus:border-red-500 focus:outline-none transition-colors" 
+                                    />
+                                </div>
+                                
+                                {macSilArama.length >= 2 && (
+                                    <div className="max-h-[350px] overflow-y-auto custom-scrollbar space-y-3">
+                                        {sezonlukMaclar.filter((m: any) => {
+                                            const arama = macSilArama.toLocaleUpperCase('tr-TR');
+                                            const kName = komiserIsmiBul(m.komiser_id).toLocaleUpperCase('tr-TR');
+                                            return (
+                                                String(m.mac_kodu || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+                                                String(m.ev_sahibi || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+                                                String(m.misafir_takim || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+                                                String(m.saha || '').toLocaleUpperCase('tr-TR').includes(arama) ||
+                                                kName.includes(arama)
+                                            );
+                                        }).sort(siralamaFiltresi).reverse().map((mac: any) => (
+                                            <div key={mac.id} className="bg-slate-950 border border-slate-700 rounded-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 hover:border-red-500/50 transition-colors">
+                                                <div>
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                        <span className="bg-slate-800 text-slate-300 text-[9px] font-black px-2 py-0.5 rounded border border-slate-600">KOD: {mac.mac_kodu}</span>
+                                                        <span className="text-slate-400 text-[10px] font-bold uppercase">{mac.kategori_adi}</span>
+                                                        <span className="text-slate-500 text-[10px] font-mono">{guvenliTarih(mac.tarih)} - {guvenliSaat(mac.saat)}</span>
+                                                    </div>
+                                                    <div className="text-white text-sm font-bold uppercase">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-1">Saha: {mac.saha} | Komiser: <span className="text-emerald-400 font-bold">{komiserIsmiBul(mac.komiser_id)}</span></div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => tekilMacSistemdenSil(mac)}
+                                                    disabled={macSiliniyorId === mac.id}
+                                                    className="w-full md:w-auto bg-red-950/50 hover:bg-red-800 text-red-500 hover:text-white px-4 py-2 rounded text-xs font-black tracking-widest border border-red-900 transition-colors shrink-0"
+                                                >
+                                                    {macSiliniyorId === mac.id ? 'SİLİNİYOR...' : '🗑️ SİL'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
