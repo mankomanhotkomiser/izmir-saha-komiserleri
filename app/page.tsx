@@ -822,7 +822,9 @@ const [kucukHeader, setKucukHeader] = useState(false);
       let misTakim = turkceBuyukHarf(mac.misafir_takim);
       
       let durumNotu = "";
-      const temizNot = (mac.rapor_notu && mac.rapor_notu.trim() !== '') ? `\n${mac.rapor_notu.trim()}` : "";
+      
+      // 🔥 İŞTE BURASI SENİN NOTUNU ÇEKER VE BAŞINA İKİ BOŞLUK KOYAR 🔥
+      const temizNot = (mac.rapor_notu && mac.rapor_notu.trim() !== '') ? `\n\n${mac.rapor_notu.trim()}` : "";
       
       if (mac.mac_durumu === 'iptal_edildi') {
           durumNotu = "MÜSABAKA İPTAL EDİLMİŞTİR.";
@@ -839,10 +841,10 @@ const [kucukHeader, setKucukHeader] = useState(false);
       else {
           // Müsabaka oynandıysa (Tamamlandıysa)
           if (mac.olay_durumu === 'emniyetlik_olay') {
-              // SADECE ve SADECE emniyetlik olay varsa notu göster
+              // SADECE emniyetlik olay varsa komiserin notunu gösterir
               durumNotu = "MÜSABAKA SONUCU" + temizNot;
           } else {
-              // Teknik olay (kırmızı kart) bile olsa, olaysız da olsa NOTU GİZLE!
+              // Teknik olay (kırmızı kart vb.) bile olsa, olaysız da olsa NOTU KESİNLİKLE GİZLE!
               durumNotu = "MÜSABAKA SONUCU";
           }
       }
