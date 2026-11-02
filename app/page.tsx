@@ -798,6 +798,47 @@ const [kucukHeader, setKucukHeader] = useState(false);
   
   const [raporDetay, setRaporDetay] = useState<any>(defaultRaporDetay);
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
+  // 🔥 WHATSAPP KOPYALAMA MOTORU (EMOJİSİZ RESMİ FORMAT) 🔥
+  const macKopyala = (mac: any) => {
+      const lig = turkceBuyukHarf(mac.kategori_adi);
+      const saatStr = guvenliSaat(mac.saat).replace(':', '.');
+      const saha = turkceBuyukHarf(mac.saha);
+      
+      let evSkor = mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-';
+      let misSkor = mac.misafir_skor !== null ? mac.misafir_skor : '-';
+      let evTakim = turkceBuyukHarf(mac.ev_sahibi);
+      let misTakim = turkceBuyukHarf(mac.misafir_takim);
+      
+      let durumNotu = "";
+      
+      if (mac.mac_durumu === 'iptal_edildi') {
+          durumNotu = "MÜSABAKA İPTAL EDİLMİŞTİR.";
+      } else if (mac.mac_durumu === 'oynanmadi') {
+          durumNotu = "MÜSABAKA OYNANMAMIŞTIR.";
+          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
+      } else if (mac.mac_durumu === 'yarida_kaldi') {
+          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR.";
+          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
+      } else if (mac.mac_durumu === 'takimlar_cikmadi') {
+          durumNotu = "TAKIMLAR SAHAYA ÇIKMAMIŞTIR.";
+          if (mac.rapor_notu) durumNotu += `\n${mac.rapor_notu}`;
+      } else {
+          // Maç oynandıysa ve not yazıldıysa notu göster, yazılmadıysa default metin
+          if (mac.rapor_notu && mac.rapor_notu.trim() !== '') {
+              durumNotu = mac.rapor_notu;
+          } else {
+              durumNotu = "MÜSABAKA OLAYSIZ TAMAMLANMIŞTIR.";
+          }
+      }
+      
+      const metin = `${lig}\nSAAT ${saatStr}\n${saha}\n${evTakim} ${evSkor} - ${misSkor} ${misTakim}\n\n${durumNotu}`;
+      
+      navigator.clipboard.writeText(metin).then(() => {
+          alert("Maç bilgileri kopyalandı! WhatsApp'a yapıştırabilirsiniz.");
+      }).catch(() => {
+          alert("Kopyalama başarısız oldu, lütfen manuel kopyalayınız.");
+      });
+  }
   // ==========================================
   // HESAPLAMALAR VE TARİH BEYNİ (YAPIŞKAN RADAR)
   // ==========================================
@@ -3326,6 +3367,16 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                                 {raporGonderilmis ? '✓ SKOR GÖNDERİLDİ' : '❌ SKOR BEKLENİYOR'}
                                                             </span>
                                                             {detayliGoster && (<span className={`px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[160px] md:min-w-[180px] tracking-widest border ${detayliGonderilmis ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-50 text-red-800 border-red-300 animate-pulse'}`}>{detayliGonderilmis ? '✓ DETAYLI TAMAM' : '🚨 DETAYLI RAPOR YOK'}</span>)}
+                                                            
+                                                            {/* 🔥 KOPYALA BUTONU: Skor girildikten sonra aktif olur 🔥 */}
+                                                            {raporGonderilmis && (
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); macKopyala(mac); }} 
+                                                                    className="w-full bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm border border-slate-700 transition-colors"
+                                                                >
+                                                                    WHATSAPP İÇİN KOPYALA
+                                                                </button>
+                                                            )}
                                                         </div>
                                                         <div className={`hidden sm:flex items-center justify-center w-10 h-10 shrink-0 rounded-full border shadow-sm transition-colors ${acikMi ? 'bg-slate-800 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-500'}`}><span className="text-lg font-black leading-none">{acikMi ? '▲' : '▼'}</span></div>
                                                     </div>
