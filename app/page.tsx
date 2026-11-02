@@ -82,70 +82,36 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     return true; 
 };
 
-// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
+/// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI 🔥
 const getHakemGosterimModu = (kategori: any) => {
-    if (!kategori) return 'dort_kutu';
-    const kat = turkceBuyukHarf(kategori);
+    if (!kategori) return 'uc_ve_gozlemci'; 
+    const kat = String(kategori).toLocaleUpperCase('tr-TR');
     
-    const isGelisim = kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U');
-    const isKizlar = kat.includes('KIZLAR') || kat.includes('KIZ');
-    const isKadinlar = kat.includes('KADIN') && !isKizlar;
-    const isBAL = kat.includes('BAL') || kat.includes('BÖLGESEL');
-    
-    // 1. BAL LİGİ (Yarı Prof)
-    if (isBAL) return 'dort_ve_gozlemci';
-    
-    // 2. KADINLAR LİGLERİ
-    if (isKadinlar) {
-        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci'; // Süper Lig'de 4 Hakem
-        return 'uc_ve_gozlemci'; // 1, 2, 3. Lig'de 3 Hakem + Gözlemci
+    // 1. TEK HAKEMLİ LİGLER
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') ||
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') ||
+        kat.includes('İZMİR U14') || kat.includes('İZMİR U-14') || kat.includes('14 YAŞ')) {
+        return 'tek_hakem';
     }
     
-    // 3. KIZLAR LİGLERİ
-    if (isKizlar) {
-        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
-        if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15')) return 'uc_hakem'; // Gözlemci Yok
-        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17')) return 'uc_ve_gozlemci'; // Gözlemci var, 4. Hakem YOK
+    // 2. 3 HAKEMLİ LİGLER (GÖZLEMCİ YOK)
+    if (kat.includes('İZMİR U15') || kat.includes('İZMİR U 15') || kat.includes('15 YAŞ') || 
+        kat.includes('U14 GELİŞİM') || kat.includes('U 14 GELİŞİM') || 
+        kat.includes('U15 GELİŞİM') || kat.includes('U 15 GELİŞİM') || 
+        kat.includes('U16 GELİŞİM') || kat.includes('U 16 GELİŞİM')) {
         return 'uc_hakem';
     }
     
-    // 4. PAF LİGLERİ
-    if (kat.includes('PAF')) {
+    // 3. 4 HAKEM + 1 GÖZLEMCİ (GELİŞİM U17-U19 VE PAF)
+    if (kat.includes('U17 GELİŞİM') || kat.includes('U 17 GELİŞİM') || 
+        kat.includes('U19 GELİŞİM') || kat.includes('U 19 GELİŞİM') || 
+        kat.includes('PAF') || kat.includes('BAL') || kat.includes('BÖLGESEL')) {
         return 'dort_ve_gozlemci';
     }
     
-    // 5. GELİŞİM LİGLERİ (Erkekler)
-    if (isGelisim) {
-        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem'; // Gözlemci Yok
-        if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
-            kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
-            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem'; // 3 Hakem, Gözlemci YOK
-        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
-            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('ELİT')) return 'dort_ve_gozlemci'; // 4 Hakem + Gözlemci
-    }
-    
-    // 6. YEREL AMATÖR LİGLER
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('11 YAŞ') ||
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
-        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
-        return 'tek_hakem'; // Gözlemci ve 4. Hakem yok
-    }
-    
-    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
-        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
-        return 'uc_hakem'; // 3 hakem, Gözlemci yok
-    }
-    
-    if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
-        kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('19 YAŞ') ||
-        kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
-        kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
-        kat.includes('SÜPER AMATÖR')) {
-        return 'uc_ve_gozlemci'; // 3 Hakem + Gözlemci (4. Hakem YOK)
-    }
-    
-    return 'dort_kutu';
+    // 4. GERİ KALAN TÜM LİGLER (Süper Amatör, 1.Amatör, 2.Amatör, İzmir U17, İzmir U19 vb.)
+    return 'uc_ve_gozlemci';
 };
 
 const formatKategori = (rawKategori: any) => {
@@ -798,6 +764,49 @@ const [kucukHeader, setKucukHeader] = useState(false);
   
   const [raporDetay, setRaporDetay] = useState<any>(defaultRaporDetay);
   const [skorKaydediliyor, setSkorKaydediliyor] = useState(false)
+  // 🔥 MAÇ ÖNÜ KAYITLARI (DİJİTAL AJANDA) 🔥
+  const [macOnuAcikMac, setMacOnuAcikMac] = useState<any | null>(null);
+  const [macOnuForm, setMacOnuForm] = useState({ hakem: '', y_hakem_1: '', y_hakem_2: '', hakem_4: '', gozlemci: '', ozel_not: '' });
+  const [macOnuKaydediliyor, setMacOnuKaydediliyor] = useState(false);
+
+  const macOnuPenceresiAc = (mac: any) => {
+      let detay: any = {};
+      try { if (typeof mac.tff_rapor_detaylari === 'string') detay = JSON.parse(mac.tff_rapor_detaylari); else if (mac.tff_rapor_detaylari) detay = mac.tff_rapor_detaylari; } catch(e) {}
+      
+      setMacOnuForm({
+          hakem: detay.hakem || '', y_hakem_1: detay.y_hakem_1 || '',
+          y_hakem_2: detay.y_hakem_2 || '', hakem_4: detay.hakem_4 || '',
+          gozlemci: detay.gozlemci || '', ozel_not: mac.rapor_notu || ''
+      });
+      setMacOnuAcikMac(mac);
+  };
+
+  const macOnuKaydetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!macOnuAcikMac) return;
+      setMacOnuKaydediliyor(true);
+      try {
+          let mevcutDetay: any = {};
+          try { if (typeof macOnuAcikMac.tff_rapor_detaylari === 'string') mevcutDetay = JSON.parse(macOnuAcikMac.tff_rapor_detaylari); else if (macOnuAcikMac.tff_rapor_detaylari) mevcutDetay = macOnuAcikMac.tff_rapor_detaylari; } catch(e) {}
+          
+          const guncelDetay = {
+              ...mevcutDetay,
+              hakem: turkceBuyukHarf(macOnuForm.hakem), y_hakem_1: turkceBuyukHarf(macOnuForm.y_hakem_1),
+              y_hakem_2: turkceBuyukHarf(macOnuForm.y_hakem_2), hakem_4: turkceBuyukHarf(macOnuForm.hakem_4),
+              gozlemci: turkceBuyukHarf(macOnuForm.gozlemci)
+          };
+          
+          const payload = { tff_rapor_detaylari: JSON.stringify(guncelDetay), rapor_notu: macOnuForm.ozel_not };
+          const { error } = await supabase.from('musabakalar').update(payload).eq('id', macOnuAcikMac.id);
+          if (error) throw error;
+          
+          alert("✅ Bilgiler Hafızaya Alındı! Hızlı skor veya rapor doldururken otomatik olarak karşınıza gelecektir.");
+          const guncellenmisMac = { ...macOnuAcikMac, ...payload };
+          setKomiserMaclari((prev: any[]) => prev.map((m: any) => m.id === macOnuAcikMac.id ? guncellenmisMac : m));
+          setMacOnuAcikMac(null);
+      } catch(err: any) { alert("Hata: " + err.message); }
+      setMacOnuKaydediliyor(false);
+  };
   // 🔥 WHATSAPP KOPYALAMA MOTORU (NET VE RESMİ FORMAT) 🔥
   const macKopyala = (mac: any) => {
       const lig = turkceBuyukHarf(mac.kategori_adi);
@@ -3385,6 +3394,12 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 <div className="p-4 md:p-6 border-t-2 border-slate-100 bg-slate-50 rounded-b-xl animate-fade-in-down">
                                                     <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5 md:p-6 mb-6 relative overflow-hidden">
                                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-400"></div><h4 className="font-black text-slate-700 border-b border-slate-100 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest"><span className="text-xl">⚡</span> {detayliGoster ? '1. AŞAMA: HIZLI SKOR BİLDİRİMİ' : 'MÜSABAKA SKOR VE OLAY BİLDİRİMİ'}</h4>
+                                                        {/* 🔥 MAÇ ÖNÜ KAYIT BUTONU 🔥 */}
+                                                        {!mac.skor_girildi && (
+                                                            <button onClick={() => macOnuPenceresiAc(mac)} className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mb-5 shadow-sm">
+                                                                📝 HAKEM VE SAHA İÇİ NOTLARI (ÖN KAYIT)
+                                                            </button>
+                                                        )}
                                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8">
                                                             <div>
                                                                 <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">MAÇ DURUMU</label>
@@ -4373,6 +4388,57 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     </table>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+                {/* 🔥 MAÇ ÖNÜ KAYIT MODALI (AJANDA) 🔥 */}
+                {macOnuAcikMac && (
+                    <div className="fixed inset-0 bg-slate-900/90 z-[200] flex flex-col overflow-hidden animate-fade-in-up md:p-4 tff-no-print">
+                        <div className="flex-1 bg-white md:rounded-3xl flex flex-col shadow-2xl relative w-full max-w-2xl mx-auto overflow-hidden">
+                            <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center shrink-0">
+                                <h2 className="text-sm md:text-base font-black text-white tracking-widest uppercase flex items-center gap-2">
+                                    <span>📝</span> MAÇ ÖNÜ KAYITLARI
+                                </h2>
+                                <button onClick={() => setMacOnuAcikMac(null)} className="text-slate-400 hover:text-white font-bold text-2xl leading-none">✕</button>
+                            </div>
+                            
+                            <form onSubmit={macOnuKaydetSubmit} className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 custom-scrollbar flex flex-col gap-6">
+                                <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center shadow-inner">
+                                    <span className="block text-[10px] md:text-xs text-blue-600 font-bold mb-1 uppercase tracking-widest">MÜSABAKA</span>
+                                    <span className="text-sm md:text-base font-black text-blue-900 uppercase">{macOnuAcikMac.ev_sahibi} - {macOnuAcikMac.misafir_takim}</span>
+                                </div>
+
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4">
+                                    <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">HAKEM & GÖZLEMCİ LİSTESİ</h3>
+                                    
+                                    <div><label className="block text-xs font-bold text-slate-600 mb-1">Orta Hakem</label><input type="text" value={macOnuForm.hakem} onChange={e => setMacOnuForm({...macOnuForm, hakem: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="Hakem Adı Soyadı" /></div>
+                                    
+                                    {getHakemGosterimModu(macOnuAcikMac.kategori_adi) !== 'tek_hakem' && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1">1. Yrd. Hakem</label><input type="text" value={macOnuForm.y_hakem_1} onChange={e => setMacOnuForm({...macOnuForm, y_hakem_1: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="İsim" /></div>
+                                            <div><label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1">2. Yrd. Hakem</label><input type="text" value={macOnuForm.y_hakem_2} onChange={e => setMacOnuForm({...macOnuForm, y_hakem_2: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="İsim" /></div>
+                                        </div>
+                                    )}
+
+                                    {getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci' && (
+                                        <div><label className="block text-xs font-bold text-slate-600 mb-1">4. Hakem</label><input type="text" value={macOnuForm.hakem_4} onChange={e => setMacOnuForm({...macOnuForm, hakem_4: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="4. Hakem İsim" /></div>
+                                    )}
+
+                                    {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'uc_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci') && (
+                                        <div><label className="block text-xs font-bold text-slate-600 mb-1">Gözlemci</label><input type="text" value={macOnuForm.gozlemci} onChange={e => setMacOnuForm({...macOnuForm, gozlemci: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="Gözlemci İsim" /></div>
+                                    )}
+                                </div>
+                                
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                                    <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">SAHA İÇİ NOTLARI (AJANDA)</h3>
+                                    <textarea value={macOnuForm.ozel_not} onChange={e => setMacOnuForm({...macOnuForm, ozel_not: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-medium px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none min-h-[120px] text-sm" placeholder="Maç sırasındaki notlarınızı buraya yazın... (Örn: 7 numaralı oyuncu ihraç edildi)"></textarea>
+                                    <p className="text-[10px] text-slate-500 mt-2 font-bold leading-tight">Bu notlar, maç sonu raporu doldururken otomatik olarak karşınıza çıkacaktır.</p>
+                                </div>
+                                
+                                <button type="submit" disabled={macOnuKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg uppercase tracking-widest transition-colors mb-4 md:mb-0">
+                                    {macOnuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : '💾 BİLGİLERİ HAFIZAYA AL'}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 )}
