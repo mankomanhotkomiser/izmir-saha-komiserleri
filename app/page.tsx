@@ -82,8 +82,8 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     return true; 
 };
 
-/// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI 🔥
-const getHakemGosterimModu = (kategori: any): string => {
+// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI 🔥
+const getHakemGosterimModu = (kategori: any): 'tek_hakem' | 'uc_hakem' | 'uc_ve_gozlemci' | 'dort_ve_gozlemci' | 'dort_kutu' => {
     if (!kategori) return 'uc_ve_gozlemci'; 
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
     
