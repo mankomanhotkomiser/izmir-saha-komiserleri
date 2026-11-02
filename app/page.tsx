@@ -810,7 +810,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       } catch(err: any) { alert("Hata: " + err.message); }
       setMacOnuKaydediliyor(false);
   };
-  // 🔥 WHATSAPP KOPYALAMA MOTORU (ÖZEL NOTLARDAN ARINDIRILMIŞ, TERTEMİZ FORMAT) 🔥
+  // 🔥 WHATSAPP KOPYALAMA MOTORU (SADECE OLAĞANÜSTÜ DURUMLARDA NOT EKLER) 🔥
   const macKopyala = (mac: any) => {
       const lig = turkceBuyukHarf(mac.kategori_adi);
       const saatStr = guvenliSaat(mac.saat); 
@@ -821,16 +821,30 @@ const [kucukHeader, setKucukHeader] = useState(false);
       let evTakim = turkceBuyukHarf(mac.ev_sahibi);
       let misTakim = turkceBuyukHarf(mac.misafir_takim);
       
-      let durumNotu = "MÜSABAKA SONUCU";
+      let durumNotu = "";
+      const temizNot = (mac.rapor_notu && mac.rapor_notu.trim() !== '') ? `\n${mac.rapor_notu.trim()}` : "";
       
       if (mac.mac_durumu === 'iptal_edildi') {
           durumNotu = "MÜSABAKA İPTAL EDİLMİŞTİR.";
-      } else if (mac.mac_durumu === 'oynanmadi') {
-          durumNotu = "MÜSABAKA OYNANMAMIŞTIR.";
-      } else if (mac.mac_durumu === 'yarida_kaldi') {
-          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR / TATİL EDİLMİŞTİR.";
-      } else if (mac.mac_durumu === 'takimlar_cikmadi') {
-          durumNotu = "TAKIMLAR SAHAYA ÇIKMAMIŞTIR.";
+      } 
+      else if (mac.mac_durumu === 'oynanmadi') {
+          durumNotu = "MÜSABAKA OYNANMAMIŞTIR." + temizNot;
+      } 
+      else if (mac.mac_durumu === 'yarida_kaldi') {
+          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR / TATİL EDİLMİŞTİR." + temizNot;
+      } 
+      else if (mac.mac_durumu === 'takimlar_cikmadi') {
+          durumNotu = "TAKIM(LAR) SAHAYA ÇIKMAMIŞTIR." + temizNot;
+      } 
+      else {
+          // Müsabaka oynandıysa (Tamamlandıysa)
+          if (mac.olay_durumu === 'emniyetlik_olay') {
+              // SADECE ve SADECE emniyetlik olay varsa notu göster
+              durumNotu = "MÜSABAKA SONUCU" + temizNot;
+          } else {
+              // Teknik olay (kırmızı kart) bile olsa, olaysız da olsa NOTU GİZLE!
+              durumNotu = "MÜSABAKA SONUCU";
+          }
       }
       
       const metin = `${lig}\nSaat: ${saatStr}\nSaha: ${saha}\n\n${evTakim}: ${evSkor}\n${misTakim}: ${misSkor}\n\n${durumNotu}`;
