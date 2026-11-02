@@ -1382,38 +1382,45 @@ const [kucukHeader, setKucukHeader] = useState(false);
     if (acikSkorMacId === mac.id) { skorFormunuSifirla(); } 
     else {
       setAcikSkorMacId(mac.id);
+      
+      // 🔥 YENİ ZIRH: Skor girilmemiş olsa bile ön kayıt bilgilerini (Hakemler ve Notlar) DAİMA yükle! 🔥
+      const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
+      const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
+      
+      if (!birlesikDetay.gelisim_sorular || typeof birlesikDetay.gelisim_sorular !== 'object') birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
+      if (!birlesikDetay.gelisim_fotolar || typeof birlesikDetay.gelisim_fotolar !== 'object') birlesikDetay.gelisim_fotolar = {};
+      if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
+      if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
+      if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
+      
+      const yeniFotolar: Record<string, string> = {};
+      
+      birlesikDetay.ek_raporlar.forEach((ek: any) => {
+          if (ek.foto_url) yeniFotolar[ek.id] = ek.foto_url;
+      });
+
+      if (birlesikDetay.gelisim_fotolar) {
+          Object.keys(birlesikDetay.gelisim_fotolar).forEach(k => {
+              if (birlesikDetay.gelisim_fotolar[k]) yeniFotolar[k] = birlesikDetay.gelisim_fotolar[k];
+          });
+      }
+
+      setEkRaporFotolar(yeniFotolar);
+      setEkRaporDosyalar({}); 
+      setRaporDetay(birlesikDetay); 
+      setRaporNotu(mac.rapor_notu || ''); // Maç önü notlarını ajandadan direkt ekrana çeker
+
+      // Sadece skor ve durumları "skor_girildi" ise ekrana bas, değilse boş bırak
       if (mac.skor_girildi) {
         setEvSkor(mac.ev_sahibi_skor != null ? String(mac.ev_sahibi_skor) : '');
         setMisafirSkor(mac.misafir_skor != null ? String(mac.misafir_skor) : '');
-        setMacDurumu(mac.mac_durumu || ''); setOlayDurumu(mac.olay_durumu || 'olaysiz'); setRaporNotu(mac.rapor_notu || '');
-        
-        const parsedDetay = parseDetay(mac.tff_rapor_detaylari);
-        const birlesikDetay = { ...defaultRaporDetay, ...parsedDetay };
-        if (!birlesikDetay.gelisim_sorular || typeof birlesikDetay.gelisim_sorular !== 'object') birlesikDetay.gelisim_sorular = defaultRaporDetay.gelisim_sorular;
-        if (!birlesikDetay.gelisim_fotolar || typeof birlesikDetay.gelisim_fotolar !== 'object') birlesikDetay.gelisim_fotolar = {};
-        if (!Array.isArray(birlesikDetay.ek_raporlar)) birlesikDetay.ek_raporlar = [];
-        if (!Array.isArray(birlesikDetay.ihrac_ev)) birlesikDetay.ihrac_ev = defaultRaporDetay.ihrac_ev;
-        if (!Array.isArray(birlesikDetay.ihrac_mis)) birlesikDetay.ihrac_mis = defaultRaporDetay.ihrac_mis;
-        
-        const yeniFotolar: Record<string, string> = {};
-        
-        birlesikDetay.ek_raporlar.forEach((ek: any) => {
-            if (ek.foto_url) yeniFotolar[ek.id] = ek.foto_url;
-        });
-
-        if (birlesikDetay.gelisim_fotolar) {
-            Object.keys(birlesikDetay.gelisim_fotolar).forEach(k => {
-                if (birlesikDetay.gelisim_fotolar[k]) yeniFotolar[k] = birlesikDetay.gelisim_fotolar[k];
-            });
-        }
-
-        setEkRaporFotolar(yeniFotolar);
-        setEkRaporDosyalar({}); 
-        setRaporDetay(birlesikDetay); 
+        setMacDurumu(mac.mac_durumu || ''); 
+        setOlayDurumu(mac.olay_durumu || 'olaysiz'); 
       } else { 
-          setEvSkor(''); setMisafirSkor(''); setMacDurumu(''); setOlayDurumu('olaysiz'); setRaporNotu(''); setRaporDetay(defaultRaporDetay); 
-          setEkRaporFotolar({}); 
-          setEkRaporDosyalar({});
+        setEvSkor(''); 
+        setMisafirSkor(''); 
+        setMacDurumu(''); 
+        setOlayDurumu('olaysiz'); 
       }
     }
   }
