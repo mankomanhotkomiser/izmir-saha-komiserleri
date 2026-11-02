@@ -3371,6 +3371,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex flex-col gap-2 items-end w-full sm:w-auto">
+                                                            {/* 🔥 MAÇ ÖNÜ KAYIT BUTONU (KARTIN DIŞINA, SKOR BEKLENİYOR'UN ÜSTÜNE ALINDI) 🔥 */}
+                                                            {!mac.skor_girildi && (
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); macOnuPenceresiAc(mac); }} 
+                                                                    className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-800 px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm border border-indigo-200 transition-colors flex items-center justify-center gap-1 min-w-[160px] md:min-w-[180px] tracking-widest"
+                                                                >
+                                                                    📝 MAÇ ÖNÜ NOTLARI
+                                                                </button>
+                                                            )}
                                                             <span className={`px-3 py-2 rounded-md text-[10px] md:text-[11px] font-black shadow-sm flex items-center justify-center min-w-[160px] md:min-w-[180px] tracking-widest border ${raporGonderilmis ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-600 text-white border-red-700 animate-pulse'}`}>
                                                                 {raporGonderilmis ? '✓ SKOR GÖNDERİLDİ' : '❌ SKOR BEKLENİYOR'}
                                                             </span>
@@ -3394,12 +3403,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                 <div className="p-4 md:p-6 border-t-2 border-slate-100 bg-slate-50 rounded-b-xl animate-fade-in-down">
                                                     <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-5 md:p-6 mb-6 relative overflow-hidden">
                                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-400"></div><h4 className="font-black text-slate-700 border-b border-slate-100 pb-3 mb-5 text-sm md:text-base flex items-center gap-2 tracking-widest"><span className="text-xl">⚡</span> {detayliGoster ? '1. AŞAMA: HIZLI SKOR BİLDİRİMİ' : 'MÜSABAKA SKOR VE OLAY BİLDİRİMİ'}</h4>
-                                                        {/* 🔥 MAÇ ÖNÜ KAYIT BUTONU 🔥 */}
-                                                        {!mac.skor_girildi && (
-                                                            <button onClick={() => macOnuPenceresiAc(mac)} className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mb-5 shadow-sm">
-                                                                📝 HAKEM VE SAHA İÇİ NOTLARI (ÖN KAYIT)
-                                                            </button>
-                                                        )}
+                                                        
                                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8">
                                                             <div>
                                                                 <label className="block text-[10px] md:text-xs font-bold text-slate-500 tracking-widest mb-2 text-center">MAÇ DURUMU</label>
@@ -4408,34 +4412,75 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     <span className="text-sm md:text-base font-black text-blue-900 uppercase">{macOnuAcikMac.ev_sahibi} - {macOnuAcikMac.misafir_takim}</span>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4">
-                                    <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">HAKEM & GÖZLEMCİ LİSTESİ</h3>
-                                    
-                                    <div><label className="block text-xs font-bold text-slate-600 mb-1">Orta Hakem</label><input type="text" value={macOnuForm.hakem} onChange={e => setMacOnuForm({...macOnuForm, hakem: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="Hakem Adı Soyadı" /></div>
-                                    
-                                    {getHakemGosterimModu(macOnuAcikMac.kategori_adi) !== 'tek_hakem' && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div><label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1">1. Yrd. Hakem</label><input type="text" value={macOnuForm.y_hakem_1} onChange={e => setMacOnuForm({...macOnuForm, y_hakem_1: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="İsim" /></div>
-                                            <div><label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1">2. Yrd. Hakem</label><input type="text" value={macOnuForm.y_hakem_2} onChange={e => setMacOnuForm({...macOnuForm, y_hakem_2: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="İsim" /></div>
+                                {(() => {
+                                    // 🔥 AKILLI HAKEM VE GÖZLEMCİ SEÇİCİ MOTURU (SUPABASE BAĞLANTILI) 🔥
+                                    const RenderHakemSecici = ({ tip, alan, label }: { tip: 'hakem'|'gozlemci', alan: string, label: string }) => {
+                                        const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
+                                        // @ts-ignore
+                                        const deger = macOnuForm[alan];
+                                        const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
+
+                                        return (
+                                            <div>
+                                                <label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{label}</label>
+                                                {elleGirModu ? (
+                                                    <div className="flex gap-1 w-full items-center">
+                                                        <input 
+                                                            type="text" 
+                                                            value={deger === 'YENI_KAYIT' ? '' : deger} 
+                                                            onChange={e => setMacOnuForm({...macOnuForm, [alan]: turkceBuyukHarf(e.target.value)})} 
+                                                            className="w-full bg-yellow-50 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase text-xs shadow-inner" 
+                                                            placeholder="İSİM YAZINIZ..." 
+                                                            autoFocus 
+                                                        />
+                                                        <button type="button" onClick={() => setMacOnuForm({...macOnuForm, [alan]: ''})} className="bg-red-500 hover:bg-red-600 text-white px-3 py-2.5 rounded-lg text-xs font-bold shadow-sm">✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <select 
+                                                        value={deger || ''} 
+                                                        onChange={e => setMacOnuForm({...macOnuForm, [alan]: e.target.value})} 
+                                                        className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase text-xs cursor-pointer shadow-sm transition-colors"
+                                                    >
+                                                        <option value="" disabled>-- LÜTFEN SEÇİNİZ --</option>
+                                                        <option value="YENI_KAYIT">✍️ LİSTEDE YOK (ELLE GİR)</option>
+                                                        {liste.map((l: string, i: number) => <option key={i} value={l}>{l}</option>)}
+                                                    </select>
+                                                )}
+                                            </div>
+                                        );
+                                    };
+
+                                    return (
+                                        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4">
+                                            <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">HAKEM & GÖZLEMCİ LİSTESİ</h3>
+                                            
+                                            <RenderHakemSecici tip="hakem" alan="hakem" label="Orta Hakem" />
+                                            
+                                            {getHakemGosterimModu(macOnuAcikMac.kategori_adi) !== 'tek_hakem' && (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <RenderHakemSecici tip="hakem" alan="y_hakem_1" label="1. Yardımcı Hakem" />
+                                                    <RenderHakemSecici tip="hakem" alan="y_hakem_2" label="2. Yardımcı Hakem" />
+                                                </div>
+                                            )}
+
+                                            {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_kutu') && (
+                                                <RenderHakemSecici tip="hakem" alan="hakem_4" label="4. Hakem" />
+                                            )}
+
+                                            {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'uc_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci') && (
+                                                <RenderHakemSecici tip="gozlemci" alan="gozlemci" label="Müsabaka Gözlemcisi" />
+                                            )}
                                         </div>
-                                    )}
-
-                                    {getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci' && (
-                                        <div><label className="block text-xs font-bold text-slate-600 mb-1">4. Hakem</label><input type="text" value={macOnuForm.hakem_4} onChange={e => setMacOnuForm({...macOnuForm, hakem_4: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="4. Hakem İsim" /></div>
-                                    )}
-
-                                    {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'uc_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci') && (
-                                        <div><label className="block text-xs font-bold text-slate-600 mb-1">Gözlemci</label><input type="text" value={macOnuForm.gozlemci} onChange={e => setMacOnuForm({...macOnuForm, gozlemci: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase" placeholder="Gözlemci İsim" /></div>
-                                    )}
-                                </div>
+                                    );
+                                })()}
                                 
                                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                                     <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">SAHA İÇİ NOTLARI (AJANDA)</h3>
-                                    <textarea value={macOnuForm.ozel_not} onChange={e => setMacOnuForm({...macOnuForm, ozel_not: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-medium px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none min-h-[120px] text-sm" placeholder="Maç sırasındaki notlarınızı buraya yazın... (Örn: 7 numaralı oyuncu ihraç edildi)"></textarea>
+                                    <textarea value={macOnuForm.ozel_not} onChange={e => setMacOnuForm({...macOnuForm, ozel_not: e.target.value})} className="w-full bg-slate-100 border border-slate-300 text-slate-800 font-medium px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none min-h-[120px] text-sm shadow-inner" placeholder="Maç sırasındaki notlarınızı buraya yazın... (Örn: 7 numaralı oyuncu ihraç edildi)"></textarea>
                                     <p className="text-[10px] text-slate-500 mt-2 font-bold leading-tight">Bu notlar, maç sonu raporu doldururken otomatik olarak karşınıza çıkacaktır.</p>
                                 </div>
                                 
-                                <button type="submit" disabled={macOnuKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg uppercase tracking-widest transition-colors mb-4 md:mb-0">
+                                <button type="submit" disabled={macOnuKaydediliyor} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg uppercase tracking-widest transition-colors mb-4 md:mb-0 flex items-center justify-center gap-2">
                                     {macOnuKaydediliyor ? '⚙️ KAYDEDİLİYOR...' : '💾 BİLGİLERİ HAFIZAYA AL'}
                                 </button>
                             </form>
