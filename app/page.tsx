@@ -83,7 +83,7 @@ const detayliRaporGosterilirMi = (kategori: any) => {
 };
 
 /// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI 🔥
-const getHakemGosterimModu = (kategori: any) => {
+const getHakemGosterimModu = (kategori: any): string => {
     if (!kategori) return 'uc_ve_gozlemci'; 
     const kat = String(kategori).toLocaleUpperCase('tr-TR');
     
