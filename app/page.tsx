@@ -2944,29 +2944,28 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 <h3 className="text-xl md:text-2xl font-black tracking-widest mb-4 text-slate-800 uppercase">MAZERET BİLDİRİM SİSTEMİ</h3>
                                 
                                 {(() => {
-                                    const now = new Date();
-                                    const day = now.getDay();
-                                    const nextSunday = new Date(now);
-                                    if (day !== 0) nextSunday.setDate(now.getDate() + (7 - day));
-                                    
-                                    const nextTuesday = new Date(nextSunday);
-                                    nextTuesday.setDate(nextSunday.getDate() + 2);
-                                    
-                                    const nextWednesday = new Date(nextSunday);
-                                    nextWednesday.setDate(nextSunday.getDate() + 3);
+                                    // 🔥 MATEMATİKSEL KESİNLİK: Hedef hafta her zaman mevcut aktif haftanın bir sonrasıdır 🔥
+                                    const hedefHafta = globalAktifHaftaNo > 0 ? globalAktifHaftaNo + 1 : 1;
 
-                                    const kapanisGunu = new Date(nextSunday);
-                                    kapanisGunu.setDate(nextSunday.getDate() + (aktifSehir === 'kocaeli' ? 1 : 2));
+                                    // Hedef haftanın Cuma gününü bul (16 Ekim 2026 referans alınarak)
+                                    const hedefCuma = new Date('2026-10-16T00:00:00Z');
+                                    hedefCuma.setDate(hedefCuma.getDate() + ((hedefHafta - 1) * 7));
+
+                                    // Sistemin açılacağı Pazar günü (Hedef Cuma'dan 5 gün önce)
+                                    const acilisPazar = new Date(hedefCuma);
+                                    acilisPazar.setDate(hedefCuma.getDate() - 5);
                                     
-                                    const kilitGunu = new Date(nextSunday);
-                                    kilitGunu.setDate(nextSunday.getDate() + (aktifSehir === 'kocaeli' ? 2 : 3));
+                                    const kapanisGunu = new Date(acilisPazar);
+                                    kapanisGunu.setDate(acilisPazar.getDate() + (aktifSehir === 'kocaeli' ? 1 : 2));
+                                    
+                                    const kilitGunu = new Date(acilisPazar);
+                                    kilitGunu.setDate(acilisPazar.getDate() + (aktifSehir === 'kocaeli' ? 2 : 3));
 
                                     const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-                                    const pazarStr = `${nextSunday.getDate()} ${aylar[nextSunday.getMonth()]} Pazar`;
+                                    const pazarStr = `${acilisPazar.getDate()} ${aylar[acilisPazar.getMonth()]} Pazar`;
                                     const kapanisStr = `${kapanisGunu.getDate()} ${aylar[kapanisGunu.getMonth()]} ${aktifSehir === 'kocaeli' ? 'Pazartesi' : 'Salı'}`;
                                     const kilitStr = `${kilitGunu.getDate()} ${aylar[kilitGunu.getMonth()]} ${aktifSehir === 'kocaeli' ? 'Salı' : 'Çarşamba'}`;
                                     
-                                    const hedefHafta = globalAktifHaftaNo > 0 ? globalAktifHaftaNo : 1;
                                     const baskanAdi = aktifSehir === 'kocaeli' ? 'Süleyman Karadaş' : 'Servet Kaya';
 
                                     return (
