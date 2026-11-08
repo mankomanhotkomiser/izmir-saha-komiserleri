@@ -778,7 +778,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
           y_hakem_2: detay.y_hakem_2 || '', hakem_4: detay.hakem_4 || '',
           gozlemci: detay.gozlemci || '', 
           saglik: detay.saglik || '', guvenlik: detay.guvenlik || '',
-          ozel_not: mac.rapor_notu || ''
+          ozel_not: detay.ozel_not ?? mac.rapor_notu ?? ''
       });
       setMacOnuAcikMac(mac);
   };
@@ -801,10 +801,14 @@ const [kucukHeader, setKucukHeader] = useState(false);
               hakem_4: temizDeger(macOnuForm.hakem_4),
               gozlemci: temizDeger(macOnuForm.gozlemci),
               saglik: macOnuForm.saglik,
-              guvenlik: macOnuForm.guvenlik
+              guvenlik: macOnuForm.guvenlik,
+              ozel_not: macOnuForm.ozel_not // 🔥 Sadece ajanda hafızasında tutulur, onaylanmadan Admin'e gitmez!
           };
           
-          const payload = { tff_rapor_detaylari: JSON.stringify(guncelDetay), rapor_notu: macOnuForm.ozel_not };
+          const payload: any = { 
+              tff_rapor_detaylari: JSON.stringify(guncelDetay),
+              rapor_notu: macOnuAcikMac.skor_girildi ? macOnuAcikMac.rapor_notu : null
+          };
           const { error } = await supabase.from('musabakalar').update(payload).eq('id', macOnuAcikMac.id);
           if (error) throw error;
 
@@ -843,50 +847,38 @@ const [kucukHeader, setKucukHeader] = useState(false);
               }
           }
           
-          alert("✅ Bilgiler ve yeni görevliler hafızaya alındı! Hızlı skor veya rapor doldururken otomatik olarak karşınıza gelecektir.");
+          alert("✅ Bilgiler ajanda hafızasına alındı! Siz Hızlı Skoru onaylayıp gönderene kadar Admin paneline yansımaz.");
           const guncellenmisMac = { ...macOnuAcikMac, ...payload };
           setKomiserMaclari((prev: any[]) => prev.map((m: any) => m.id === macOnuAcikMac.id ? guncellenmisMac : m));
           setMacOnuAcikMac(null);
       } catch(err: any) { alert("Hata: " + err.message); }
       setMacOnuKaydediliyor(false);
   };
-  // 🔥 WHATSAPP KOPYALAMA MOTORU (SADECE OLAĞANÜSTÜ DURUMLARDA NOT EKLER) 🔥
+
+  // 🔥 WHATSAPP KOPYALAMA MOTORU (HIZLI NOT VE OLAY DETAYI KESİNLİKLE YER ALMAZ) 🔥
   const macKopyala = (mac: any) => {
       const lig = turkceBuyukHarf(mac.kategori_adi);
       const saatStr = guvenliSaat(mac.saat); 
       const saha = turkceBuyukHarf(mac.saha);
       
-      let evSkor = mac.ev_sahibi_skor !== null ? mac.ev_sahibi_skor : '-';
-      let misSkor = mac.misafir_skor !== null ? mac.misafir_skor : '-';
+      let evSkor = (mac.mac_durumu === 'oynandi' && mac.ev_sahibi_skor !== null) ? mac.ev_sahibi_skor : '-';
+      let misSkor = (mac.mac_durumu === 'oynandi' && mac.misafir_skor !== null) ? mac.misafir_skor : '-';
       let evTakim = turkceBuyukHarf(mac.ev_sahibi);
       let misTakim = turkceBuyukHarf(mac.misafir_takim);
       
-      let durumNotu = "";
-      
-      // 🔥 İŞTE BURASI SENİN NOTUNU ÇEKER VE BAŞINA İKİ BOŞLUK KOYAR 🔥
-      const temizNot = (mac.rapor_notu && mac.rapor_notu.trim() !== '') ? `\n\n${mac.rapor_notu.trim()}` : "";
+      let durumNotu = "MÜSABAKA SONUCU";
       
       if (mac.mac_durumu === 'iptal_edildi') {
           durumNotu = "MÜSABAKA İPTAL EDİLMİŞTİR.";
       } 
       else if (mac.mac_durumu === 'oynanmadi') {
-          durumNotu = "MÜSABAKA OYNANMAMIŞTIR." + temizNot;
+          durumNotu = "MÜSABAKA OYNANMAMIŞTIR.";
       } 
       else if (mac.mac_durumu === 'yarida_kaldi') {
-          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR / TATİL EDİLMİŞTİR." + temizNot;
+          durumNotu = "MÜSABAKA YARIDA KALMIŞTIR / TATİL EDİLMİŞTİR.";
       } 
       else if (mac.mac_durumu === 'takimlar_cikmadi') {
-          durumNotu = "TAKIM(LAR) SAHAYA ÇIKMAMIŞTIR." + temizNot;
-      } 
-      else {
-          // Müsabaka oynandıysa (Tamamlandıysa)
-          if (mac.olay_durumu === 'emniyetlik_olay') {
-              // SADECE emniyetlik olay varsa komiserin notunu gösterir
-              durumNotu = "MÜSABAKA SONUCU" + temizNot;
-          } else {
-              // Teknik olay (kırmızı kart vb.) bile olsa, olaysız da olsa NOTU KESİNLİKLE GİZLE!
-              durumNotu = "MÜSABAKA SONUCU";
-          }
+          durumNotu = "TAKIM(LAR) SAHAYA ÇIKMAMIŞTIR.";
       }
       
       const metin = `${lig}\nSaat: ${saatStr}\nSaha: ${saha}\n\n${evTakim}: ${evSkor}\n${misTakim}: ${misSkor}\n\n${durumNotu}`;
@@ -896,7 +888,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       }).catch(() => {
           alert("Kopyalama başarısız oldu, lütfen manuel kopyalayınız.");
       });
-  }
+  };
   // ==========================================
   // HESAPLAMALAR VE TARİH BEYNİ (YAPIŞKAN RADAR)
   // ==========================================
@@ -1458,7 +1450,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
       setEkRaporFotolar(yeniFotolar);
       setEkRaporDosyalar({}); 
       setRaporDetay(birlesikDetay); 
-      setRaporNotu(mac.rapor_notu || ''); // Maç önü notlarını ajandadan direkt ekrana çeker
+      setRaporNotu(mac.skor_girildi ? (mac.rapor_notu || '') : (parsedDetay.ozel_not || '')); // Onaylanana kadar sadece ajanda hafızasından çeker
 
       // Sadece skor ve durumları "skor_girildi" ise ekrana bas, değilse boş bırak
       if (mac.skor_girildi) {
