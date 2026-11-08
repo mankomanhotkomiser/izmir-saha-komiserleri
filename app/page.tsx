@@ -791,19 +791,59 @@ const [kucukHeader, setKucukHeader] = useState(false);
           let mevcutDetay: any = {};
           try { if (typeof macOnuAcikMac.tff_rapor_detaylari === 'string') mevcutDetay = JSON.parse(macOnuAcikMac.tff_rapor_detaylari); else if (macOnuAcikMac.tff_rapor_detaylari) mevcutDetay = macOnuAcikMac.tff_rapor_detaylari; } catch(e) {}
           
+          const temizDeger = (val: string) => (!val || val === 'YENI_KAYIT') ? '' : turkceBuyukHarf(val).trim();
+
           const guncelDetay = {
               ...mevcutDetay,
-              hakem: turkceBuyukHarf(macOnuForm.hakem), y_hakem_1: turkceBuyukHarf(macOnuForm.y_hakem_1),
-              y_hakem_2: turkceBuyukHarf(macOnuForm.y_hakem_2), hakem_4: turkceBuyukHarf(macOnuForm.hakem_4),
-              gozlemci: turkceBuyukHarf(macOnuForm.gozlemci),
-              saglik: macOnuForm.saglik, guvenlik: macOnuForm.guvenlik
+              hakem: temizDeger(macOnuForm.hakem),
+              y_hakem_1: temizDeger(macOnuForm.y_hakem_1),
+              y_hakem_2: temizDeger(macOnuForm.y_hakem_2),
+              hakem_4: temizDeger(macOnuForm.hakem_4),
+              gozlemci: temizDeger(macOnuForm.gozlemci),
+              saglik: macOnuForm.saglik,
+              guvenlik: macOnuForm.guvenlik
           };
           
           const payload = { tff_rapor_detaylari: JSON.stringify(guncelDetay), rapor_notu: macOnuForm.ozel_not };
           const { error } = await supabase.from('musabakalar').update(payload).eq('id', macOnuAcikMac.id);
           if (error) throw error;
+
+          // 🔥 YENİ GİRİLEN ADAY HAKEMLERİ ANINDA VERİTABANINA VE LİSTEYE EKLE 🔥
+          const girilenHakemler = [
+              guncelDetay.hakem, guncelDetay.y_hakem_1, guncelDetay.y_hakem_2, guncelDetay.hakem_4
+          ].filter((h: string) => h && h.length > 2 && !h.includes("SEÇ") && !h.includes("YAZ"));
+
+          if (girilenHakemler.length > 0) {
+              const { data: mevcutHakemler } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir);
+              const guncelListe = (mevcutHakemler || []).map((h: any) => turkceBuyukHarf(h.ad_soyad));
+              const eklenecekler = Array.from(new Set(girilenHakemler.filter((h: string) => !guncelListe.includes(h))));
+
+              if (eklenecekler.length > 0) {
+                  const insertPayload = eklenecekler.map((ad: string) => ({ ad_soyad: ad, sehir: aktifSehir, bolge: turkceBuyukHarf(aktifSehir), aktif_mi: true }));
+                  const { error: hErr } = await supabase.from('hakemler').insert(insertPayload);
+                  if (!hErr) {
+                      setHakemListesi((prev: string[]) => {
+                          const yeni = [...prev];
+                          eklenecekler.forEach((h: string) => { if (!yeni.map((x: string) => turkceBuyukHarf(x)).includes(h)) yeni.push(h); });
+                          return yeni.sort((a: string, b: string) => a.localeCompare(b, 'tr-TR'));
+                      });
+                  }
+              }
+          }
+
+          // 🔥 YENİ GİRİLEN GÖZLEMCİYİ ANINDA VERİTABANINA VE LİSTEYE EKLE 🔥
+          if (guncelDetay.gozlemci && guncelDetay.gozlemci.length > 2 && !guncelDetay.gozlemci.includes("SEÇ") && !guncelDetay.gozlemci.includes("YAZ")) {
+              const { data: mevcutGozlemciler } = await supabase.from('gozlemciler').select('ad_soyad').eq('sehir', aktifSehir);
+              const guncelGozListe = (mevcutGozlemciler || []).map((g: any) => turkceBuyukHarf(g.ad_soyad));
+              if (!guncelGozListe.includes(guncelDetay.gozlemci)) {
+                  const { error: gErr } = await supabase.from('gozlemciler').insert([{ ad_soyad: guncelDetay.gozlemci, sehir: aktifSehir, bolge: turkceBuyukHarf(aktifSehir), aktif_mi: true }]);
+                  if (!gErr) {
+                      setGozlemciListesi((prev: string[]) => [...prev, guncelDetay.gozlemci].sort((a: string, b: string) => a.localeCompare(b, 'tr-TR')));
+                  }
+              }
+          }
           
-          alert("✅ Bilgiler Hafızaya Alındı! Hızlı skor veya rapor doldururken otomatik olarak karşınıza gelecektir.");
+          alert("✅ Bilgiler ve yeni görevliler hafızaya alındı! Hızlı skor veya rapor doldururken otomatik olarak karşınıza gelecektir.");
           const guncellenmisMac = { ...macOnuAcikMac, ...payload };
           setKomiserMaclari((prev: any[]) => prev.map((m: any) => m.id === macOnuAcikMac.id ? guncellenmisMac : m));
           setMacOnuAcikMac(null);
@@ -4433,15 +4473,15 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 </div>
 
                                 {(() => {
-                                    // 🔥 AKILLI HAKEM VE GÖZLEMCİ SEÇİCİ MOTURU (SUPABASE BAĞLANTILI) 🔥
-                                    const RenderHakemSecici = ({ tip, alan, label }: { tip: 'hakem'|'gozlemci', alan: string, label: string }) => {
+                                    // 🔥 AKILLI HAKEM VE GÖZLEMCİ SEÇİCİ MOTORU (FOCUS ÇALMAYAN DÜZ FONKSİYON) 🔥
+                                    const renderHakemSecici = (tip: 'hakem'|'gozlemci', alan: string, label: string) => {
                                         const liste = tip === 'hakem' ? hakemListesi : gozlemciListesi;
                                         // @ts-ignore
                                         const deger = macOnuForm[alan];
-                                        const elleGirModu = deger === 'YENI_KAYIT' || (deger && !liste.includes(deger));
+                                        const elleGirModu = deger === 'YENI_KAYIT' || (Boolean(deger) && !liste.includes(deger));
 
                                         return (
-                                            <div>
+                                            <div key={alan}>
                                                 <label className="block text-[10px] md:text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{label}</label>
                                                 {elleGirModu ? (
                                                     <div className="flex gap-1 w-full items-center">
@@ -4451,7 +4491,6 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                                             onChange={e => setMacOnuForm({...macOnuForm, [alan]: turkceBuyukHarf(e.target.value)})} 
                                                             className="w-full bg-yellow-50 border border-slate-300 text-slate-800 font-bold px-3 py-2.5 rounded-lg focus:border-blue-500 focus:outline-none uppercase text-xs shadow-inner" 
                                                             placeholder="İSİM YAZINIZ..." 
-                                                            autoFocus 
                                                         />
                                                         <button type="button" onClick={() => setMacOnuForm({...macOnuForm, [alan]: ''})} className="bg-red-500 hover:bg-red-600 text-white px-3 py-2.5 rounded-lg text-xs font-bold shadow-sm">✕</button>
                                                     </div>
@@ -4474,21 +4513,21 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4">
                                             <h3 className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">HAKEM & GÖZLEMCİ LİSTESİ</h3>
                                             
-                                            <RenderHakemSecici tip="hakem" alan="hakem" label="Orta Hakem" />
+                                            {renderHakemSecici("hakem", "hakem", "Orta Hakem")}
                                             
                                             {getHakemGosterimModu(macOnuAcikMac.kategori_adi) !== 'tek_hakem' && (
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    <RenderHakemSecici tip="hakem" alan="y_hakem_1" label="1. Yardımcı Hakem" />
-                                                    <RenderHakemSecici tip="hakem" alan="y_hakem_2" label="2. Yardımcı Hakem" />
+                                                    {renderHakemSecici("hakem", "y_hakem_1", "1. Yardımcı Hakem")}
+                                                    {renderHakemSecici("hakem", "y_hakem_2", "2. Yardımcı Hakem")}
                                                 </div>
                                             )}
 
                                             {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_kutu') && (
-                                                <RenderHakemSecici tip="hakem" alan="hakem_4" label="4. Hakem" />
+                                                renderHakemSecici("hakem", "hakem_4", "4. Hakem")
                                             )}
 
                                             {(getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'uc_ve_gozlemci' || getHakemGosterimModu(macOnuAcikMac.kategori_adi) === 'dort_ve_gozlemci') && (
-                                                <RenderHakemSecici tip="gozlemci" alan="gozlemci" label="Müsabaka Gözlemcisi" />
+                                                renderHakemSecici("gozlemci", "gozlemci", "Müsabaka Gözlemcisi")
                                             )}
                                             
                                             {/* 🔥 EMNİYET VE SAĞLIK EKLENTİSİ 🔥 */}
