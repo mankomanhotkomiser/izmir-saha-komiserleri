@@ -1159,75 +1159,114 @@ const [kucukHeader, setKucukHeader] = useState(false);
     } catch (err) { console.error(err) }
   }
 
-  useEffect(() => {
-    let aktif = true;
-    async function arkaPlaniHazirla() {
-      try {
-        // 1. MAÇLARI FİLTRELE (Zaten sehir kalkanı varmış, ama tam izole ediyoruz)
-        let tumMaclarGecici: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
-        while (veriKaldimi && aktif) {
-          const { data, error } = await supabase.from('musabakalar').select('*').eq('sehir', aktifSehir).range(sayfa * limit, (sayfa + 1) * limit - 1)
-          if (error) break;
-          if (data && Array.isArray(data) && data.length > 0) {
-            tumMaclarGecici = [...tumMaclarGecici, ...data]
-            if (data.length < limit) veriKaldimi = false; else { sayfa++; await new Promise(res => setTimeout(res, 50)) }
-          } else veriKaldimi = false
-        }
-        
-        if (tumMaclarGecici && tumMaclarGecici.length > 0 && aktif) {
-          setTumSezonMaclari(tumMaclarGecici)
-          const cumalar = tumMaclarGecici.map((mac: any) => mac?.tarih ? cumaBul(mac.tarih) : 0).filter((t: number) => t > 0)
-          const essizCumalar = Array.from(new Set(cumalar)).sort((a: any, b: any) => a - b)
-          
-          if(essizCumalar.length > 0) {
-            // 🔥 SAAT VE ZAMAN DİLİMİ TUZAĞI TAMAMEN YOK EDİLDİ 🔥
-            const enYakinHaftaNo = haftaNoHesapla(Date.now());
-            
-            setGlobalAktifHaftaNo(enYakinHaftaNo);
+  const arkaPlanYuklendiRef = React.useRef<string>('');
+  const bultenYuklendiRef = React.useRef<string>('');
 
-            // Eğer sıfırıncı haftadaysak, sadece son cumaya ait maçları veya gelecekteki test maçlarını göster
-            const aktifHaftaMaclari = tumMaclarGecici.filter((mac: any) => {
-                if (!mac?.tarih) return false;
-                const macCuma = cumaBul(mac.tarih);
-                return haftaNoHesapla(macCuma) === enYakinHaftaNo;
-            });
-            
-            if(aktifHaftaMaclari.length > 0) {
-                const tarihler = aktifHaftaMaclari.map((m: any) => new Date(String(m.tarih)).getTime()).filter((t: number) => !isNaN(t));
-                if(tarihler.length > 0) {
-                    const minTarih = new Date(Math.min(...tarihler));
-                    const maxTarih = new Date(Math.max(...tarihler));
-                    try {
-                        const baslangicFormati = minTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-                        const bitisFormati = maxTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
-                        setHaftaTarihAraligi(`${baslangicFormati} - ${bitisFormati}`);
-                    } catch(e) { setHaftaTarihAraligi(''); }
-                }
-            }
-            setTumAktifMaclar(aktifHaftaMaclari || [])
+  // 🔥 1. HAFTA NUMARASI VE TARİH ARALIĞINI SIFIR VERİ TRAFİĞİYLE ANINDA HESAPLA 🔥
+  useEffect(() => {
+    const enYakinHaftaNo = haftaNoHesapla(Date.now());
+    setGlobalAktifHaftaNo(enYakinHaftaNo);
+    if (enYakinHaftaNo > 0) {
+      const basTarih = new Date('2026-10-16T12:00:00Z');
+      basTarih.setUTCDate(basTarih.getUTCDate() + ((enYakinHaftaNo - 1) * 7));
+      const bitTarih = new Date(basTarih);
+      bitTarih.setUTCDate(basTarih.getUTCDate() + 6);
+      try {
+        const baslangicFormati = basTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+        const bitisFormati = bitTarih.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+        setHaftaTarihAraligi(`${baslangicFormati} - ${bitisFormati}`);
+      } catch (e) { setHaftaTarihAraligi(''); }
+    }
+  }, []);
+
+  // 🔥 2. TEMEL LİSTELERİ (STATÜ, HAKEM, GÖZLEMCİ) OTURUMDA SADECE 1 KEZ ÇEK 🔥
+  useEffect(() => {
+    if (aktifEkran === 'giris') {
+      arkaPlanYuklendiRef.current = '';
+      bultenYuklendiRef.current = '';
+      return;
+    }
+    if (!aktifSehir || aktifSehir === 'genelmerkez') return;
+    if (arkaPlanYuklendiRef.current === aktifSehir) return;
+
+    let aktif = true;
+    async function temelListeleriHazirla() {
+      try {
+        const statuCache = typeof window !== 'undefined' ? sessionStorage.getItem('tusom_statuler_v1') : null;
+        if (statuCache) {
+          if (aktif) setTumStatuler(JSON.parse(statuCache));
+        } else {
+          const { data: statuData } = await supabase.from('lig_statuleri').select('*');
+          if (statuData && aktif) {
+            setTumStatuler(statuData);
+            if (typeof window !== 'undefined') sessionStorage.setItem('tusom_statuler_v1', JSON.stringify(statuData));
           }
         }
 
-        // 🔥 2. DİĞER KOMİSERLERİ FİLTRELE (Sadece kendi şehrindekiler)
-        const { data: komiserlerData } = await supabase.from('komiserler').select('*').eq('sehir', aktifSehir)
-        if (komiserlerData && aktif) setTumKomiserler(komiserlerData || [])
-
-        // STATÜLER ORTAKTIR, FİLTREYE GEREK YOK
-        const { data: statuData } = await supabase.from('lig_statuleri').select('*');
-        if (statuData && aktif) setTumStatuler(statuData);
-
-        // 🔥 3. HAKEM VE GÖZLEMCİLERİ FİLTRELE (Sadece kendi şehrindekiler)
-        const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad')
+        const { data: hakemData } = await supabase.from('hakemler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad');
         if (hakemData && aktif) { setHakemListesi(hakemData.map((h: any) => h.ad_soyad)); }
 
-        const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad')
+        const { data: gozlemciData } = await supabase.from('gozlemciler').select('ad_soyad').eq('sehir', aktifSehir).order('ad_soyad');
         if (gozlemciData && aktif) { setGozlemciListesi(gozlemciData.map((g: any) => g.ad_soyad)); }
 
-      } catch (err: any) { console.error(err) }
+        if (aktif) { arkaPlanYuklendiRef.current = aktifSehir; }
+      } catch (err: any) { console.error(err); }
     }
-    if(aktifEkran !== 'giris') { arkaPlaniHazirla(); }
-    return () => { aktif = false; }
-  }, [aktifEkran])
+    temelListeleriHazirla();
+    return () => { aktif = false; };
+  }, [aktifEkran, aktifSehir]);
+
+  // 🔥 3. BÜLTEN MAÇLARINI SADECE "BÜLTEN ARAMA" EKRANINA GİRİLİRSE 1 KEZ VE HAFİFLETİLMİŞ ÇEK 🔥
+  useEffect(() => {
+    if (aktifEkran !== 'bultenArama') return;
+    if (!aktifSehir || aktifSehir === 'genelmerkez' || !seciliKomiser) return;
+
+    const bultenAnahtar = `${aktifSehir}_${seciliKomiser.komiser_id}`;
+    if (bultenYuklendiRef.current === bultenAnahtar) return;
+
+    let aktif = true;
+    async function bultenVerileriniGetir() {
+      try {
+        const adminMi = String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735');
+
+        let tumMaclarGecici: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
+        while (veriKaldimi && aktif) {
+          const sorgu = adminMi
+            ? supabase.from('musabakalar').select('*')
+            : supabase.from('musabakalar').select('id, komiser_id, mac_kodu, kategori_adi, ev_sahibi, misafir_takim, tarih, saat, saha, skor_girildi, ev_sahibi_skor, misafir_skor, mac_durumu');
+          const { data, error }: any = await sorgu.eq('sehir', aktifSehir).range(sayfa * limit, (sayfa + 1) * limit - 1);
+          if (error) break;
+          if (data && Array.isArray(data) && data.length > 0) {
+            tumMaclarGecici = [...tumMaclarGecici, ...data];
+            if (data.length < limit) veriKaldimi = false; else { sayfa++; await new Promise(res => setTimeout(res, 50)); }
+          } else veriKaldimi = false;
+        }
+
+        if (tumMaclarGecici.length > 0 && aktif) {
+          if (adminMi) setTumSezonMaclari(tumMaclarGecici);
+          const enYakinHaftaNo = haftaNoHesapla(Date.now());
+          const aktifHaftaMaclari = tumMaclarGecici
+            .filter((mac: any) => mac?.tarih && haftaNoHesapla(cumaBul(mac.tarih)) === enYakinHaftaNo)
+            .map((mac: any) => {
+              if (!adminMi && Array.isArray(komiserMaclari)) {
+                const kendiMaci = komiserMaclari.find((km: any) => km.id === mac.id);
+                if (kendiMaci) return kendiMaci;
+              }
+              return mac;
+            });
+          setTumAktifMaclar(aktifHaftaMaclari || []);
+        }
+
+        const { data: komiserlerData } = await supabase.from('komiserler').select('komiser_id, ad_soyad').eq('sehir', aktifSehir);
+        if (komiserlerData && aktif) setTumKomiserler(komiserlerData || []);
+
+        if (aktif) { bultenYuklendiRef.current = bultenAnahtar; }
+      } catch (err: any) { console.error(err); }
+    }
+    bultenVerileriniGetir();
+    return () => { aktif = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aktifEkran, aktifSehir, seciliKomiser]);
 
   const updateGun = (key: string, field: string, val: any) => { setGunler((prev: Record<string, any>) => ({ ...prev, [key]: { ...prev[key], [field]: val } })) }
 
@@ -2013,7 +2052,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                         const fileName = `mac_${macId}_foto_${key}_${Date.now()}.${dosyaUzantisi}`;
 
                         const { data, error } = await supabase.storage.from('rapor_resimleri').upload(fileName, dosya, {
-                            cacheControl: '3600', upsert: false
+                            cacheControl: '31536000', upsert: false
                         });
 
                         if (!error && data) {
