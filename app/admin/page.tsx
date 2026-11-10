@@ -592,6 +592,43 @@ useEffect(() => {
     } catch (e) { return 0; }
   }
 
+  const sezonlukMaclarRef = React.useRef<any[]>([]);
+  const goruntulenenHaftaRef = React.useRef<number | null>(null);
+  const kategoriMazeretAcikRef = React.useRef<boolean>(false);
+  const finansModalAcikRef = React.useRef<boolean>(false);
+  const sistemYonetimModalAcikRef = React.useRef<boolean>(false);
+  const finansYuklendiRef = React.useRef<boolean>(false);
+  const sistemVerisiYuklendiRef = React.useRef<boolean>(false);
+  const radarCalisiyorRef = React.useRef<boolean>(false);
+  const sonRadarZamaniRef = React.useRef<number>(0);
+
+  useEffect(() => { sezonlukMaclarRef.current = sezonlukMaclar; }, [sezonlukMaclar]);
+  useEffect(() => { goruntulenenHaftaRef.current = goruntulenenHafta; }, [goruntulenenHafta]);
+  useEffect(() => { kategoriMazeretAcikRef.current = kategoriMazeretAcik; }, [kategoriMazeretAcik]);
+  useEffect(() => { finansModalAcikRef.current = finansModalAcik; }, [finansModalAcik]);
+  useEffect(() => { sistemYonetimModalAcikRef.current = sistemYonetimModalAcik; }, [sistemYonetimModalAcik]);
+
+  const gruplariGuncelle = (macListesi: any[]) => {
+    const gruplar: Record<number, any[]> = {};
+    macListesi.forEach((mac: any) => {
+      if (!mac?.tarih) return;
+      const hCuma = cumaBul(mac.tarih);
+      const hIndex = haftaNoHesapla(hCuma);
+      if (hIndex >= 0) {
+        if (!gruplar[hIndex]) gruplar[hIndex] = [];
+        gruplar[hIndex].push(mac);
+      }
+    });
+    Object.keys(gruplar).forEach((k: string) => gruplar[Number(k)].sort(siralamaFiltresi));
+    setHaftalikGruplar(gruplar);
+
+    const enYakinHaftaNo = haftaNoHesapla(Date.now());
+    setGlobalAktifHaftaNo(enYakinHaftaNo);
+    if (goruntulenenHaftaRef.current === null) {
+      setGoruntulenenHafta(enYakinHaftaNo);
+    }
+  };
+
   useEffect(() => { 
       if (girisYapildi) { 
           veriGetir();
@@ -601,24 +638,63 @@ useEffect(() => {
           } catch(e) {}
       } 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [girisYapildi])
+  }, [girisYapildi]);
+
+  // 🔥 BORDRO FİNANS VERİLERİNİ SADECE BORDROLAR AÇILDIĞINDA 1 KEZ ÇEK 🔥
+  useEffect(() => {
+      if (!girisYapildi || !finansModalAcik || finansYuklendiRef.current) return;
+      const finansGetir = async () => {
+          try {
+              const kayitliAdminKodu = localStorage.getItem('aktifAdminKodu') || '';
+              const kayitliSehir = localStorage.getItem('aktifSehir') || aktifAdmin?.sehir || 'izmir';
+              const isVIP = kayitliAdminKodu === 'mankoman' || aktifAdmin?.admin_kodu === 'mankoman';
+              let finansQuery = supabase.from('komiser_finans').select('*');
+              if (!isVIP) finansQuery = finansQuery.eq('sehir', kayitliSehir);
+              const { data: fData, error: fError } = await finansQuery;
+              if (!fError && fData) {
+                  setFinansVerileri(fData || []);
+                  finansYuklendiRef.current = true;
+              }
+          } catch (err) { console.error(err); }
+      };
+      finansGetir();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [girisYapildi, finansModalAcik]);
+
+  // 🔥 STATÜ VE TALİMATLARI SADECE SİSTEM YÖNETİMİ AÇILDIĞINDA 1 KEZ ÇEK 🔥
+  useEffect(() => {
+      if (!girisYapildi || !sistemYonetimModalAcik || sistemVerisiYuklendiRef.current) return;
+      const sistemVerileriniGetir = async () => {
+          try {
+              const { data: statuData } = await supabase.from('lig_statuleri').select('*');
+              if (statuData) setTumStatuler(statuData || []);
+              const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single();
+              if (talimatData) setGenelTalimat(talimatData.metin || '');
+              sistemVerisiYuklendiRef.current = true;
+          } catch (err) { console.error(err); }
+      };
+      sistemVerileriniGetir();
+  }, [girisYapildi, sistemYonetimModalAcik]);
 
   const alarmSustur = (id: number) => {
       const yeni = [...susturulanAlarmlar, id];
       setSusturulanAlarmlar(yeni);
       localStorage.setItem('karargahSusturulanAlarmlar', JSON.stringify(yeni));
-  }
+  };
 
   const veriGetir = async (sessiz = false) => {
-    if (!sessiz) setYukleniyor(true);
+    if (!sessiz) {
+      setYukleniyor(true);
+      finansYuklendiRef.current = false;
+      sistemVerisiYuklendiRef.current = false;
+    }
     try {
-      // 🔥 HAFIZA TUZAKLARINI YIKAN ZIRHLI KOD! 🔥
-      // React'ın yavaş hafızasına (aktifAdmin) güvenmiyoruz, doğrudan tarayıcının beynine (localStorage) iniyoruz!
       const kayitliAdminKodu = localStorage.getItem('aktifAdminKodu') || '';
       const kayitliSehir = localStorage.getItem('aktifSehir') || aktifAdmin?.sehir || 'izmir';
       
       const isVIP = kayitliAdminKodu === 'mankoman' || aktifAdmin?.admin_kodu === 'mankoman';
-      const sehirKalkan = kayitliSehir; // KOCAELİ İSE KOCAELİ! İZMİR İSE İZMİR!
+      const sehirKalkan = kayitliSehir;
+      const enYakinHaftaNo = haftaNoHesapla(Date.now());
       
       let maclarVerisi: any[] = []; let sayfa = 0; const limit = 1000; let veriKaldimi = true;
       while (veriKaldimi) {
@@ -628,82 +704,143 @@ useEffect(() => {
         const { data, error } = await query;
         if (error) break;
         if (data && Array.isArray(data) && data.length > 0) {
-          maclarVerisi = [...maclarVerisi, ...data]
+          maclarVerisi = [...maclarVerisi, ...data];
           if (data.length < limit) veriKaldimi = false; else sayfa++;
-        } else { veriKaldimi = false }
+        } else { veriKaldimi = false; }
       }
       setSezonlukMaclar(maclarVerisi || []);
+      gruplariGuncelle(maclarVerisi || []);
       
-      let komiserQuery = supabase.from('komiserler').select('*');
+      let komiserQuery = supabase.from('komiserler').select('komiser_id, ad_soyad, sehir');
       if (!isVIP) komiserQuery = komiserQuery.eq('sehir', sehirKalkan);
       const { data: komiserlerData } = await komiserQuery;
       if (komiserlerData) setTumKomiserler(komiserlerData || []);
 
-      let mazeretQuery = supabase.from('mazeretler').select('*');
+      // Sadece gelecek haftanın mazeretlerini çek (eski haftaları boşuna indirme)
+      let mazeretQuery = supabase.from('mazeretler').select('*').eq('hafta_no', enYakinHaftaNo + 1);
       if (!isVIP) mazeretQuery = mazeretQuery.eq('sehir', sehirKalkan);
       const { data: mazeretData } = await mazeretQuery;
       if (mazeretData) setTumMazeretler(mazeretData || []);
-
-      const { data: statuData } = await supabase.from('lig_statuleri').select('*'); 
-      if (statuData) setTumStatuler(statuData || []);
 
       let talepQuery = supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').order('created_at', { ascending: false });
       if (!isVIP) talepQuery = talepQuery.eq('sehir', sehirKalkan);
       const { data: taleplerData } = await talepQuery;
       if (taleplerData) setSifreTalepleri(taleplerData);
 
-      const { data: talimatData } = await supabase.from('genel_talimatlar').select('*').limit(1).single(); 
-      if (talimatData) setGenelTalimat(talimatData.metin || '');
-
-      let finansQuery = supabase.from('komiser_finans').select('*');
-      if (!isVIP) finansQuery = finansQuery.eq('sehir', sehirKalkan);
-      const { data: fData, error: fError } = await finansQuery;
-      if (!fError && fData) setFinansVerileri(fData || []);
-
-      if (maclarVerisi.length > 0) {
-        const gruplar: Record<number, any[]> = {};
-        
-        maclarVerisi.forEach(mac => {
-            if(!mac.tarih) return;
-            const hCuma = cumaBul(mac.tarih);
-            // 🔥 YENİ SİSTEM: Matematiksel Hafta Hesaplama 🔥
-            const hIndex = haftaNoHesapla(hCuma);
-            
-            if(hIndex >= 0) { // 0. Hafta dahil gruplara ekle!
-                if(!gruplar[hIndex]) gruplar[hIndex] = [];
-                gruplar[hIndex].push(mac);
-            }
-        });
-
-        Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
-        setHaftalikGruplar(gruplar);
-        
-        Object.keys(gruplar).forEach(k => gruplar[Number(k)].sort(siralamaFiltresi));
-        setHaftalikGruplar(gruplar);
-        
-        // 🔥 VERCEL SAAT TUZAĞI YOK EDİLDİ - SADECE ANA MOTORU ÇAĞIR 🔥
-        const enYakinHaftaNo = haftaNoHesapla(Date.now());
-        
-        setGlobalAktifHaftaNo(enYakinHaftaNo);
-        if (goruntulenenHafta === null) {
-            setGoruntulenenHafta(enYakinHaftaNo);
+      if (sistemYonetimModalAcikRef.current) {
+        const { data: statuData } = await supabase.from('lig_statuleri').select('*');
+        if (statuData) setTumStatuler(statuData || []);
+      }
+      if (finansModalAcikRef.current) {
+        let finansQuery = supabase.from('komiser_finans').select('*');
+        if (!isVIP) finansQuery = finansQuery.eq('sehir', sehirKalkan);
+        const { data: fData, error: fError } = await finansQuery;
+        if (!fError && fData) {
+          setFinansVerileri(fData || []);
+          finansYuklendiRef.current = true;
         }
       }
-    } catch (err) { console.error(err) }
+      sonRadarZamaniRef.current = Date.now();
+    } catch (err) { console.error(err); }
     if (!sessiz) setYukleniyor(false);
-  }
+  };
+
+  // 🔥 KOTA DOSTU AKILLI RADAR: ARKA PLANDA UYUR, SADECE AKTİF HAFTAYI TARAR 🔥
+  const akilliRadarTarama = async () => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (radarCalisiyorRef.current) return;
+    radarCalisiyorRef.current = true;
+
+    try {
+      const kayitliAdminKodu = localStorage.getItem('aktifAdminKodu') || '';
+      const kayitliSehir = localStorage.getItem('aktifSehir') || aktifAdmin?.sehir || 'izmir';
+      const isVIP = kayitliAdminKodu === 'mankoman' || aktifAdmin?.admin_kodu === 'mankoman';
+      const sehirKalkan = kayitliSehir;
+      const enYakinHaftaNo = haftaNoHesapla(Date.now());
+
+      // 1. Şifre sıfırlama taleplerini kontrol et
+      let talepQuery = supabase.from('sifre_talepleri').select('*').eq('durum', 'bekliyor').order('created_at', { ascending: false });
+      if (!isVIP) talepQuery = talepQuery.eq('sehir', sehirKalkan);
+      const { data: taleplerData } = await talepQuery;
+      if (taleplerData) setSifreTalepleri(taleplerData);
+
+      // 2. Yalnızca mazeret günlerinde (Pazar-Pazartesi-Salı) veya sekme açıksa gelecek hafta mazeretlerini kontrol et
+      const gun = new Date().getDay();
+      if (kategoriMazeretAcikRef.current || gun === 0 || gun === 1 || gun === 2) {
+        let mazeretQuery = supabase.from('mazeretler').select('*').eq('hafta_no', enYakinHaftaNo + 1);
+        if (!isVIP) mazeretQuery = mazeretQuery.eq('sehir', sehirKalkan);
+        const { data: mazeretData } = await mazeretQuery;
+        if (mazeretData) setTumMazeretler(mazeretData || []);
+      }
+
+      // 3. Tüm sezonu indirmek yerine SADECE aktif hafta, görüntülenen hafta ve açık kalan maçları tara
+      const mevcutMaclar = sezonlukMaclarRef.current || [];
+      let enBuyukId = 0;
+      const izlenenIdler: number[] = [];
+
+      mevcutMaclar.forEach((m: any) => {
+        const mId = Number(m?.id || 0);
+        if (mId > enBuyukId) enBuyukId = mId;
+        if (!m?.tarih) return;
+
+        const mHafta = haftaNoHesapla(cumaBul(m.tarih));
+        const aktifVeyaSeciliHaftaMi = mHafta === enYakinHaftaNo || (goruntulenenHaftaRef.current !== null && mHafta === goruntulenenHaftaRef.current);
+        const islemEksikMi = m.mac_durumu !== 'iptal_edildi' && (!m.tebellug_edildi || !m.skor_girildi || (detayliRaporGosterilirMi(m.kategori_adi) && !parseDetay(m.tff_rapor_detaylari)?.detayli_kaydedildi));
+
+        if ((aktifVeyaSeciliHaftaMi || islemEksikMi) && mId > 0) {
+          izlenenIdler.push(mId);
+        }
+      });
+
+      const tazeMaclarMap = new Map<number, any>();
+      const parcaBoyutu = 150;
+      for (let i = 0; i < izlenenIdler.length; i += parcaBoyutu) {
+        const parca = izlenenIdler.slice(i, i + parcaBoyutu);
+        const { data: guncelParca, error: parcaErr } = await supabase.from('musabakalar').select('*').in('id', parca);
+        if (!parcaErr && guncelParca && Array.isArray(guncelParca)) {
+          guncelParca.forEach((gm: any) => tazeMaclarMap.set(Number(gm.id), gm));
+        }
+      }
+
+      let yeniMacSorgu = supabase.from('musabakalar').select('*').gt('id', enBuyukId);
+      if (!isVIP) yeniMacSorgu = yeniMacSorgu.eq('sehir', sehirKalkan);
+      const { data: yeniEklenenler, error: yeniErr } = await yeniMacSorgu;
+
+      if (tazeMaclarMap.size > 0 || (!yeniErr && yeniEklenenler && yeniEklenenler.length > 0)) {
+        const birlesikListe = mevcutMaclar.map((m: any) => tazeMaclarMap.get(Number(m.id)) || m);
+        if (!yeniErr && yeniEklenenler && yeniEklenenler.length > 0) {
+          const mevcutIdSet = new Set(birlesikListe.map((m: any) => Number(m.id)));
+          yeniEklenenler.forEach((ym: any) => {
+            if (!mevcutIdSet.has(Number(ym.id))) birlesikListe.push(ym);
+          });
+        }
+        setSezonlukMaclar(birlesikListe);
+        gruplariGuncelle(birlesikListe);
+      }
+
+      sonRadarZamaniRef.current = Date.now();
+    } catch (err) { console.error(err); }
+    finally { radarCalisiyorRef.current = false; }
+  };
 
   useEffect(() => {
-      let radar: any;
-      // 🔥 Eğer Radar Açıksa (otomatikYenile true ise) 30 saniyede bir tarar 🔥
-      if (girisYapildi && otomatikYenile) {
-          radar = setInterval(() => {
-              veriGetir(true); 
-          }, 30000); 
-      }
+      if (!girisYapildi || !otomatikYenile) return;
+
+      const radar = setInterval(() => {
+          akilliRadarTarama();
+      }, 60000);
+
+      const gorunurlukDegisti = () => {
+          if (document.visibilityState === 'visible' && Date.now() - sonRadarZamaniRef.current > 20000) {
+              akilliRadarTarama();
+          }
+      };
+      document.addEventListener('visibilitychange', gorunurlukDegisti);
+
       return () => { 
-          if (radar) clearInterval(radar); 
-      }
+          clearInterval(radar);
+          document.removeEventListener('visibilitychange', gorunurlukDegisti);
+      };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [girisYapildi, otomatikYenile]);
 
