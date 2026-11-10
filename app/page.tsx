@@ -964,25 +964,67 @@ const [kucukHeader, setKucukHeader] = useState(false);
   const siraliGelisimler = Object.entries(gelisimKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
   const siraliKadinlar = Object.entries(kadinKategoriler).sort((a: any, b: any) => b[1].length - a[1].length);
 
+  const macZamaniBul = (mac: any) => {
+    if (!mac || !mac.tarih) return 0;
+    try {
+      const str = String(mac.tarih).trim();
+      let y = 0, m = 0, dNum = 0;
+      if (str.includes('.')) {
+        const p = str.split('.');
+        if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
+      } else if (str.includes('/')) {
+        const p = str.split('/');
+        if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
+      } else if (str.includes('-')) {
+        const p = str.split('-');
+        if (p.length === 3) {
+          if (p[0].trim().length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+          else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+        } else if (p.length === 2) {
+          dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
+        }
+      }
+      if (y > 0 && y < 100) y += 2000;
+      if (!y || isNaN(y)) return 0;
+      let saat = 0, dakika = 0;
+      if (mac.saat) {
+        const parcaSaat = String(mac.saat).trim().split(':');
+        saat = parseInt(parcaSaat[0] || '0', 10) || 0;
+        dakika = parseInt(parcaSaat[1] || '0', 10) || 0;
+      }
+      const d = new Date(y, m, dNum, saat, dakika);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    } catch (e) { return 0; }
+  };
+
   const isSuperAdmin = String(seciliKomiser?.komiser_id) === 'mankoman' || String(seciliKomiser?.komiser_id).startsWith('admin') || String(seciliKomiser?.komiser_id).includes('35262735');
   const guvenliTumMaclar = isSuperAdmin ? (Array.isArray(tumSezonMaclari) ? tumSezonMaclari : []) : (Array.isArray(tumAktifMaclar) ? tumAktifMaclar : []);
-  let filtrelenmisMaclar = guvenliTumMaclar;
+  let filtrelenmisMaclar = [...guvenliTumMaclar];
   if (aramaKomiser.trim() !== '') {
-    const q = turkceBuyukHarf(aramaKomiser);
+    const q = turkceBuyukHarf(aramaKomiser.trim());
     filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => {
       const isim = turkceBuyukHarf((Array.isArray(tumKomiserler) ? tumKomiserler : []).find((k: any) => String(k.komiser_id) === String(mac?.komiser_id))?.ad_soyad || "");
       return isim.includes(q);
     });
   }
   if (aramaSaha.trim() !== '') {
-    const q = turkceBuyukHarf(aramaSaha);
+    const q = turkceBuyukHarf(aramaSaha.trim());
     filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => turkceBuyukHarf(mac?.saha || '').includes(q));
   }
+  if (aramaTakim.trim() !== '') {
+    const q = turkceBuyukHarf(aramaTakim.trim());
+    filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) =>
+      turkceBuyukHarf(mac?.ev_sahibi || '').includes(q) ||
+      turkceBuyukHarf(mac?.misafir_takim || '').includes(q) ||
+      turkceBuyukHarf(mac?.kategori_adi || '').includes(q)
+    );
+  }
   if (aramaHakem.trim() !== '') {
-    const q = turkceBuyukHarf(aramaHakem);
+    const q = turkceBuyukHarf(aramaHakem.trim());
     filtrelenmisMaclar = filtrelenmisMaclar.filter((mac: any) => {
         if (!mac?.tff_rapor_detaylari) return false;
-        // Raporun içini aç ve 4 hakem + gözlemcinin isimlerinde arama yap!
         const detay = parseDetay(mac.tff_rapor_detaylari);
         const h1 = turkceBuyukHarf(detay.hakem || '');
         const h2 = turkceBuyukHarf(detay.y_hakem_1 || '');
@@ -992,6 +1034,13 @@ const [kucukHeader, setKucukHeader] = useState(false);
         return h1.includes(q) || h2.includes(q) || h3.includes(q) || h4.includes(q) || goz.includes(q);
     });
   }
+
+  // 🔥 SÜPER ADMİNDE EN SON (EN GÜNCEL) GÖREVDEN İLK MAÇA DOĞRU GERİ GERİ SIRALA 🔥
+  filtrelenmisMaclar.sort((a: any, b: any) => {
+    const fark = isSuperAdmin ? (macZamaniBul(b) - macZamaniBul(a)) : (macZamaniBul(a) - macZamaniBul(b));
+    if (fark !== 0) return fark;
+    return Number(b?.id || 0) - Number(a?.id || 0);
+  });
   
   const safeKomiserler = Array.isArray(tumKomiserler) ? tumKomiserler : [];
   const siraliKomiserler = [...safeKomiserler].sort((a: any, b: any) => (a.ad_soyad || '').localeCompare(b.ad_soyad || '', 'tr-TR'));
@@ -4083,9 +4132,27 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                     const safeKomiserler = Array.isArray(tumKomiserler) ? tumKomiserler : [];
                                     const komiserIsim = safeKomiserler.find((k: any) => String(k.komiser_id) === String(mac?.komiser_id))?.ad_soyad || "KOMİSER ATANMADI";
                                     const isAcik = acikAramaMacId === mac.id;
+                                    const mZaman = macZamaniBul(mac);
+                                    const gunlerTr = ['PAZAR', 'PAZARTESİ', 'SALI', 'ÇARŞAMBA', 'PERŞEMBE', 'CUMA', 'CUMARTESİ'];
+                                    const gunIsmi = mZaman > 0 ? gunlerTr[new Date(mZaman).getDay()] : '';
                                     return (
                                         <div key={mac.id || `arama-${idx}`} className="bg-white border-l-4 border-slate-800 shadow-sm rounded-r-xl overflow-hidden transition-all hover:shadow-md border-y border-r border-slate-200">
-                                            <button onClick={() => setAcikAramaMacId(isAcik ? null : mac.id)} className="w-full text-left p-3 md:p-4 flex justify-between items-center hover:bg-slate-50 focus:outline-none"><div className="flex-1 pr-2"><div className="flex items-center gap-2 mb-1"><span className="bg-slate-100 text-slate-700 border border-slate-300 text-[9px] px-2 py-0.5 rounded font-black tracking-wider">{formatMacKodu(mac?.mac_kodu)}</span><span className="text-slate-600 text-[10px] font-black tracking-widest">{turkceBuyukHarf(mac?.kategori_adi || '-')}</span></div><span className="font-black text-slate-900 text-sm md:text-base leading-tight block">{turkceBuyukHarf(mac?.ev_sahibi || '-')} <span className="text-slate-400 font-medium mx-1">vs</span> {turkceBuyukHarf(mac?.misafir_takim || '-')}</span></div><span className={`text-slate-400 text-xl leading-none transition-transform ${isAcik ? 'rotate-180 text-slate-800' : ''}`}>▼</span></button>
+                                            <button onClick={() => setAcikAramaMacId(isAcik ? null : mac.id)} className="w-full text-left p-3 md:p-4 flex justify-between items-center hover:bg-slate-50 focus:outline-none">
+                                                <div className="flex-1 pr-2">
+                                                    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                                        <span className="bg-slate-100 text-slate-700 border border-slate-300 text-[9px] px-2 py-0.5 rounded font-black tracking-wider">{formatMacKodu(mac?.mac_kodu)}</span>
+                                                        <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] px-2 py-0.5 rounded font-black tracking-wider">📅 {guvenliTarih(mac?.tarih)}{gunIsmi ? ` ${gunIsmi}` : ''}{mac?.saat ? ` • ${guvenliSaat(mac?.saat)}` : ''}</span>
+                                                        <span className="text-slate-600 text-[10px] font-black tracking-widest">{turkceBuyukHarf(mac?.kategori_adi || '-')}</span>
+                                                    </div>
+                                                    <span className="font-black text-slate-900 text-sm md:text-base leading-tight block">{turkceBuyukHarf(mac?.ev_sahibi || '-')} <span className="text-slate-400 font-medium mx-1">vs</span> {turkceBuyukHarf(mac?.misafir_takim || '-')}</span>
+                                                    <div className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                                        <span>📍 {turkceBuyukHarf(mac?.saha || '-')}</span>
+                                                        <span>•</span>
+                                                        <span className="text-slate-700">👨‍✈️ {turkceBuyukHarf(komiserIsim)}</span>
+                                                    </div>
+                                                </div>
+                                                <span className={`text-slate-400 text-xl leading-none transition-transform ${isAcik ? 'rotate-180 text-slate-800' : ''}`}>▼</span>
+                                            </button>
                                             {isAcik && (
                                                 <div className="p-3 md:p-4 border-t border-slate-200 bg-slate-50 animate-fade-in-down">
                                                     <div className="mb-4 flex flex-col bg-white p-3 rounded-lg border border-slate-300 shadow-sm">
