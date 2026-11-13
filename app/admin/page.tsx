@@ -502,25 +502,45 @@ useEffect(() => {
   const [manuelMacEkleniyor, setManuelMacEkleniyor] = useState(false)
   const [genelArama, setGenelArama] = useState('')
   const [bilgiGuncelleAcikMac, setBilgiGuncelleAcikMac] = useState<any | null>(null);
+  const [guncelMacKodu, setGuncelMacKodu] = useState('');
+  const [guncelKategori, setGuncelKategori] = useState('');
+  const [guncelEvSahibi, setGuncelEvSahibi] = useState('');
+  const [guncelMisafir, setGuncelMisafir] = useState('');
   const [guncelTarih, setGuncelTarih] = useState('');
   const [guncelSaat, setGuncelSaat] = useState('');
   const [guncelSaha, setGuncelSaha] = useState('');
+  const [guncelKomiserId, setGuncelKomiserId] = useState('');
   const [bilgiGuncelleniyor, setBilgiGuncelleniyor] = useState(false);
   
   const acBilgiGuncellePenceresi = (mac: any) => {
       setBilgiGuncelleAcikMac(mac);
       let safeDate = '';
       if (mac.tarih) {
-          if (mac.tarih.includes('.')) {
-              const parts = mac.tarih.split('.');
-              if (parts.length === 3) safeDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          const tStr = String(mac.tarih).trim();
+          if (tStr.includes('.')) {
+              const parts = tStr.split('.');
+              if (parts.length === 3) safeDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          } else if (tStr.includes('/')) {
+              const parts = tStr.split('/');
+              if (parts.length === 3) safeDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
           } else {
-              safeDate = mac.tarih;
+              safeDate = tStr;
           }
       }
+      setGuncelMacKodu(mac.mac_kodu ? String(mac.mac_kodu) : '');
+      setGuncelKategori(mac.kategori_adi || '');
+      setGuncelEvSahibi(mac.ev_sahibi || '');
+      setGuncelMisafir(mac.misafir_takim || '');
       setGuncelTarih(safeDate);
-      setGuncelSaat(mac.saat || '');
+      setGuncelSaat(mac.saat ? String(mac.saat).substring(0, 5) : '');
       setGuncelSaha(mac.saha || '');
+      setGuncelKomiserId(mac.komiser_id && mac.komiser_id !== 'null' ? String(mac.komiser_id) : '');
+  };
+
+  const takimlariYerDegistir = () => {
+      const geciciEv = guncelEvSahibi;
+      setGuncelEvSahibi(guncelMisafir);
+      setGuncelMisafir(geciciEv);
   };
 
   const bilgileriGuncelleSubmit = async (e: React.FormEvent) => {
@@ -528,19 +548,36 @@ useEffect(() => {
       if (!bilgiGuncelleAcikMac) return;
       setBilgiGuncelleniyor(true);
       try {
-          const payload = {
+          const payload: any = {
+              mac_kodu: String(guncelMacKodu || '').trim(),
+              kategori_adi: turkceBuyukHarf(guncelKategori).trim(),
+              ev_sahibi: turkceBuyukHarf(guncelEvSahibi).trim(),
+              misafir_takim: turkceBuyukHarf(guncelMisafir).trim(),
               tarih: guncelTarih,
-              saat: guncelSaat,
-              saha: turkceBuyukHarf(guncelSaha),
-              // 🔥 SİSTEM ZEKASI: Saat değiştiği için komiserin onayı (tebellüğü) düşürülür ki tekrar görsün!
-              tebellug_edildi: false 
+              saat: guncelSaat || null,
+              saha: turkceBuyukHarf(guncelSaha).trim(),
+              komiser_id: guncelKomiserId ? guncelKomiserId : null,
+              tebellug_edildi: bilgiGuncelleAcikMac.skor_girildi ? true : false
           };
           
           const { error } = await supabase.from('musabakalar').update(payload).eq('id', bilgiGuncelleAcikMac.id);
           if (error) throw error;
           
-          alert("✅ Maç bilgileri güncellendi!\nKomiserin yeni saati/sahayı görebilmesi için tebellüğü (görev onayı) otomatik olarak geri çekildi. Telefonunda tekrar alarm çalacaktır.");
-          sessizMacGuncelle(bilgiGuncelleAcikMac.id, payload);
+          const guncelSezonListesi = sezonlukMaclar.map((m: any) => m.id === bilgiGuncelleAcikMac.id ? { ...m, ...payload } : m);
+          setSezonlukMaclar(guncelSezonListesi);
+          const yeniGruplar: Record<number, any[]> = {};
+          guncelSezonListesi.forEach((mac: any) => {
+              if (!mac.tarih) return;
+              const hIndex = haftaNoHesapla(cumaBul(mac.tarih));
+              if (hIndex >= 0) {
+                  if (!yeniGruplar[hIndex]) yeniGruplar[hIndex] = [];
+                  yeniGruplar[hIndex].push(mac);
+              }
+          });
+          Object.keys(yeniGruplar).forEach((k: string) => yeniGruplar[Number(k)].sort(siralamaFiltresi));
+          setHaftalikGruplar(yeniGruplar);
+
+          alert("✅ Maç kartı tüm detaylarıyla güncellendi!\nKomiserin güncellenen kartı görebilmesi için görev onayı (tebellüğ) yenilendi.");
           setBilgiGuncelleAcikMac(null);
       } catch (err: any) {
           alert("Hata: " + err.message);
@@ -3157,21 +3194,70 @@ const [macSilArama, setMacSilArama] = useState('')
                 </div>
             </div>
         )}
-        {/* 🔥 YENİ: MAÇ BİLGİLERİNİ GÜNCELLEME MODALI 🔥 */}
+        {/* 🔥 YENİ: TAM KAPSAMLI MAÇ KARTI GÜNCELLEME MODALI 🔥 */}
         {bilgiGuncelleAcikMac && (
             <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up">
-                <div className="bg-slate-900 border-2 border-amber-500 rounded-xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl relative">
+                <div className="bg-slate-900 border-2 border-amber-500 rounded-xl w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl relative">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
-                    <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center">
+                    <div className="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center shrink-0">
                         <h2 className="text-sm md:text-base font-black text-amber-400 tracking-widest uppercase flex items-center gap-2">
-                            <span className="text-xl">✏️</span> MAÇ BİLGİLERİNİ GÜNCELLE
+                            <span className="text-xl">✏️</span> MAÇ KARTINI SIFIRDAN GÜNCELLE
                         </h2>
                         <button onClick={() => setBilgiGuncelleAcikMac(null)} className="text-slate-400 hover:text-white font-bold text-2xl leading-none transition-colors">✕</button>
                     </div>
-                    <form onSubmit={bilgileriGuncelleSubmit} className="p-5 md:p-6 space-y-4">
-                        <div className="bg-slate-800/50 border border-slate-700 p-3 rounded-lg text-center mb-4 shadow-inner">
-                            <span className="block text-[10px] text-slate-400 font-bold mb-1">MÜSABAKA:</span>
-                            <span className="text-sm font-black text-white">{bilgiGuncelleAcikMac.ev_sahibi} vs {bilgiGuncelleAcikMac.misafir_takim}</span>
+                    <form onSubmit={bilgileriGuncelleSubmit} className="p-5 md:p-6 space-y-4 overflow-y-auto custom-scrollbar">
+                        <datalist id="admin-lig-onerileri">
+                            {Array.from(new Set([
+                                'SÜPER AMATÖR', '1. AMATÖR', '2. AMATÖR', 'BÖLGESEL AMATÖR LİG', 'P.G.L',
+                                'TFF U14 GELİŞİM LİGİ', 'TFF U15 GELİŞİM LİGİ', 'TFF U16 GELİŞİM LİGİ', 'TFF U17 GELİŞİM LİGİ', 'TFF U19 GELİŞİM LİGİ',
+                                'İZMİR U19 LİGİ', 'İZMİR U17 LİGİ', 'İZMİR U15 LİGİ', 'İZMİR U14 LİGİ', 'İZMİR U13 LİGİ', 'İZMİR U12 LİGİ', 'İZMİR U11 LİGİ',
+                                ...sezonlukMaclar.map((m: any) => turkceBuyukHarf(m?.kategori_adi || '').trim()).filter(Boolean)
+                            ])).sort((a, b) => a.localeCompare(b, 'tr-TR')).map((kat, idx) => (
+                                <option key={`kat-oneri-${idx}`} value={kat} />
+                            ))}
+                        </datalist>
+                        <datalist id="admin-takim-onerileri">
+                            {Array.from(new Set([
+                                ...sezonlukMaclar.map((m: any) => turkceBuyukHarf(m?.ev_sahibi || '').trim()),
+                                ...sezonlukMaclar.map((m: any) => turkceBuyukHarf(m?.misafir_takim || '').trim())
+                            ].filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr-TR')).map((tkm, idx) => (
+                                <option key={`tkm-oneri-${idx}`} value={tkm} />
+                            ))}
+                        </datalist>
+                        <datalist id="admin-saha-onerileri">
+                            {Array.from(new Set(
+                                sezonlukMaclar.map((m: any) => turkceBuyukHarf(m?.saha || '').trim()).filter(Boolean)
+                            )).sort((a, b) => a.localeCompare(b, 'tr-TR')).map((sh, idx) => (
+                                <option key={`sh-oneri-${idx}`} value={sh} />
+                            ))}
+                        </datalist>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="sm:col-span-1">
+                                <label className="block text-xs font-bold text-emerald-400 mb-1">Maç Kodu</label>
+                                <input type="text" value={guncelMacKodu} onChange={e => setGuncelMacKodu(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-emerald-400 font-black font-mono px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm text-center" required placeholder="Kod..." />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-bold text-blue-400 mb-1">Maç Nevi (Kategori / Lig)</label>
+                                <input list="admin-lig-onerileri" type="text" value={guncelKategori} onChange={e => setGuncelKategori(turkceBuyukHarf(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Örn: SÜPER AMATÖR, İZMİR U14 LİGİ..." />
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-800/50 border border-slate-700 p-3.5 rounded-xl space-y-3 shadow-inner">
+                            <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700 pb-2">
+                                <span className="text-[11px] font-black text-amber-400 tracking-wider uppercase">⚽ TAKIMLAR (EV SAHİBİ &amp; MİSAFİR)</span>
+                                <button type="button" onClick={takimlariYerDegistir} className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black px-3 py-1.5 rounded-lg shadow transition-transform active:scale-95 flex items-center gap-1.5 tracking-wider">
+                                    <span>🔄</span> EV SAHİBİ ⇄ MİSAFİR DEĞİŞTİR
+                                </button>
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-400 mb-1">Ev Sahibi Takım</label>
+                                <input list="admin-takim-onerileri" type="text" value={guncelEvSahibi} onChange={e => setGuncelEvSahibi(turkceBuyukHarf(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Ev sahibi takım adı..." />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-400 mb-1">Misafir Takım</label>
+                                <input list="admin-takim-onerileri" type="text" value={guncelMisafir} onChange={e => setGuncelMisafir(turkceBuyukHarf(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Misafir takım adı..." />
+                            </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
@@ -3181,26 +3267,36 @@ const [macSilArama, setMacSilArama] = useState('')
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 mb-1">Yeni Saat</label>
-                                <input type="time" value={guncelSaat} onChange={e => setGuncelSaat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-amber-500 font-mono text-sm" required />
+                                <input type="time" value={guncelSaat} onChange={e => setGuncelSaat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-amber-500 font-mono text-sm" />
                             </div>
                         </div>
                         
                         <div>
                             <label className="block text-xs font-bold text-slate-400 mb-1">Yeni Saha / Tesis</label>
-                            <input type="text" value={guncelSaha} onChange={e => setGuncelSaha(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Saha adı..." />
+                            <input list="admin-saha-onerileri" type="text" value={guncelSaha} onChange={e => setGuncelSaha(turkceBuyukHarf(e.target.value))} className="w-full bg-slate-950 border border-slate-700 text-white font-bold uppercase px-3 py-2 rounded focus:outline-none focus:border-amber-500 text-sm" required placeholder="Saha adı..." />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Atanan Saha Komiseri</label>
+                            <select value={guncelKomiserId} onChange={e => setGuncelKomiserId(e.target.value)} className="w-full bg-slate-950 border border-slate-700 text-white font-bold px-3 py-2.5 rounded focus:outline-none focus:border-amber-500 text-xs cursor-pointer">
+                                <option value="">-- Komiser Atanmadı (Boş Bırak) --</option>
+                                {[...tumKomiserler].sort((a: any, b: any) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR')).map((k: any) => (
+                                    <option key={`guncel-kom-${k.komiser_id}`} value={k.komiser_id}>{k.ad_soyad} ({k.komiser_id})</option>
+                                ))}
+                            </select>
                         </div>
                         
-                        <div className="bg-amber-950/30 border border-amber-900/50 p-3 rounded-lg mt-4 flex items-start gap-2">
+                        <div className="bg-amber-950/30 border border-amber-900/50 p-3 rounded-lg flex items-start gap-2">
                             <span className="text-amber-500 text-lg">💡</span>
                             <p className="text-[10px] text-amber-200/80 leading-relaxed font-bold">
-                                Bu bilgileri güncellediğinizde, maçın atandığı saha komiserinin görev kartı otomatik olarak <b>kırmızıya dönecek</b> (tebellüğ iptal edilecek) ve telefonunda yeni alarm çalacaktır. Komiserin değişen saati/sahayı görüp yeniden tebellüğ etmesi zorunlu kılınır.
+                                Bu bilgileri güncellediğinizde, maçın atandığı saha komiserinin görev kartı otomatik olarak <b>kırmızıya dönecek</b> (tebellüğ iptal edilecek) ve telefonunda yeni alarm çalacaktır. Komiserin güncellenen maç kartını görüp yeniden tebellüğ etmesi zorunlu kılınır.
                             </p>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-800 mt-4 flex gap-3">
+                        <div className="pt-2 border-t border-slate-800 flex gap-3">
                             <button type="button" onClick={() => setBilgiGuncelleAcikMac(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs tracking-widest border border-slate-700">İPTAL</button>
                             <button type="submit" disabled={bilgiGuncelleniyor} className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-black py-3 rounded-lg transition-colors text-xs tracking-widest shadow-md">
-                                {bilgiGuncelleniyor ? '⚙️ KAYDEDİLİYOR...' : '💾 GÜNCELLE'}
+                                {bilgiGuncelleniyor ? '⚙️ KAYDEDİLİYOR...' : '💾 KARTI GÜNCELLE'}
                             </button>
                         </div>
                     </form>
