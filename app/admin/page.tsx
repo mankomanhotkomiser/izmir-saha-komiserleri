@@ -979,64 +979,52 @@ useEffect(() => {
       seciliAyBordroData = Object.values(ozet).sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad));
   }
 
-  const topluBordroExcelIndir = () => {
-      if (seciliAyBordroData.length === 0) return;
-      let tableHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-          <meta charset="utf-8" />
-          <style>
-              table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
-              th { background-color: #064e3b; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; text-align: center; }
-              td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle; }
-              .bold { font-weight: bold; }
-          </style>
-      </head>
-      <body>
-          <table>
-              <thead>
-                  <tr><th colspan="10" style="font-size: 16px; background-color: #0f172a;">${seciliBordroAy} DÖNEMİ KOMİSER  BORDROLAR VE HAKEDİŞ LİSTESİ</th></tr>
-                  <tr>
-                      <th>SIRA</th>
-                      <th>ADI SOYADI</th>
-                      <th>T.C. KİMLİK</th>
-                      <th>BANKA ADI</th>
-                      <th>ŞUBE KODU</th>
-                      <th>HESAP NO</th>
-                      <th>IBAN NO</th>
-                      <th>PROF. MAÇ</th>
-                      <th>AMATÖR MAÇ</th>
-                      <th>TOPLAM GÖREV</th>
-                  </tr>
-              </thead>
-              <tbody>
-      `;
-
-      seciliAyBordroData.forEach((k, idx) => {
-          tableHtml += `
-              <tr>
-                  <td class="bold">${idx + 1}</td>
-                  <td class="bold" style="text-align: left;">${turkceBuyukHarf(k.ad_soyad)}</td>
-                  <td style="mso-number-format:'\\@';">${k.tc || '-'}</td>
-                  <td>${k.banka || '-'}</td>
-                  <td style="mso-number-format:'\\@';">${k.sube || '-'}</td>
-                  <td style="mso-number-format:'\\@';">${k.hesap || '-'}</td>
-                  <td style="mso-number-format:'\\@'; font-weight: bold; color: #047857;">${k.iban || '-'}</td>
-                  <td class="bold">${k.profCount}</td>
-                  <td class="bold">${k.amatorCount}</td>
-                  <td class="bold" style="background-color: #f1f5f9;">${k.profCount + k.amatorCount}</td>
-              </tr>
-          `;
-      });
-
-      tableHtml += `</tbody></table></body></html>`;
-      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
+  // 🔥 GERÇEK .XLSX (TELEFON, WHATSAPP VE EXCEL TAM UYUMLU) ÜRETİM MOTORU 🔥
+  const xlsxDosyasiIndir = (wb: any, dosyaAdi: string) => {
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `TFF_${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'SUBE'}_Komiser_Odemeleri_${seciliBordroAy}.xls`;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  }
+      link.download = dosyaAdi.endsWith('.xlsx') ? dosyaAdi : `${dosyaAdi}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const topluBordroExcelIndir = () => {
+      if (seciliAyBordroData.length === 0) return;
+      const sehirAdi = turkceBuyukHarf(aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'SUBE');
+
+      const baslikSatiri = [`${seciliBordroAy} DÖNEMİ KOMİSER BORDROLAR VE HAKEDİŞ LİSTESİ`, '', '', '', '', '', '', '', '', ''];
+      const kolonBasliklari = ['SIRA', 'ADI SOYADI', 'T.C. KİMLİK', 'BANKA ADI', 'ŞUBE KODU', 'HESAP NO', 'IBAN NO', 'PROF. MAÇ', 'AMATÖR MAÇ', 'TOPLAM GÖREV'];
+
+      const satirlar = seciliAyBordroData.map((k: any, idx: number) => [
+          idx + 1,
+          String(turkceBuyukHarf(k.ad_soyad)),
+          String(k.tc || '-'),
+          String(turkceBuyukHarf(k.banka || '-')),
+          String(k.sube || '-'),
+          String(k.hesap || '-'),
+          String(k.iban || '-'),
+          Number(k.profCount || 0),
+          Number(k.amatorCount || 0),
+          Number((k.profCount || 0) + (k.amatorCount || 0))
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([baslikSatiri, kolonBasliklari, ...satirlar]);
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+      ws['!cols'] = [
+          { wch: 7 }, { wch: 28 }, { wch: 15 }, { wch: 18 }, { wch: 16 },
+          { wch: 16 }, { wch: 32 }, { wch: 12 }, { wch: 13 }, { wch: 15 }
+      ];
+      ws['!autofilter'] = { ref: `A2:J${satirlar.length + 2}` };
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Bordro Hakedis');
+      xlsxDosyasiIndir(wb, `TFF_${sehirAdi}_Komiser_Odemeleri_${seciliBordroAy}.xlsx`);
+  };
 
   const komiserListesiniExceleIndir = () => {
       if (!tumKomiserler || tumKomiserler.length === 0) {
@@ -1044,45 +1032,25 @@ useEffect(() => {
           return;
       }
 
-      let tableHtml = `
-          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-          <head><meta charset="UTF-8"></head>
-          <body>
-              <table border="1" style="border-collapse: collapse; font-family: Arial, sans-serif; text-align: center;">
-                  <thead>
-                      <tr><th colspan="3" style="font-size: 16px; background-color: #0f172a; color: white; padding: 10px; font-weight: bold;">${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'ŞUBE'}</th></tr>
-                      <tr style="background-color: #1e293b; color: white; font-weight: bold; font-size: 14px;">
-                          <th style="padding: 10px; width: 50px;">SIRA</th>
-                          <th style="padding: 10px; width: 120px;">SİCİL NUMARASI</th>
-                          <th style="padding: 10px; width: 300px;">ADI SOYADI</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-      `;
-
+      const sehirAdi = turkceBuyukHarf(aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'SUBE');
       const siraliKomiserler = [...tumKomiserler].sort((a, b) => String(a?.ad_soyad || '').localeCompare(String(b?.ad_soyad || ''), 'tr-TR'));
 
-      siraliKomiserler.forEach((k, idx) => {
-          tableHtml += `
-              <tr>
-                  <td style="padding: 8px;">${idx + 1}</td>
-                  <td style="padding: 8px; mso-number-format:'\\@'; font-weight: bold; color: #b91c1c;">${k.komiser_id}</td>
-                  <td style="padding: 8px; text-align: left; font-weight: bold;">${turkceBuyukHarf(k.ad_soyad)}</td>
-              </tr>
-          `;
-      });
+      const baslikSatiri = [`${sehirAdi} ŞUBESİ SAHA KOMİSERLERİ LİSTESİ`, '', ''];
+      const kolonBasliklari = ['SIRA', 'SİCİL NUMARASI', 'ADI SOYADI'];
+      const satirlar = siraliKomiserler.map((k: any, idx: number) => [
+          idx + 1,
+          String(k.komiser_id || ''),
+          String(turkceBuyukHarf(k.ad_soyad))
+      ]);
 
-      tableHtml += `</tbody></table></body></html>`;
+      const ws = XLSX.utils.aoa_to_sheet([baslikSatiri, kolonBasliklari, ...satirlar]);
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+      ws['!cols'] = [{ wch: 8 }, { wch: 18 }, { wch: 34 }];
+      ws['!autofilter'] = { ref: `A2:C${satirlar.length + 2}` };
 
-      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `TFF_${aktifAdmin?.sehir ? aktifAdmin.sehir.toLocaleUpperCase('tr-TR') : 'SUBE'}_Tum_Komiser_Listesi.xls`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Komiser Listesi');
+      xlsxDosyasiIndir(wb, `TFF_${sehirAdi}_Tum_Komiser_Listesi.xlsx`);
   };
 
   const adminBordroIndirYazdir = () => {
@@ -1125,7 +1093,7 @@ useEffect(() => {
           `);
           doc.close();
       } catch (err) { alert("PDF ekranı hazırlanırken sorun oluştu."); }
-  }
+  };
 
   const aktifHaftaGoster = goruntulenenHafta !== null ? goruntulenenHafta : 0;
   const siraliBultenMaclari = [...(haftalikGruplar[aktifHaftaGoster] || [])].sort((a, b) => {
@@ -1135,128 +1103,75 @@ useEffect(() => {
   });
 
   const indirExcel = () => {
-      let tableHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-          <meta charset="utf-8" />
-          <style>
-              table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
-              /* Başlık Siyah-Beyaz ve Ortalı */
-              th { background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; text-align: center; vertical-align: middle; }
-              /* Tüm Hücreler Ortalı */
-              td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle; }
-              .bold { font-weight: bold; }
-          </style>
-      </head>
-      <body>
-          <table>
-              <thead>
-                  <tr x:autofilter="all">
-                      <th style="width: 50px;">SIRA</th>
-                      <th style="width: 100px;">TARİH</th>
-                      <th style="width: 100px;">GÜN</th>
-                      <th style="width: 80px;">SAAT</th>
-                      <th style="width: 200px;">LİG / KLASMAN</th>
-                      <th style="width: 250px;">EV SAHİBİ TAKIM</th>
-                      ${bultenTab === 'sonuc' ? '<th style="width: 80px;">EV SKOR</th>' : ''}
-                      <th style="width: 250px;">MİSAFİR TAKIM</th>
-                      ${bultenTab === 'sonuc' ? '<th style="width: 80px;">MİS. SKOR</th>' : ''}
-                      <th style="width: 200px;">SAHA KOMİSERİ ADI</th>
-                      <th style="width: 250px;">SAHA</th>
-                      ${bultenTab === 'sonuc' ? '<th style="width: 120px;">DURUM</th>' : ''}
-                  </tr>
-              </thead>
-              <tbody>
-      `;
+      const sonucModu = bultenTab === 'sonuc';
+      const kolonBasliklari = sonucModu
+          ? ['SIRA', 'KOD', 'TARİH', 'GÜN', 'SAAT', 'LİG / KLASMAN', 'EV SAHİBİ TAKIM', 'EV SKOR', 'MİSAFİR TAKIM', 'MİS. SKOR', 'SAHA KOMİSERİ ADI', 'SAHA', 'DURUM']
+          : ['SIRA', 'KOD', 'TARİH', 'GÜN', 'SAAT', 'LİG / KLASMAN', 'EV SAHİBİ TAKIM', 'MİSAFİR TAKIM', 'SAHA KOMİSERİ ADI', 'SAHA'];
 
-      siraliBultenMaclari.forEach((m, idx) => {
-          const komiser = komiserIsmiBul(m.komiser_id);
-          let isIptal = m.mac_durumu === 'iptal_edildi';
-          let evSkor = m.skor_girildi && m.ev_sahibi_skor !== null && m.ev_sahibi_skor !== undefined ? m.ev_sahibi_skor : '-';
-          let misSkor = m.skor_girildi && m.misafir_skor !== null && m.misafir_skor !== undefined ? m.misafir_skor : '-';
-          
-          if(isIptal) { evSkor = 'İPTAL'; misSkor = 'İPTAL'; }
+      const satirlar = siraliBultenMaclari.map((m: any, idx: number) => {
+          const komiser = String(turkceBuyukHarf(komiserIsmiBul(m.komiser_id)));
+          const isIptal = m.mac_durumu === 'iptal_edildi';
+          let evSkor: any = m.skor_girildi && m.ev_sahibi_skor !== null && m.ev_sahibi_skor !== undefined ? Number(m.ev_sahibi_skor) : '-';
+          let misSkor: any = m.skor_girildi && m.misafir_skor !== null && m.misafir_skor !== undefined ? Number(m.misafir_skor) : '-';
+
+          if (isIptal) { evSkor = 'İPTAL'; misSkor = 'İPTAL'; }
 
           let durum = '-';
           if (m.olay_durumu === 'emniyetlik_olay') durum = 'EMNİYETLİK';
           else if (m.olay_durumu === 'teknik_olay') durum = 'İHRAÇ VAR';
           else if (m.olay_durumu === 'olaysiz') durum = 'OLAYSIZ';
-          
+
           if (m.mac_durumu === 'takimlar_cikmadi') durum = 'ÇIKMADI';
           else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
           else if (isIptal) durum = 'İPTAL';
 
-          // 🔥 ARKA PLAN HER ZAMAN BEYAZ, YAZI KARAKTERİ GÜNE GÖRE RENKLİ 🔥
-          let rowStyle = "background-color: #ffffff; color: #000000; font-weight: bold;"; 
-          try {
-              let dStr = String(m.tarih || '').trim();
-              let y = 0, mn = 0, dNum = 0;
-              if (dStr.includes('.')) { const p = dStr.split('.'); if (p.length === 3) { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
-              else if (dStr.includes('-')) { const p = dStr.split('-'); if (p.length === 3) { if (p[0].length === 4) { y = Number(p[0]); mn = Number(p[1]) - 1; dNum = Number(p[2]); } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = Number(p[2]); } } else { dNum = Number(p[0]); mn = Number(p[1]) - 1; y = new Date().getFullYear(); } }
-              
-              if (y) {
-                  const day = new Date(y, mn, dNum).getDay();
-                  if (day === 0) rowStyle = "background-color: #ffffff; color: #dc2626; font-weight: bold;";      // PAZAR: Kırmızı
-                  else if (day === 1) rowStyle = "background-color: #ffffff; color: #059669; font-weight: bold;"; // PAZARTESİ: Yeşil
-                  else if (day === 2) rowStyle = "background-color: #ffffff; color: #0891b2; font-weight: bold;"; // SALI: Turkuaz
-                  else if (day === 3) rowStyle = "background-color: #ffffff; color: #f97316; font-weight: bold;"; // ÇARŞAMBA: Turuncu
-                  else if (day === 4) rowStyle = "background-color: #ffffff; color: #9333ea; font-weight: bold;"; // PERŞEMBE: Mor
-                  else if (day === 5) rowStyle = "background-color: #ffffff; color: #db2777; font-weight: bold;"; // CUMA: Pembe
-                  else if (day === 6) rowStyle = "background-color: #ffffff; color: #000000; font-weight: bold;"; // CUMARTESİ: Siyah
-              }
-          } catch(e) {}
+          const kodMetin = String(formatMacKodu(m.mac_kodu));
+          const tarihMetin = String(guvenliTarih(m.tarih));
+          const gunIsmi = String(getGunIsmi(m.tarih) || '-');
+          const saatMetin = String(guvenliSaat(m.saat));
+          const ligAdi = String(turkceBuyukHarf(m.kategori_adi || '-'));
+          const evAdi = String(turkceBuyukHarf(m.ev_sahibi || '-'));
+          const misAdi = String(turkceBuyukHarf(m.misafir_takim || '-'));
+          const sahaAdi = String(turkceBuyukHarf(m.saha || '-'));
 
-          const tarih = guvenliTarih(m.tarih);
-          const gunIsmi = getGunIsmi(m.tarih);
-          const saat = guvenliSaat(m.saat);
-
-          tableHtml += `
-              <tr style="${rowStyle}">
-                  <td class="bold">${idx + 1}</td>
-                  <td class="bold">${tarih}</td>
-                  <td class="bold">${gunIsmi}</td>
-                  <td class="bold">${saat}</td>
-                  <td>${m.kategori_adi || '-'}</td>
-                  <td class="bold">${m.ev_sahibi || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="bold" style="font-size: 16px;">${evSkor}</td>` : ''}
-                  <td class="bold">${m.misafir_takim || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="bold" style="font-size: 16px;">${misSkor}</td>` : ''}
-                  <td class="bold">${komiser}</td>
-                  <td>${m.saha || '-'}</td>
-                  ${bultenTab === 'sonuc' ? `<td class="bold">${durum}</td>` : ''}
-              </tr>
-          `;
+          if (sonucModu) {
+              return [idx + 1, kodMetin, tarihMetin, gunIsmi, saatMetin, ligAdi, evAdi, evSkor, misAdi, misSkor, komiser, sahaAdi, durum];
+          }
+          return [idx + 1, kodMetin, tarihMetin, gunIsmi, saatMetin, ligAdi, evAdi, misAdi, komiser, sahaAdi];
       });
 
-      tableHtml += `</tbody></table></body></html>`;
+      const ws = XLSX.utils.aoa_to_sheet([kolonBasliklari, ...satirlar]);
+      ws['!cols'] = sonucModu
+          ? [{ wch: 6 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 28 }, { wch: 10 }, { wch: 28 }, { wch: 10 }, { wch: 25 }, { wch: 28 }, { wch: 15 }]
+          : [{ wch: 6 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 28 }, { wch: 28 }, { wch: 25 }, { wch: 28 }];
 
-      const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      const fileName = bultenTab === 'sonuc' 
-          ? `TFF_İzmir_${goruntulenenHafta}_Hafta_Toplu_Sonuclar.xls`
-          : `İzmir_Saha_Komiserleri_${goruntulenenHafta}_Hafta_Gorev_Bulteni.xls`;
-          
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-  }
+      const sonKolonHarfi = sonucModu ? 'M' : 'J';
+      ws['!autofilter'] = { ref: `A1:${sonKolonHarfi}${satirlar.length + 1}` };
+
+      const wb = XLSX.utils.book_new();
+      const sekmeAdi = sonucModu ? `${aktifHaftaGoster}.Hafta Sonuclar` : `${aktifHaftaGoster}.Hafta Bulten`;
+      XLSX.utils.book_append_sheet(wb, ws, sekmeAdi.substring(0, 31));
+
+      const hamSehir = (aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir').toLowerCase();
+      const ilEtiket = hamSehir === 'kocaeli' ? 'Kocaeli' : 'İzmir';
+      const fileName = sonucModu
+          ? `TFF_${ilEtiket}_${goruntulenenHafta}_Hafta_Toplu_Sonuclar.xlsx`
+          : `${ilEtiket}_Saha_Komiserleri_${goruntulenenHafta}_Hafta_Gorev_Bulteni.xlsx`;
+
+      xlsxDosyasiIndir(wb, fileName);
+  };
 
   const mazeretleriExceleIndir = async (hedefHaftaNo: number) => {
       try {
-          const { data: mazeretler, error: errMazeret } = await supabase
-              .from('mazeretler')
-              .select('*')
-              .eq('hafta_no', hedefHaftaNo);
+          const kayitliAdminKodu = (typeof window !== 'undefined' ? localStorage.getItem('aktifAdminKodu') : '') || '';
+          const kayitliSehir = (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || aktifAdmin?.sehir || 'izmir';
+          const isVIP = kayitliAdminKodu === 'mankoman' || aktifAdmin?.admin_kodu === 'mankoman';
 
-          const { data: komiserler, error: errKomiser } = await supabase
-              .from('komiserler')
-              .select('komiser_id, ad_soyad');
+          let mQuery = supabase.from('mazeretler').select('*').eq('hafta_no', hedefHaftaNo);
+          if (!isVIP) mQuery = mQuery.eq('sehir', kayitliSehir);
+          const { data: mazeretler, error: errMazeret } = await mQuery;
 
-          if (errMazeret || errKomiser) {
+          if (errMazeret) {
               alert("Veriler çekilirken hata oluştu!");
               return;
           }
@@ -1266,52 +1181,37 @@ useEffect(() => {
               return;
           }
 
-          let tableHtml = `
-              <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-              <head><meta charset="UTF-8"></head>
-              <body>
-                  <table border="1" style="border-collapse: collapse; font-family: Arial, sans-serif; text-align: center;">
-                      <thead>
-                          <tr style="background-color: #0f766e; color: white; font-weight: bold; font-size: 14px;">
-                              <th style="padding: 10px;">Sıra</th>
-                              <th style="padding: 10px;">Sicil No</th>
-                              <th style="padding: 10px;">Ad Soyad</th>
-                              <th style="padding: 10px;">Genel Durum</th>
-                              <th style="padding: 10px;">Müsaitlik Detayları ve Günler</th>
-                              <th style="padding: 10px;">Sistem Notu / Açıklama</th>
-                          </tr>
-                      </thead>
-                      <tbody>
-          `;
+          let komiserHavuzu = tumKomiserler || [];
+          if (komiserHavuzu.length === 0) {
+              let kQuery = supabase.from('komiserler').select('komiser_id, ad_soyad');
+              if (!isVIP) kQuery = kQuery.eq('sehir', kayitliSehir);
+              const { data: kData } = await kQuery;
+              komiserHavuzu = kData || [];
+          }
 
-          mazeretler.forEach((m: any, index: number) => {
-              const komiser = (komiserler || []).find((k: any) => k.komiser_id === m.komiser_id);
-              const adSoyad = komiser ? komiser.ad_soyad : 'Bilinmeyen Komiser';
+          const kolonBasliklari = ['SIRA', 'SİCİL NO', 'AD SOYAD', 'GENEL DURUM', 'MÜSAİTLİK DETAYLARI VE GÜNLER', 'SİSTEM NOTU / AÇIKLAMA'];
 
-              let rowStyle = "";
+          const satirlar = mazeretler.map((m: any, index: number) => {
+              const komiser = komiserHavuzu.find((k: any) => String(k.komiser_id) === String(m.komiser_id));
+              const adSoyad = komiser ? String(turkceBuyukHarf(komiser.ad_soyad)) : 'BİLİNMEYEN KOMİSER';
+
               let durumText = "";
               let detayText = "";
 
               if (m.detaylar?.mod === 'yok' || m.komple_yok) {
-                  rowStyle = "color: #b91c1c; font-weight: bold; background-color: #fef2f2;"; 
-                  durumText = "⛔ TÜM HAFTA MAZERETLİ";
+                  durumText = "TÜM HAFTA MAZERETLİ";
                   detayText = "Görev İstemiyor";
-              } 
-              else if (m.detaylar?.mod === 'full') {
-                  rowStyle = "color: #15803d; font-weight: bold; background-color: #f0fdf4;"; 
-                  durumText = "✅ TÜM HAFTA MÜSAİT";
+              } else if (m.detaylar?.mod === 'full') {
+                  durumText = "TÜM HAFTA MÜSAİT";
                   const merkez = m.detaylar.genelMerkez ? "Merkez" : "";
                   const dep = m.detaylar.genelDeplasman ? "Deplasman" : "";
                   detayText = [merkez, dep].filter(Boolean).join(" & ");
-              } 
-              else if (m.detaylar?.mod === 'secmeli') {
-                  rowStyle = "color: #1d4ed8; font-weight: bold; background-color: #eff6ff;"; 
-                  durumText = "📅 KISMİ MÜSAİT";
-
+              } else if (m.detaylar?.mod === 'secmeli') {
+                  durumText = "KISMİ MÜSAİT";
                   const gunler = m.detaylar.gunler || {};
                   const aktifGunler: string[] = [];
                   const gunIsimleri: Record<string, string> = {
-                      cuma: 'Cuma', cumartesi: 'Ctesi', pazar: 'Pazar', 
+                      cuma: 'Cuma', cumartesi: 'Ctesi', pazar: 'Pazar',
                       pazartesi: 'P.tesi', sali: 'Salı', carsamba: 'Çarş.', persembe: 'Perş.'
                   };
 
@@ -1323,7 +1223,6 @@ useEffect(() => {
                           if (g.merkez) locs.push('Mrk');
                           if (g.deplasman) locs.push('Dep');
                           text += ` (${locs.join(',')}) `;
-
                           if (g.tumGun) text += "[Tüm Gün]";
                           else text += `[${g.baslangic}-${g.bitis}]`;
                           aktifGunler.push(text);
@@ -1332,30 +1231,23 @@ useEffect(() => {
                   detayText = aktifGunler.join(" | ");
               }
 
-              tableHtml += `
-                  <tr style="${rowStyle}">
-                      <td style="padding: 8px;">${index + 1}</td>
-                      <td style="padding: 8px; mso-number-format:'\\@';">${m.komiser_id}</td>
-                      <td style="padding: 8px; text-align: left;">${adSoyad}</td>
-                      <td style="padding: 8px;">${durumText}</td>
-                      <td style="padding: 8px; text-align: left;">${detayText}</td>
-                      <td style="padding: 8px; text-align: left;">${m.aciklama || '-'}</td>
-                  </tr>
-              `;
+              return [
+                  index + 1,
+                  String(m.komiser_id || ''),
+                  adSoyad,
+                  durumText,
+                  detayText || '-',
+                  String(m.aciklama || '-')
+              ];
           });
 
-          tableHtml += `</tbody></table></body></html>`;
+          const ws = XLSX.utils.aoa_to_sheet([kolonBasliklari, ...satirlar]);
+          ws['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 28 }, { wch: 24 }, { wch: 48 }, { wch: 35 }];
+          ws['!autofilter'] = { ref: `A1:F${satirlar.length + 1}` };
 
-          const blob = new Blob(['\ufeff', tableHtml], { type: 'application/vnd.ms-excel' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${hedefHaftaNo}_Hafta_Mazeret_Raporu.xls`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, `${hedefHaftaNo}.Hafta Mazeret`);
+          xlsxDosyasiIndir(wb, `${hedefHaftaNo}_Hafta_Mazeret_Raporu.xlsx`);
       } catch (error) {
           console.error(error);
           alert("Excel oluşturulurken beklenmeyen bir hata meydana geldi.");
