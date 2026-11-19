@@ -469,7 +469,183 @@ useEffect(() => {
   const [susturulanAlarmlar, setSusturulanAlarmlar] = useState<number[]>([]);
 
   const [sistemYonetimModalAcik, setSistemYonetimModalAcik] = useState(false)
-  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'mac_sil' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
+  const [sistemTab, setSistemTab] = useState<'komiser_ekle' | 'mac_ekle' | 'mac_sil' | 'nevi_duzelt' | 'statu_ekle' | 'talimat_ekle'>('komiser_ekle')
+
+  // 🔥 KISTASLI TOPLU LİG NEVİSİ (KATEGORİ) DÜZELTME MOTORU 🔥
+  const [neviKapsam, setNeviKapsam] = useState<'aktif_hafta' | 'tum_sezon'>('aktif_hafta')
+  const [neviEslesmeTipi, setNeviEslesmeTipi] = useState<'tam' | 'iceren'>('tam')
+  const [eskiNeviKistas, setEskiNeviKistas] = useState('')
+  const [yeniNeviDeger, setYeniNeviDeger] = useState('')
+  const [neviTebellugSifirla, setNeviTebellugSifirla] = useState(false)
+  const [neviGuncelleniyor, setNeviGuncelleniyor] = useState(false)
+
+  // TFF ve Gelişim liglerine ASLA dokunmadan düz O14, O17, U14, U17, U19 yazımlarını standartlaştırır
+  const yerelNeviStandartlastir = (hamKategori: any, sehirKodu: string = 'izmir'): string => {
+      const temiz = turkceBuyukHarf(hamKategori || '').trim().replace(/\s+/g, ' ');
+      if (!temiz) return '';
+      if (
+          temiz.includes('TFF') || temiz.includes('GELİŞİM') || temiz.includes('GELISIM') ||
+          temiz.includes('AKADEMİ') || temiz.includes('ELİT') || temiz.includes('KADIN') ||
+          temiz.includes('KIZ') || temiz.includes('BAL') || temiz.includes('BÖLGESEL') ||
+          temiz.includes('PGL') || temiz.includes('P.G.L')
+      ) {
+          return temiz;
+      }
+      const ilAdi = String(sehirKodu).toLowerCase() === 'kocaeli' ? 'KOCAELİ' : 'İZMİR';
+      // O14, 014, U14, U-14, O17, U19, U14 LİGİ gibi başında il olmayan U11-U19 yerel liglerini yakalar
+      const duzYasEslesme = temiz.match(/^[UO0]\s*-?\s*(1[1-9])(?:\s*LİGİ?|\s*YEREL\s*LİGİ?)?$/);
+      if (duzYasEslesme) {
+          return `${ilAdi} U${duzYasEslesme[1]} LİGİ`;
+      }
+      return temiz;
+  };
+
+  const neviHavuzunuGetir = () => {
+      if (neviKapsam === 'aktif_hafta' && goruntulenenHafta !== null) {
+          return haftalikGruplar[goruntulenenHafta] || [];
+      }
+      return sezonlukMaclar || [];
+  };
+
+  const kistasEslesenMaclariBul = () => {
+      const aranan = turkceBuyukHarf(eskiNeviKistas).trim();
+      if (!aranan) return [];
+      return neviHavuzunuGetir().filter((m: any) => {
+          const mevcutKat = turkceBuyukHarf(m?.kategori_adi || '').trim();
+          if (neviEslesmeTipi === 'tam') {
+              return mevcutKat === aranan;
+          }
+          // "İçinde geçen" modunda bile kaza ile TFF liglerini vurmamak için koruma:
+          if (!aranan.includes('TFF') && mevcutKat.includes('TFF')) return false;
+          return mevcutKat.includes(aranan);
+      });
+  };
+
+  const kistasliNeviGuncelleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const hedefYeniKat = turkceBuyukHarf(yeniNeviDeger).trim();
+      if (!eskiNeviKistas.trim() || !hedefYeniKat) {
+          alert("Lütfen hem düzeltilecek eski neviyi hem de yeni neviyi giriniz!");
+          return;
+      }
+      const eslesenler = kistasEslesenMaclariBul();
+      if (eslesenler.length === 0) {
+          alert("Belirttiğiniz kıstasa uyan hiçbir maç bulunamadı!");
+          return;
+      }
+
+      const tebellugluSayi = eslesenler.filter((m: any) => m.tebellug_edildi).length;
+      const tebellugsuzSayi = eslesenler.length - tebellugluSayi;
+
+      const onay = window.confirm(
+          `📋 TOPLU LİG NEVİSİ GÜNCELLEME ONAYI\n\n` +
+          `• Eski Kıstas: "${turkceBuyukHarf(eskiNeviKistas).trim()}"\n` +
+          `• Yeni Lig Nevisi: "${hedefYeniKat}"\n` +
+          `• Etkilenecek Maç: ${eslesenler.length} adet (${tebellugluSayi} tebellüğlü, ${tebellugsuzSayi} tebellüğsüz)\n` +
+          `• Tebellüğ Durumu: ${neviTebellugSifirla ? 'Sıfırlanacak (Yeniden onay istenecek)' : 'KORUNACAK (Komiserlere alarm gitmez)'}\n\n` +
+          `Onaylıyor musunuz?`
+      );
+      if (!onay) return;
+
+      setNeviGuncelleniyor(true);
+      try {
+          const hedefIdler = eslesenler.map((m: any) => m.id);
+          const guncelAlanlar: any = { kategori_adi: hedefYeniKat };
+          if (neviTebellugSifirla) guncelAlanlar.tebellug_edildi = false;
+
+          const parcaBoyutu = 200;
+          for (let i = 0; i < hedefIdler.length; i += parcaBoyutu) {
+              const parca = hedefIdler.slice(i, i + parcaBoyutu);
+              const { error } = await supabase.from('musabakalar').update(guncelAlanlar).in('id', parca);
+              if (error) throw error;
+          }
+
+          const idSet = new Set(hedefIdler);
+          setSezonlukMaclar(prev => prev.map(m => idSet.has(m.id) ? { ...m, ...guncelAlanlar } : m));
+          setHaftalikGruplar(prev => {
+              const yeni: Record<number, any[]> = {};
+              Object.keys(prev).forEach(h => {
+                  yeni[Number(h)] = (prev[Number(h)] || []).map(m => idSet.has(m.id) ? { ...m, ...guncelAlanlar } : m);
+              });
+              return yeni;
+          });
+
+          alert(`✅ Başarılı! Toplam ${hedefIdler.length} maçın nevisi "${hedefYeniKat}" olarak güncellendi.`);
+          setEskiNeviKistas('');
+      } catch (err: any) {
+          alert("Hata: " + err.message);
+      }
+      setNeviGuncelleniyor(false);
+  };
+
+  // Tek tıkla tüm düz O14, O17, U14, U17, U19 vb. yerel ligleri bulup İZMİR U... LİGİ yapar
+  const otomatikDuzYerelLigleriTamirEt = async () => {
+      const sehirKodu = aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir';
+      const havuz = neviHavuzunuGetir();
+      const tamirListesi: { id: number; eski: string; yeni: string }[] = [];
+
+      havuz.forEach((m: any) => {
+          const mevcut = turkceBuyukHarf(m?.kategori_adi || '').trim().replace(/\s+/g, ' ');
+          const duzeltilmis = yerelNeviStandartlastir(mevcut, sehirKodu);
+          if (mevcut && duzeltilmis && mevcut !== duzeltilmis) {
+              tamirListesi.push({ id: m.id, eski: mevcut, yeni: duzeltilmis });
+          }
+      });
+
+      if (tamirListesi.length === 0) {
+          alert("✅ Harika! Seçili kapsamda düz yazılmış (O14, O17, U19 vb.) hatalı yerel lig kaydı bulunamadı.");
+          return;
+      }
+
+      const ozetHarita = new Map<string, number>();
+      tamirListesi.forEach(item => {
+          const anahtar = `"${item.eski}" ➔ "${item.yeni}"`;
+          ozetHarita.set(anahtar, (ozetHarita.get(anahtar) || 0) + 1);
+      });
+      const ozetMetni = Array.from(ozetHarita.entries()).map(([k, adet]) => `• ${k} (${adet} Maç)`).join('\n');
+
+      const onay = window.confirm(
+          `🤖 OTOMATİK YEREL LİG NEVİSİ TAMİRİ\n\n` +
+          `TFF Gelişim liglerine hiç dokunulmadan aşağıdaki ${tamirListesi.length} maç düzeltilecektir (Tebellüğ durumları korunur):\n\n` +
+          `${ozetMetni}\n\nOnaylıyor musunuz?`
+      );
+      if (!onay) return;
+
+      setNeviGuncelleniyor(true);
+      try {
+          // Aynı yeni kategoriye gidecek ID'leri gruplayıp tek sorguda güncelle (Sıfır kota israfı!)
+          const yeniyeGoreGrup = new Map<string, number[]>();
+          tamirListesi.forEach(item => {
+              if (!yeniyeGoreGrup.has(item.yeni)) yeniyeGoreGrup.set(item.yeni, []);
+              yeniyeGoreGrup.get(item.yeni)!.push(item.id);
+          });
+
+          for (const [yeniKat, idler] of Array.from(yeniyeGoreGrup.entries())) {
+              const parcaBoyutu = 200;
+              for (let i = 0; i < idler.length; i += parcaBoyutu) {
+                  const parca = idler.slice(i, i + parcaBoyutu);
+                  const { error } = await supabase.from('musabakalar').update({ kategori_adi: yeniKat }).in('id', parca);
+                  if (error) throw error;
+              }
+          }
+
+          const degisimMap = new Map(tamirListesi.map(x => [x.id, x.yeni]));
+          setSezonlukMaclar(prev => prev.map(m => degisimMap.has(m.id) ? { ...m, kategori_adi: degisimMap.get(m.id) } : m));
+          setHaftalikGruplar(prev => {
+              const yeni: Record<number, any[]> = {};
+              Object.keys(prev).forEach(h => {
+                  yeni[Number(h)] = (prev[Number(h)] || []).map(m => degisimMap.has(m.id) ? { ...m, kategori_adi: degisimMap.get(m.id) } : m);
+              });
+              return yeni;
+          });
+
+          alert(`✅ Tamamlandı! Toplam ${tamirListesi.length} maçın lig nevisi standart formata kavuşturuldu.`);
+      } catch (err: any) {
+          alert("Hata: " + err.message);
+      }
+      setNeviGuncelleniyor(false);
+  };
+
   const [otomatikYenile, setOtomatikYenile] = useState(true) // 🔥 YENİ: RADAR KONTROLÜ 🔥
   
   const [tumStatuler, setTumStatuler] = useState<any[]>([])
@@ -993,6 +1169,430 @@ useEffect(() => {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // ============================================================================
+  // 🎨 "SK BÜLTEN ŞABLON.XLSX" BİREBİR RENKLİ, A-Z SIRALI VE KUSURSUZ .XLSX MOTORU
+  // ============================================================================
+  const xlsxDosyasiIndir = (wb: any, dosyaAdi: string) => {
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = dosyaAdi.endsWith('.xlsx') ? dosyaAdi : `${dosyaAdi}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const xmlEscape = (deger: any): string => {
+      return String(deger ?? '')
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+  };
+
+  const sutunHarfiBul = (index: number): string => {
+      let n = index;
+      let harf = '';
+      while (n >= 0) {
+          harf = String.fromCharCode((n % 26) + 65) + harf;
+          n = Math.floor(n / 26) - 1;
+      }
+      return harf;
+  };
+
+  const crc32Tablo = (() => {
+      const tablo = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+          let c = i;
+          for (let k = 0; k < 8; k++) {
+              c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+          }
+          tablo[i] = c >>> 0;
+      }
+      return tablo;
+  })();
+
+  const crc32Hesapla = (veri: Uint8Array): number => {
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < veri.length; i++) {
+          crc = crc32Tablo[(crc ^ veri[i]) & 0xFF] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+  };
+
+  const veriyiSikistir = async (veri: Uint8Array): Promise<{ bytes: Uint8Array; method: number }> => {
+      try {
+          const CS = typeof window !== 'undefined' ? (window as any).CompressionStream : undefined;
+          if (CS) {
+              const cs = new CS('deflate-raw');
+              const writer = cs.writable.getWriter();
+              writer.write(veri);
+              writer.close();
+              const parcalar: Uint8Array[] = [];
+              const reader = cs.readable.getReader();
+              let toplam = 0;
+              while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  if (value) {
+                      parcalar.push(value);
+                      toplam += value.length;
+                  }
+              }
+              const sonuc = new Uint8Array(toplam);
+              let offset = 0;
+              for (const p of parcalar) {
+                  sonuc.set(p, offset);
+                  offset += p.length;
+              }
+              return { bytes: sonuc, method: 8 };
+          }
+      } catch (e) {}
+      return { bytes: veri, method: 0 };
+  };
+
+  interface XlsxHucre {
+      v: string | number;
+      s: number;
+  }
+
+  interface RenkliXlsxAyar {
+      dosyaAdi: string;
+      sekmeAdi: string;
+      sutunGenislikleri: number[];
+      satirlar: { yukseklik?: number; hucreler: XlsxHucre[] }[];
+      autoFilterRef?: string;
+      birlesikHucreler?: string[];
+  }
+
+  const kontrolLigNevisi = (kategoriAdi: any, sehir: string = 'izmir'): { gecerli: boolean; onerilen: string; aciklama: string } => {
+      const ham = turkceBuyukHarf(kategoriAdi || '').trim().replace(/\s+/g, ' ');
+      const ilAdi = sehir === 'kocaeli' ? 'KOCAELİ' : 'İZMİR';
+      if (!ham) {
+          return { gecerli: false, onerilen: `${ilAdi} U14 LİGİ`, aciklama: 'Lig nevisi boş bırakılmış.' };
+      }
+
+      const tffGelisimEksik = /^TFF\s*U-?\d{2}\s*LİGİ?$/.test(ham);
+      if (tffGelisimEksik) {
+          const yas = ham.match(/\d{2}/)?.[0] || '15';
+          return {
+              gecerli: false,
+              onerilen: `TFF U${yas} GELİŞİM LİGİ veya ${ilAdi} U${yas} LİGİ`,
+              aciklama: `"${ham}" standart dışı! Gelişim ligi ise "TFF U${yas} GELİŞİM LİGİ", yerel lig ise "${ilAdi} U${yas} LİGİ" olmalıdır.`
+          };
+      }
+
+      const standartKaliplar = [
+          /^TFF\s+U\d{2}\s+GELİŞİM\s+LİGİ$/,
+          /^(İZMİR|KOCAELİ)\s+U\d{2}\s+LİGİ$/,
+          /^(İZMİR\s+|KOCAELİ\s+)?SÜPER\s+AMATÖR(\s+LİG|\s+LİGİ)?$/,
+          /^(İZMİR\s+|KOCAELİ\s+)?1\.\s*AMATÖR(\s+LİG|\s+LİGİ)?$/,
+          /^(İZMİR\s+|KOCAELİ\s+)?2\.\s*AMATÖR(\s+LİG|\s+LİGİ)?$/,
+          /^BÖLGESEL\s+AMATÖR\s+LİG(\s+\d+\.\s*GRUP)?$/,
+          /^BAL(\s+LİGİ)?(\s+\d+\.\s*GRUP)?$/,
+          /^P\.?G\.?L\.?(\s+LİGİ)?$/,
+          /^PROFESYONELLİĞE\s+GEÇİŞ\s+LİGİ$/,
+          /^TFF\s+KADINLAR\s+(SÜPER|1\.|2\.|3\.)\s*LİGİ$/,
+          /^TFF\s+KIZLAR\s+U\d{2}\s+LİGİ$/,
+          /^(TRENDYOL\s+)?SÜPER\s+LİG$/,
+          /^(TRENDYOL\s+)?1\.\s*LİG$/,
+          /^(NESİNE\s+)?2\.\s*LİG$/,
+          /^(NESİNE\s+)?3\.\s*LİG$/,
+          /^ZİRAAT\s+TÜRKİYE\s+KUPASI$/,
+          /^PAF(\s+LİGİ)?$/
+      ];
+
+      const uygunMu = standartKaliplar.some((rx) => rx.test(ham));
+      if (!uygunMu) {
+          const yasMatch = ham.match(/[UO0]-?(\d{2})/);
+          const yas = yasMatch ? yasMatch[1] : '14';
+          const oneri = ham.includes('GELİŞİM') || ham.includes('TFF')
+              ? `TFF U${yas} GELİŞİM LİGİ`
+              : `${ilAdi} U${yas} LİGİ`;
+          return {
+              gecerli: false,
+              onerilen: oneri,
+              aciklama: `"${ham}" şablon standartlarına uymuyor (Önerilen: ${oneri}).`
+          };
+      }
+
+      return { gecerli: true, onerilen: ham, aciklama: '' };
+  };
+
+  const getGunExcelStilCifti = (tarihStr: any): { orta: number; sol: number } => {
+      try {
+          const dStr = String(tarihStr || '').trim();
+          let y = 0, m = 0, dNum = 0;
+          if (dStr.includes('.')) {
+              const p = dStr.split('.');
+              if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+              else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
+          } else if (dStr.includes('/')) {
+              const p = dStr.split('/');
+              if (p.length === 3) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+              else if (p.length === 2) { dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear(); }
+          } else if (dStr.includes('-')) {
+              const p = dStr.split('-');
+              if (p.length === 3) {
+                  if (p[0].length === 4) { y = Number(p[0]); m = Number(p[1]) - 1; dNum = Number(p[2]); }
+                  else { dNum = Number(p[0]); m = Number(p[1]) - 1; y = Number(p[2]); }
+              } else if (p.length === 2) {
+                  dNum = Number(p[0]); m = Number(p[1]) - 1; y = new Date().getFullYear();
+              }
+          }
+          if (!y) return { orta: 3, sol: 4 };
+          const day = new Date(y, m, dNum).getDay();
+          if (day === 0) return { orta: 5, sol: 6 };
+          if (day === 1) return { orta: 7, sol: 8 };
+          if (day === 2) return { orta: 9, sol: 10 };
+          if (day === 3) return { orta: 11, sol: 12 };
+          if (day === 4) return { orta: 13, sol: 14 };
+          if (day === 5) return { orta: 15, sol: 16 };
+          return { orta: 3, sol: 4 };
+      } catch (e) {
+          return { orta: 3, sol: 4 };
+      }
+  };
+
+  const ozelRenkliXlsxIndir = async (ayar: RenkliXlsxAyar) => {
+      const temizSekmeAdi = (ayar.sekmeAdi || 'Bulten').replace(/[\\/?*[\]:]/g, ' ').trim().substring(0, 31) || 'Bulten';
+      const encoder = new TextEncoder();
+
+      const paylasilanMetinler: string[] = [];
+      const metinHaritasi = new Map<string, number>();
+      let toplamMetinSayisi = 0;
+
+      const metinIndexAl = (metin: string): number => {
+          toplamMetinSayisi++;
+          const mevcut = metinHaritasi.get(metin);
+          if (mevcut !== undefined) return mevcut;
+          const yeniIdx = paylasilanMetinler.length;
+          paylasilanMetinler.push(metin);
+          metinHaritasi.set(metin, yeniIdx);
+          return yeniIdx;
+      };
+
+      const sonSatirNo = Math.max(1, ayar.satirlar.length);
+      const sonSutunHarf = sutunHarfiBul(Math.max(0, ayar.sutunGenislikleri.length - 1));
+      const boyutRef = `A1:${sonSutunHarf}${sonSatirNo}`;
+
+      const colsXml = `<cols>${ayar.sutunGenislikleri.map((w, idx) => `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`;
+
+      const satirlarXml = ayar.satirlar.map((satir, rIdx) => {
+          const rNo = rIdx + 1;
+          const htAttr = satir.yukseklik ? ` ht="${satir.yukseklik}" customHeight="1"` : '';
+          const hucreXml = satir.hucreler.map((h, cIdx) => {
+              const cRef = `${sutunHarfiBul(cIdx)}${rNo}`;
+              if (typeof h.v === 'number' && Number.isFinite(h.v)) {
+                  return `<c r="${cRef}" s="${h.s}"><v>${h.v}</v></c>`;
+              }
+              const sIdx = metinIndexAl(String(h.v ?? ''));
+              return `<c r="${cRef}" s="${h.s}" t="s"><v>${sIdx}</v></c>`;
+          }).join('');
+          return `<row r="${rNo}"${htAttr}>${hucreXml}</row>`;
+      }).join('');
+
+      const autoFilterXml = ayar.autoFilterRef ? `<autoFilter ref="${ayar.autoFilterRef}"/>` : '';
+      const mergeXml = (ayar.birlesikHucreler && ayar.birlesikHucreler.length > 0)
+          ? `<mergeCells count="${ayar.birlesikHucreler.length}">${ayar.birlesikHucreler.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`
+          : '';
+
+      const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+    <dimension ref="${boyutRef}"/>
+    <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
+    <sheetFormatPr defaultRowHeight="18"/>
+    ${colsXml}
+    <sheetData>${satirlarXml}</sheetData>
+    ${autoFilterXml}
+    ${mergeXml}
+</worksheet>`;
+
+      const sstXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${toplamMetinSayisi}" uniqueCount="${paylasilanMetinler.length}">
+    ${paylasilanMetinler.map(s => `<si><t xml:space="preserve">${xmlEscape(s)}</t></si>`).join('')}
+</sst>`;
+
+      const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+    <fonts count="10">
+        <font><sz val="10"/><color rgb="FF000000"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>
+        <font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FF000000"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FFDC2626"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FF059669"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FF0891B2"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FFEA580C"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FF9333EA"/><name val="Arial"/></font>
+        <font><b/><sz val="10"/><color rgb="FFDB2777"/><name val="Arial"/></font>
+    </fonts>
+    <fills count="4">
+        <fill><patternFill patternType="none"/></fill>
+        <fill><patternFill patternType="gray125"/></fill>
+        <fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor indexed="64"/></patternFill></fill>
+        <fill><patternFill patternType="solid"><fgColor rgb="FF1E293B"/><bgColor indexed="64"/></patternFill></fill>
+    </fills>
+    <borders count="2">
+        <border><left/><right/><top/><bottom/><diagonal/></border>
+        <border>
+            <left style="thin"><color rgb="FFCBD5E1"/></left>
+            <right style="thin"><color rgb="FFCBD5E1"/></right>
+            <top style="thin"><color rgb="FFCBD5E1"/></top>
+            <bottom style="thin"><color rgb="FFCBD5E1"/></bottom>
+            <diagonal/>
+        </border>
+    </borders>
+    <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+    <cellXfs count="18">
+        <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="7" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="7" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="8" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="8" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="9" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="9" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+        <xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    </cellXfs>
+    <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+    <dxfs count="0"/>
+</styleSheet>`;
+
+      const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.workbook+xml"/>
+    <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+    <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+    <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+</Types>`;
+
+      const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+      const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <sheets><sheet name="${xmlEscape(temizSekmeAdi)}" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+      const workbookRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+    <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>`;
+
+      const dosyalar = [
+          { ad: '[Content_Types].xml', icerik: contentTypesXml },
+          { ad: '_rels/.rels', icerik: rootRelsXml },
+          { ad: 'xl/workbook.xml', icerik: workbookXml },
+          { ad: 'xl/_rels/workbook.xml.rels', icerik: workbookRelsXml },
+          { ad: 'xl/styles.xml', icerik: stylesXml },
+          { ad: 'xl/sharedStrings.xml', icerik: sstXml },
+          { ad: 'xl/worksheets/sheet1.xml', icerik: sheetXml }
+      ];
+
+      const yerelParcalar: Uint8Array[] = [];
+      const merkezParcalar: Uint8Array[] = [];
+      let yerelOffset = 0;
+
+      for (const d of dosyalar) {
+          const adBytes = encoder.encode(d.ad);
+          const hamBytes = encoder.encode(d.icerik);
+          const crc = crc32Hesapla(hamBytes);
+          const { bytes: sikismisBytes, method } = await veriyiSikistir(hamBytes);
+
+          const localHeader = new Uint8Array(30 + adBytes.length);
+          const lv = new DataView(localHeader.buffer);
+          lv.setUint32(0, 0x04034b50, true);
+          lv.setUint16(4, 20, true);
+          lv.setUint16(6, 0, true);
+          lv.setUint16(8, method, true);
+          lv.setUint16(10, 0x4000, true);
+          lv.setUint16(12, 0x5CC1, true);
+          lv.setUint32(14, crc, true);
+          lv.setUint32(18, sikismisBytes.length, true);
+          lv.setUint32(22, hamBytes.length, true);
+          lv.setUint16(26, adBytes.length, true);
+          lv.setUint16(28, 0, true);
+          localHeader.set(adBytes, 30);
+
+          const centralHeader = new Uint8Array(46 + adBytes.length);
+          const cv = new DataView(centralHeader.buffer);
+          cv.setUint32(0, 0x02014b50, true);
+          cv.setUint16(4, 20, true);
+          cv.setUint16(6, 20, true);
+          cv.setUint16(8, 0, true);
+          cv.setUint16(10, method, true);
+          cv.setUint16(12, 0x4000, true);
+          cv.setUint16(14, 0x5CC1, true);
+          cv.setUint32(16, crc, true);
+          cv.setUint32(20, sikismisBytes.length, true);
+          cv.setUint32(24, hamBytes.length, true);
+          cv.setUint16(28, adBytes.length, true);
+          cv.setUint16(30, 0, true);
+          cv.setUint16(32, 0, true);
+          cv.setUint16(34, 0, true);
+          cv.setUint16(36, 0, true);
+          cv.setUint32(38, 0, true);
+          cv.setUint32(42, yerelOffset, true);
+          centralHeader.set(adBytes, 46);
+
+          yerelParcalar.push(localHeader, sikismisBytes);
+          merkezParcalar.push(centralHeader);
+          yerelOffset += localHeader.length + sikismisBytes.length;
+      }
+
+      const merkezBoyut = merkezParcalar.reduce((t, p) => t + p.length, 0);
+      const eocd = new Uint8Array(22);
+      const ev = new DataView(eocd.buffer);
+      ev.setUint32(0, 0x06054b50, true);
+      ev.setUint16(4, 0, true);
+      ev.setUint16(6, 0, true);
+      ev.setUint16(8, dosyalar.length, true);
+      ev.setUint16(10, dosyalar.length, true);
+      ev.setUint32(12, merkezBoyut, true);
+      ev.setUint32(16, yerelOffset, true);
+      ev.setUint16(20, 0, true);
+
+      const tumParcalar = [...yerelParcalar, ...merkezParcalar, eocd];
+      const toplamUzunluk = tumParcalar.reduce((t, p) => t + p.length, 0);
+      const zipBuffer = new Uint8Array(toplamUzunluk);
+      let pos = 0;
+      for (const p of tumParcalar) {
+          zipBuffer.set(p, pos);
+          pos += p.length;
+      }
+
+      const blob = new Blob([zipBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = ayar.dosyaAdi.endsWith('.xlsx') ? ayar.dosyaAdi : `${ayar.dosyaAdi}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+  };
+
   const topluBordroExcelIndir = () => {
       if (seciliAyBordroData.length === 0) return;
       const sehirAdi = turkceBuyukHarf(aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'SUBE');
@@ -1097,9 +1697,11 @@ useEffect(() => {
 
   const aktifHaftaGoster = goruntulenenHafta !== null ? goruntulenenHafta : 0;
   const siraliBultenMaclari = [...(haftalikGruplar[aktifHaftaGoster] || [])].sort((a, b) => {
-      const kA = String(komiserIsmiBul(a?.komiser_id) || '');
-      const kB = String(komiserIsmiBul(b?.komiser_id) || '');
-      return kA.localeCompare(kB, 'tr-TR');
+      const kA = String(komiserIsmiBul(a?.komiser_id) || '').trim();
+      const kB = String(komiserIsmiBul(b?.komiser_id) || '').trim();
+      const komiserFarki = kA.localeCompare(kB, 'tr-TR');
+      if (komiserFarki !== 0) return komiserFarki;
+      return getZaman(a) - getZaman(b);
   });
 
   const indirExcel = () => {
@@ -1108,7 +1710,22 @@ useEffect(() => {
           ? ['SIRA', 'KOD', 'TARİH', 'GÜN', 'SAAT', 'LİG / KLASMAN', 'EV SAHİBİ TAKIM', 'EV SKOR', 'MİSAFİR TAKIM', 'MİS. SKOR', 'SAHA KOMİSERİ ADI', 'SAHA', 'DURUM']
           : ['SIRA', 'KOD', 'TARİH', 'GÜN', 'SAAT', 'LİG / KLASMAN', 'EV SAHİBİ TAKIM', 'MİSAFİR TAKIM', 'SAHA KOMİSERİ ADI', 'SAHA'];
 
-      const satirlar = siraliBultenMaclari.map((m: any, idx: number) => {
+      const satirlarVerisi: { yukseklik?: number; hucreler: XlsxHucre[] }[] = [];
+      const hataliLigUyariListesi: string[] = [];
+      const aktifIlKodu = aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir';
+
+      const baslikMetni = `${goruntulenenHafta}. HAFTA ${sonucModu ? 'TOPLU MÜSABAKA SONUÇLARI' : 'MÜSABAKA GÖREV LİSTESİ'}`;
+      satirlarVerisi.push({
+          yukseklik: 26,
+          hucreler: kolonBasliklari.map((_, i) => ({ v: i === 0 ? baslikMetni : '', s: 17 }))
+      });
+
+      satirlarVerisi.push({
+          yukseklik: 22,
+          hucreler: kolonBasliklari.map(baslik => ({ v: baslik, s: 1 }))
+      });
+
+      siraliBultenMaclari.forEach((m: any, idx: number) => {
           const komiser = String(turkceBuyukHarf(komiserIsmiBul(m.komiser_id)));
           const isIptal = m.mac_durumu === 'iptal_edildi';
           let evSkor: any = m.skor_girildi && m.ev_sahibi_skor !== null && m.ev_sahibi_skor !== undefined ? Number(m.ev_sahibi_skor) : '-';
@@ -1125,40 +1742,75 @@ useEffect(() => {
           else if (m.mac_durumu === 'yarida_kaldi') durum = 'YARIDA KALDI';
           else if (isIptal) durum = 'İPTAL';
 
-          const kodMetin = String(formatMacKodu(m.mac_kodu));
-          const tarihMetin = String(guvenliTarih(m.tarih));
-          const gunIsmi = String(getGunIsmi(m.tarih) || '-');
-          const saatMetin = String(guvenliSaat(m.saat));
-          const ligAdi = String(turkceBuyukHarf(m.kategori_adi || '-'));
-          const evAdi = String(turkceBuyukHarf(m.ev_sahibi || '-'));
-          const misAdi = String(turkceBuyukHarf(m.misafir_takim || '-'));
-          const sahaAdi = String(turkceBuyukHarf(m.saha || '-'));
+          const tarihStr = String(guvenliTarih(m.tarih));
+          const gunStr = String(getGunIsmi(m.tarih) || '-');
+          const saatStr = String(guvenliSaat(m.saat));
+          const ligStr = String(turkceBuyukHarf(m.kategori_adi || '-'));
 
-          if (sonucModu) {
-              return [idx + 1, kodMetin, tarihMetin, gunIsmi, saatMetin, ligAdi, evAdi, evSkor, misAdi, misSkor, komiser, sahaAdi, durum];
+          const neviKontrol = kontrolLigNevisi(m.kategori_adi, aktifIlKodu);
+          if (!neviKontrol.gecerli && m.kategori_adi) {
+              hataliLigUyariListesi.push(`• Kod ${formatMacKodu(m.mac_kodu)}: ${neviKontrol.aciklama}`);
           }
-          return [idx + 1, kodMetin, tarihMetin, gunIsmi, saatMetin, ligAdi, evAdi, misAdi, komiser, sahaAdi];
+
+          const evStr = String(turkceBuyukHarf(m.ev_sahibi || '-'));
+          const misStr = String(turkceBuyukHarf(m.misafir_takim || '-'));
+          const sahaStr = String(turkceBuyukHarf(m.saha || '-'));
+          const kodStr = String(formatMacKodu(m.mac_kodu));
+
+          const { orta: sOrta, sol: sSol } = getGunExcelStilCifti(m.tarih);
+
+          const satirHucreleri: XlsxHucre[] = sonucModu ? [
+              { v: idx + 1, s: sOrta },
+              { v: kodStr, s: sOrta },
+              { v: tarihStr, s: sOrta },
+              { v: gunStr, s: sOrta },
+              { v: saatStr, s: sOrta },
+              { v: ligStr, s: sSol },
+              { v: evStr, s: sSol },
+              { v: evSkor, s: sOrta },
+              { v: misStr, s: sSol },
+              { v: misSkor, s: sOrta },
+              { v: komiser, s: sSol },
+              { v: sahaStr, s: sSol },
+              { v: durum, s: sOrta }
+          ] : [
+              { v: idx + 1, s: sOrta },
+              { v: kodStr, s: sOrta },
+              { v: tarihStr, s: sOrta },
+              { v: gunStr, s: sOrta },
+              { v: saatStr, s: sOrta },
+              { v: ligStr, s: sSol },
+              { v: evStr, s: sSol },
+              { v: misStr, s: sSol },
+              { v: komiser, s: sSol },
+              { v: sahaStr, s: sSol }
+          ];
+
+          satirlarVerisi.push({ yukseklik: 20, hucreler: satirHucreleri });
       });
 
-      const ws = XLSX.utils.aoa_to_sheet([kolonBasliklari, ...satirlar]);
-      ws['!cols'] = sonucModu
-          ? [{ wch: 6 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 28 }, { wch: 10 }, { wch: 28 }, { wch: 10 }, { wch: 25 }, { wch: 28 }, { wch: 15 }]
-          : [{ wch: 6 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 24 }, { wch: 28 }, { wch: 28 }, { wch: 25 }, { wch: 28 }];
+      if (hataliLigUyariListesi.length > 0) {
+          const gosterilecekUyarilar = hataliLigUyariListesi.slice(0, 8).join('\n');
+          alert(`⚠️ LİG NEVİSİ FORMAT UYARISI:\n\nBültende standart şablon dışı lig yazılımı tespit edildi:\n${gosterilecekUyarilar}\n\n(Excel dosyanız yine de indiriliyor, ilgili maç kartlarından lig nevini düzeltebilirsiniz.)`);
+      }
 
-      const sonKolonHarfi = sonucModu ? 'M' : 'J';
-      ws['!autofilter'] = { ref: `A1:${sonKolonHarfi}${satirlar.length + 1}` };
+      const sutunGenislikleri = sonucModu
+          ? [7, 10, 13, 13, 8, 26, 28, 10, 28, 10, 26, 28, 15]
+          : [7, 10, 13, 13, 8, 26, 28, 28, 26, 28];
 
-      const wb = XLSX.utils.book_new();
-      const sekmeAdi = sonucModu ? `${aktifHaftaGoster}.Hafta Sonuclar` : `${aktifHaftaGoster}.Hafta Bulten`;
-      XLSX.utils.book_append_sheet(wb, ws, sekmeAdi.substring(0, 31));
+      const sonHarf = sutunHarfiBul(kolonBasliklari.length - 1);
+      const ilEtiket = String(aktifIlKodu).toLowerCase() === 'kocaeli' ? 'Kocaeli' : 'İzmir';
 
-      const hamSehir = (aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir').toLowerCase();
-      const ilEtiket = hamSehir === 'kocaeli' ? 'Kocaeli' : 'İzmir';
-      const fileName = sonucModu
-          ? `TFF_${ilEtiket}_${goruntulenenHafta}_Hafta_Toplu_Sonuclar.xlsx`
-          : `${ilEtiket}_Saha_Komiserleri_${goruntulenenHafta}_Hafta_Gorev_Bulteni.xlsx`;
-
-      xlsxDosyasiIndir(wb, fileName);
+      ozelRenkliXlsxIndir({
+          dosyaAdi: sonucModu
+              ? `TFF_${ilEtiket}_${goruntulenenHafta}_Hafta_Toplu_Sonuclar.xlsx`
+              : `${ilEtiket}_Saha_Komiserleri_${goruntulenenHafta}_Hafta_Gorev_Bulteni.xlsx`,
+          sekmeAdi: `${goruntulenenHafta}.Hafta Bulten`,
+          sutunGenislikleri,
+          satirlar: satirlarVerisi,
+          autoFilterRef: `A2:${sonHarf}${satirlarVerisi.length}`,
+          birlesikHucreler: [`A1:${sonHarf}1`]
+      });
   };
 
   const mazeretleriExceleIndir = async (hedefHaftaNo: number) => {
@@ -1253,6 +1905,7 @@ useEffect(() => {
           alert("Excel oluşturulurken beklenmeyen bir hata meydana geldi.");
       }
   };
+
 
   const statuKaydetSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1473,8 +2126,9 @@ const [macSilArama, setMacSilArama] = useState('')
                   });
                   const saha = String(sahaKey ? normRow[sahaKey] : '');
 
-                  const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR'));
-                  const kategori_adi = String(ligKey ? normRow[ligKey] : '');
+                 const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR') || k.includes('NEVİ') || k.includes('NEVI'));
+                  const hamKategoriAdi = String(ligKey ? normRow[ligKey] : '');
+                  const kategori_adi = yerelNeviStandartlastir(hamKategoriAdi, aktifAdmin?.sehir || 'izmir');
 
                   const evKey = Object.keys(normRow).find(k => k.includes('EV') || k.includes('SAHİBİ') || k.includes('1.TAKIM') || k.includes('TAKIM 1'));
                   const ev_sahibi = String(evKey ? normRow[evKey] : '');
@@ -2833,14 +3487,183 @@ const [macSilArama, setMacSilArama] = useState('')
                     </div>
                     
                     <div className="flex bg-slate-800 border-b border-slate-700 flex-wrap">
-                        <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ YENİ KOMİSER EKLE</button>
-                        <button onClick={() => setSistemTab('mac_sil')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_sil' ? 'bg-red-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🗑️ MAÇ SİL</button>
-                        <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ EKSTRA MAÇ EKLE</button>
-                        <button onClick={() => setSistemTab('statu_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'statu_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📝 STATÜ YÖNETİMİ</button>
-                        <button onClick={() => setSistemTab('talimat_ekle')} className={`flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'talimat_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📜 GENEL ESASLAR</button>
+                        <button onClick={() => setSistemTab('komiser_ekle')} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'komiser_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>👨‍✈️ KOMİSER EKLE</button>
+                        <button onClick={() => setSistemTab('nevi_duzelt')} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'nevi_duzelt' ? 'bg-amber-600 text-white border-b-4 border-white' : 'text-amber-400 hover:text-amber-300'}`}>🔧 NEVİ DÜZELT</button>
+                        <button onClick={() => setSistemTab('mac_sil')} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_sil' ? 'bg-red-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🗑️ MAÇ SİL</button>
+                        <button onClick={() => { setSistemTab('mac_ekle'); setManuelMacKodu(otomatikMacKoduBul()); }} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'mac_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>🏟️ MAÇ EKLE</button>
+                        <button onClick={() => setSistemTab('statu_ekle')} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'statu_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📝 STATÜLER</button>
+                        <button onClick={() => setSistemTab('talimat_ekle')} className={`flex-1 min-w-[115px] py-4 font-black uppercase tracking-widest text-[10px] sm:text-xs transition-colors ${sistemTab === 'talimat_ekle' ? 'bg-indigo-600 text-white border-b-4 border-white' : 'text-slate-400 hover:text-slate-200'}`}>📜 ESASLAR</button>
                     </div>
 
                     <div className="p-6 md:p-8 overflow-y-auto max-h-[75vh] custom-scrollbar bg-[#0f172a]">
+
+                        {sistemTab === 'nevi_duzelt' && (() => {
+                            const havuz = neviHavuzunuGetir();
+                            const mevcutNevilerMap = new Map<string, number>();
+                            havuz.forEach((m: any) => {
+                                const kat = turkceBuyukHarf(m?.kategori_adi || '').trim();
+                                if (kat) mevcutNevilerMap.set(kat, (mevcutNevilerMap.get(kat) || 0) + 1);
+                            });
+                            const mevcutNevilerSirali = Array.from(mevcutNevilerMap.entries()).sort((a, b) => a[0].localeCompare(b[0], 'tr-TR'));
+                            const onizlemeEslesenler = kistasEslesenMaclariBul();
+                            const ilOnEk = (aktifAdmin?.sehir || 'izmir') === 'kocaeli' ? 'KOCAELİ' : 'İZMİR';
+                            const hazirSablonlar = [
+                                `${ilOnEk} U11 LİGİ`, `${ilOnEk} U12 LİGİ`, `${ilOnEk} U13 LİGİ`, `${ilOnEk} U14 LİGİ`,
+                                `${ilOnEk} U15 LİGİ`, `${ilOnEk} U16 LİGİ`, `${ilOnEk} U17 LİGİ`, `${ilOnEk} U19 LİGİ`,
+                                `SÜPER AMATÖR`, `1. AMATÖR`, `2. AMATÖR`,
+                                `TFF U14 GELİŞİM LİGİ`, `TFF U15 GELİŞİM LİGİ`, `TFF U16 GELİŞİM LİGİ`, `TFF U17 GELİŞİM LİGİ`, `TFF U19 GELİŞİM LİGİ`
+                            ];
+
+                            return (
+                                <div className="space-y-6">
+                                    {/* KAPSAM SEÇİCİ */}
+                                    <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                        <div>
+                                            <h3 className="text-amber-400 font-black text-sm uppercase tracking-widest">Kapsam Seçimi</h3>
+                                            <p className="text-slate-400 text-xs mt-0.5">Tebellüğlü veya tebellüğsüz tüm maçları günceller, TFF liglerine dokunmaz.</p>
+                                        </div>
+                                        <div className="flex gap-2 w-full sm:w-auto">
+                                            <button type="button" onClick={() => setNeviKapsam('aktif_hafta')} className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-black tracking-wider border transition-colors ${neviKapsam === 'aktif_hafta' ? 'bg-amber-600 text-white border-amber-400' : 'bg-slate-900 text-slate-400 border-slate-700'}`}>
+                                                📅 {goruntulenenHafta}. HAFTA ({(haftalikGruplar[goruntulenenHafta || 0] || []).length})
+                                            </button>
+                                            <button type="button" onClick={() => setNeviKapsam('tum_sezon')} className={`flex-1 sm:flex-none px-3 py-2 rounded-lg text-xs font-black tracking-wider border transition-colors ${neviKapsam === 'tum_sezon' ? 'bg-amber-600 text-white border-amber-400' : 'bg-slate-900 text-slate-400 border-slate-700'}`}>
+                                                🗂️ TÜM SEZON ({sezonlukMaclar.length})
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 1. TEK TIKLA AKILLI YEREL LİG TAMİRİ */}
+                                    <div className="bg-emerald-950/30 border-2 border-emerald-600/60 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div>
+                                            <h4 className="text-emerald-400 font-black text-xs md:text-sm uppercase tracking-wider flex items-center gap-2">
+                                                <span className="text-lg">🤖</span> TEK TIKLA AKILLI TAMİR (O14, O17, U14, U17, U19 ➔ {ilOnEk} U... LİGİ)
+                                            </h4>
+                                            <p className="text-slate-300 text-xs mt-1">
+                                                Excel&apos;den düz <b>O14, O17, U14, U17, U19</b> şeklinde girilmiş yerel ligleri otomatik tespit edip başına <b>{ilOnEk}</b> ve sonuna <b>LİGİ</b> ekler. İçinde <b>TFF / GELİŞİM</b> geçen maçlara kesinlikle dokunmaz.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={neviGuncelleniyor}
+                                            onClick={otomatikDuzYerelLigleriTamirEt}
+                                            className="w-full md:w-auto shrink-0 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black px-5 py-3 rounded-lg text-xs tracking-widest uppercase shadow-lg transition-transform active:scale-95"
+                                        >
+                                            ⚡ DÜZ YAZILANLARI OTOMATİK DÜZELT
+                                        </button>
+                                    </div>
+
+                                    {/* 2. KISTAS VEREREK ÖZEL TOPLU DEĞİŞTİRME */}
+                                    <form onSubmit={kistasliNeviGuncelleSubmit} className="bg-slate-900 border border-amber-500/50 p-5 rounded-xl space-y-4 shadow-lg">
+                                        <h4 className="text-amber-400 font-black text-sm uppercase tracking-widest border-b border-slate-800 pb-2">
+                                            🎯 KISTAS VEREREK TOPLU LİG NEVİSİ DEĞİŞTİR
+                                        </h4>
+
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">
+                                                1. Sistemdeki Mevcut Hatalı Neviyi Seçin (Tıklayınca Kıstasa Dolur)
+                                            </label>
+                                            <select
+                                                value=""
+                                                onChange={(e) => {
+                                                    if (!e.target.value) return;
+                                                    setEskiNeviKistas(e.target.value);
+                                                    setNeviEslesmeTipi('tam');
+                                                    const otomatikOneri = yerelNeviStandartlastir(e.target.value, aktifAdmin?.sehir || 'izmir');
+                                                    if (otomatikOneri && otomatikOneri !== e.target.value) {
+                                                        setYeniNeviDeger(otomatikOneri);
+                                                    }
+                                                }}
+                                                className="w-full bg-slate-950 border border-slate-700 text-white font-bold px-3 py-2.5 rounded-lg text-xs cursor-pointer focus:border-amber-500 focus:outline-none"
+                                            >
+                                                <option value="">-- Mevcut Lig Nevileri Listesinden Seç ({mevcutNevilerSirali.length} farklı kayıt) --</option>
+                                                {mevcutNevilerSirali.map(([katAdi, adet], idx) => (
+                                                    <option key={`mevcut-kat-${idx}`} value={katAdi}>
+                                                        {katAdi} ({adet} Maç)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[11px] font-bold text-red-400 uppercase mb-1">2. Eski (Hatalı) Nevi Kıstası</label>
+                                                <input
+                                                    type="text"
+                                                    value={eskiNeviKistas}
+                                                    onChange={(e) => setEskiNeviKistas(turkceBuyukHarf(e.target.value))}
+                                                    placeholder="Örn: O14 veya U19..."
+                                                    className="w-full bg-slate-950 border border-slate-700 text-white font-black uppercase px-3 py-2.5 rounded-lg text-sm focus:border-amber-500 focus:outline-none"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Eşleşme Kıstası</label>
+                                                <select
+                                                    value={neviEslesmeTipi}
+                                                    onChange={(e) => setNeviEslesmeTipi(e.target.value as 'tam' | 'iceren')}
+                                                    className="w-full bg-slate-950 border border-slate-700 text-white font-bold px-3 py-2.5 rounded-lg text-xs cursor-pointer h-[42px]"
+                                                >
+                                                    <option value="tam">Birebir Aynı Olanlar (Güvenli)</option>
+                                                    <option value="iceren">İçinde Geçenler (TFF Hariç)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-emerald-400 uppercase mb-1">3. Yeni (Doğru) Standart Lig Nevisi</label>
+                                            <input
+                                                type="text"
+                                                value={yeniNeviDeger}
+                                                onChange={(e) => setYeniNeviDeger(turkceBuyukHarf(e.target.value))}
+                                                placeholder={`Örn: ${ilOnEk} U14 LİGİ`}
+                                                className="w-full bg-slate-950 border border-emerald-600/60 text-emerald-300 font-black uppercase px-3 py-2.5 rounded-lg text-sm focus:border-emerald-400 focus:outline-none"
+                                                required
+                                            />
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {hazirSablonlar.map((sablon, sIdx) => (
+                                                    <button
+                                                        key={`sablon-chip-${sIdx}`}
+                                                        type="button"
+                                                        onClick={() => setYeniNeviDeger(sablon)}
+                                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-2.5 py-1 rounded text-[10px] font-bold transition-colors"
+                                                    >
+                                                        {sablon}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <label className="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer pt-1">
+                                            <input
+                                                type="checkbox"
+                                                checked={neviTebellugSifirla}
+                                                onChange={(e) => setNeviTebellugSifirla(e.target.checked)}
+                                                className="w-4 h-4 rounded accent-amber-500"
+                                            />
+                                            <span>Komiserlerin tebellüğ onayını da sıfırla <span className="text-slate-500">(İşaretlenmezse tebellüğlü ve tebellüğsüz mevcut durumları aynen korunur)</span></span>
+                                        </label>
+
+                                        {eskiNeviKistas.trim() !== '' && (
+                                            <div className="bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs flex justify-between items-center">
+                                                <span className="text-slate-400 font-bold">Kıstasa Uyan Maç Sayısı:</span>
+                                                <span className={`font-black px-3 py-1 rounded ${onizlemeEslesenler.length > 0 ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                                    {onizlemeEslesenler.length} MAÇ BULUNDU
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="submit"
+                                            disabled={neviGuncelleniyor || onizlemeEslesenler.length === 0}
+                                            className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-black py-3.5 rounded-lg uppercase tracking-widest text-xs shadow-lg transition-colors"
+                                        >
+                                            {neviGuncelleniyor ? '⚙️ GÜNCELLENİYOR...' : `💾 SEÇİLİ ${onizlemeEslesenler.length} MAÇIN NEVİSİNİ GÜNCELLE`}
+                                        </button>
+                                    </form>
+                                </div>
+                            );
+                        })()}
+
                         
                         {sistemTab === 'talimat_ekle' && (
                             <div className="space-y-6">
