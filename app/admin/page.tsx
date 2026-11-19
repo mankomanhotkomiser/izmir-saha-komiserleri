@@ -1155,19 +1155,7 @@ useEffect(() => {
       seciliAyBordroData = Object.values(ozet).sort((a,b) => a.ad_soyad.localeCompare(b.ad_soyad));
   }
 
-  // 🔥 GERÇEK .XLSX (TELEFON, WHATSAPP VE EXCEL TAM UYUMLU) ÜRETİM MOTORU 🔥
-  const xlsxDosyasiIndir = (wb: any, dosyaAdi: string) => {
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = dosyaAdi.endsWith('.xlsx') ? dosyaAdi : `${dosyaAdi}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+  
 
   // ============================================================================
   // 🎨 "SK BÜLTEN ŞABLON.XLSX" BİREBİR RENKLİ, A-Z SIRALI VE KUSURSUZ .XLSX MOTORU
