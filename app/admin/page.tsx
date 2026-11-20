@@ -1203,7 +1203,7 @@ useEffect(() => {
       setSezonlukMaclar(maclarVerisi || []);
       gruplariGuncelle(maclarVerisi || []);
       
-      let komiserQuery = supabase.from('komiserler').select('komiser_id, ad_soyad, sehir');
+      let komiserQuery = supabase.from('komiserler').select('komiser_id, ad_soyad, sehir, pgl_denetcisi');
       if (!isVIP) komiserQuery = komiserQuery.eq('sehir', sehirKalkan);
       const { data: komiserlerData } = await komiserQuery;
       if (komiserlerData) setTumKomiserler(komiserlerData || []);
@@ -1373,9 +1373,43 @@ useEffect(() => {
       } catch (error) {}
       setTalepIslemiYapiliyor(null);
   }
-  // 🔥 ÇELİK KASA KONTROL MOTORU (EVRAK YOKSA PARA YOK - P.G.L TAM UYUMLU) 🔥
+  const PGL_DENETCI_ISIMLERI = [
+      'SERVET KAYA',
+      'SELÇUK SEZER',
+      'VOLKAN KARACA AKDOĞAN',
+      'ALİ DAĞÇEVİREN',
+      'FIRAT GAZİLER',
+      'SERHAT ÇÖLGEÇEN'
+  ];
+
+  const isPglDenetcisiGorevi = (mac: any) => {
+      if (!mac) return false;
+      const katBuyuk = turkceBuyukHarf(mac.kategori_adi);
+      const isPGLveyaBAL =
+          katBuyuk.includes('PGL') ||
+          katBuyuk.includes('P.G.L') ||
+          katBuyuk.includes('PROFESYONELLİĞE GEÇİŞ') ||
+          katBuyuk.includes('BAL') ||
+          katBuyuk.includes('BÖLGESEL');
+
+      if (!isPGLveyaBAL) return false;
+
+      const kodBuyuk = turkceBuyukHarf(mac.mac_kodu || '');
+      if (kodBuyuk.includes('DENETÇİ')) return true;
+
+      const komiserKaydi = (tumKomiserler || []).find((k: any) => String(k?.komiser_id) === String(mac?.komiser_id));
+      if (komiserKaydi?.pgl_denetcisi === true) return true;
+
+      const komiserAdi = turkceBuyukHarf(komiserKaydi?.ad_soyad || '').replace(/\s+/g, ' ').trim();
+      return PGL_DENETCI_ISIMLERI.some((isim) => komiserAdi.includes(isim));
+  };
+
+  // 🔥 ÇELİK KASA KONTROL MOTORU (P.G.L DENETÇİSİ ASLA GİREMEZ, SAHA KOMİSERİ AMATÖR GİRER) 🔥
   const isHakedisTamam = (mac: any) => {
-      if (!mac.skor_girildi) return false;
+      if (!mac || !mac.skor_girildi) return false;
+
+      // ⛔ KESİN KURAL: P.G.L Denetçileri bordroya ASLA giremez!
+      if (isPglDenetcisiGorevi(mac)) return false;
       
       const katBuyuk = turkceBuyukHarf(mac.kategori_adi);
       const anaKat = getAnaKategori(mac.kategori_adi);

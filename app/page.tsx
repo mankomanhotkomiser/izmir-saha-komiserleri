@@ -85,13 +85,34 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     return true; 
 };
 
-// 🔥 ÇELİK KASA KONTROL MOTORU (ADMIN İLE %100 EŞİTLENDİ) 🔥
-const isHakedisTamam = (mac: any) => {
+const PGL_DENETCI_ISIMLERI_GLOBAL = [
+    'SERVET KAYA',
+    'SELÇUK SEZER',
+    'VOLKAN KARACA AKDOĞAN',
+    'ALİ DAĞÇEVİREN',
+    'FIRAT GAZİLER',
+    'SERHAT ÇÖLGEÇEN'
+];
+
+// 🔥 ÇELİK KASA KONTROL MOTORU (P.G.L DENETÇİSİ ASLA GİREMEZ, SAHA KOMİSERİ AMATÖR GİRER) 🔥
+const isHakedisTamam = (mac: any, komiserProfil?: any) => {
     if (!mac || !mac.skor_girildi) return false;
     const katBuyuk = turkceBuyukHarf(mac.kategori_adi);
     const anaKat = getAnaKategori(mac.kategori_adi);
     const isBAL = katBuyuk.includes('BAL') || katBuyuk.includes('BÖLGESEL');
     const isPGL = katBuyuk.includes('PGL') || katBuyuk.includes('P.G.L') || katBuyuk.includes('PROFESYONELLİĞE GEÇİŞ');
+
+    // ⛔ KESİN KURAL: P.G.L maçında görevli kişi Denetçi ise bordroya ASLA giremez!
+    if (isPGL || isBAL) {
+        const kodBuyuk = turkceBuyukHarf(mac.mac_kodu || '');
+        const komiserAdi = turkceBuyukHarf(komiserProfil?.ad_soyad || '').replace(/\s+/g, ' ').trim();
+        const denetciMi =
+            komiserProfil?.pgl_denetcisi === true ||
+            kodBuyuk.includes('DENETÇİ') ||
+            PGL_DENETCI_ISIMLERI_GLOBAL.some((isim) => komiserAdi.includes(isim));
+
+        if (denetciMi) return false;
+    }
 
     if (anaKat === 'amator' && !isBAL && !isPGL) {
         const detay = parseDetay(mac.tff_rapor_detaylari);
@@ -3487,7 +3508,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
             maclarForBordro.forEach(mac => {
                 if (mac.mac_durumu === 'iptal_edildi') return;
                 if (!isBordroKategori(mac.kategori_adi)) return;
-                if (!isHakedisTamam(mac)) return;
+                if (!isHakedisTamam(mac, seciliKomiser)) return;
                 const ayYil = getAyYil(mac.tarih);
                 if (ayYil) {
                     if (!bordroGruplari[ayYil]) bordroGruplari[ayYil] = [];
@@ -4583,7 +4604,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         </thead>
                                         <tbody>
                                             {(() => {
-                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m)).sort(siralamaFiltresi);
+                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m, seciliKomiser)).sort(siralamaFiltresi);
                                                 const profMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) === 'profesyonel');
 
                                                 if (profMaclar.length === 0) {
@@ -4623,7 +4644,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         </thead>
                                         <tbody>
                                             {(() => {
-                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m)).sort(siralamaFiltresi);
+                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m, seciliKomiser)).sort(siralamaFiltresi);
                                                 const amatorMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) !== 'profesyonel');
 
                                                 if (amatorMaclar.length === 0) {
