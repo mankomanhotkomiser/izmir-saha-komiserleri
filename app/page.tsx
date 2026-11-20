@@ -42,21 +42,24 @@ const parseDetay = (raw: any) => {
 
 const getAnaKategori = (kategori: any) => {
       if (!kategori) return 'amator';
-      // Tüm boşlukları yok edip birleşik kelime gibi arıyoruz ki "1. Lig", "1.LİG", "TFF 1. LİGİ" fark etmesin!
       const temizKat = turkceBuyukHarf(kategori).replace(/\s+/g, '');
       
       // Önce Kadın ve Gelişim liglerini süz
       if (temizKat.includes('KADIN') || temizKat.includes('KIZ')) return 'kadin';
       if (temizKat.includes('GELİŞİM') || temizKat.includes('AKADEMİ') || temizKat.includes('ELİT') || temizKat.includes('PAF') || temizKat.includes('TFFU')) return 'gelisim';
       
-      // Sonra Profesyonelleri süz (İçinde Amatör geçmiyorsa)
+      // Sonra Profesyonelleri süz (AdminPage ile birebir aynı)
       if (!temizKat.includes('AMATÖR')) {
           if (temizKat.includes('SÜPERLİG') || 
               temizKat.includes('1.LİG') || 
               temizKat.includes('2.LİG') || 
               temizKat.includes('3.LİG') || 
               temizKat.includes('ZİRAAT') || 
-              temizKat.includes('TÜRKİYEKUPASI')) {
+              temizKat.includes('TÜRKİYEKUPASI') ||
+              temizKat.includes('ZTK') ||
+              temizKat.includes('TRENDYOL') ||
+              temizKat.includes('NESİNE') ||
+              temizKat.includes('TFFSÜPER')) {
               return 'profesyonel';
           }
       }
@@ -75,65 +78,124 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     const katStr = turkceBuyukHarf(kategori);
     if (raporTurunuBelirle(kategori) === 'yok') return false; 
     if (katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return false; 
-    
-    // 🔥 PGL ZIRHI: PGL maçlarında profesyonel gibi davranıp detaylı raporu GİZLER 🔥
     if (katStr.includes('PGL') || katStr.includes('P.G.L') || katStr.includes('PROFESYONELLİĞE GEÇİŞ')) return false;
-    
     return true; 
 };
 
-// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI 🔥
+// 🔥 ÇELİK KASA KONTROL MOTORU (ADMIN İLE %100 EŞİTLENDİ) 🔥
+const isHakedisTamam = (mac: any) => {
+    if (!mac || !mac.skor_girildi) return false;
+    const katBuyuk = turkceBuyukHarf(mac.kategori_adi);
+    const anaKat = getAnaKategori(mac.kategori_adi);
+    const isBAL = katBuyuk.includes('BAL') || katBuyuk.includes('BÖLGESEL');
+    const isPGL = katBuyuk.includes('PGL') || katBuyuk.includes('P.G.L') || katBuyuk.includes('PROFESYONELLİĞE GEÇİŞ');
+
+    if (anaKat === 'amator' && !isBAL && !isPGL) {
+        const detay = parseDetay(mac.tff_rapor_detaylari);
+        if (!detay.detayli_kaydedildi) return false;
+    }
+    return true;
+};
+
+// 🔥 YENİ KESİN HAKEM VE GÖZLEMCİ KURALLARI (ADMIN İLE %100 EŞİTLENDİ) 🔥
 const getHakemGosterimModu = (kategori: any): 'tek_hakem' | 'uc_hakem' | 'uc_ve_gozlemci' | 'dort_ve_gozlemci' | 'dort_kutu' => {
     if (!kategori) return 'uc_ve_gozlemci'; 
-    const kat = String(kategori).toLocaleUpperCase('tr-TR');
+    const kat = turkceBuyukHarf(kategori);
     
-    // 1. TEK HAKEMLİ LİGLER
-    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') ||
-        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') ||
-        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') ||
-        kat.includes('İZMİR U14') || kat.includes('İZMİR U-14') || kat.includes('14 YAŞ')) {
+    const isGelisim = kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U');
+    const isKizlar = kat.includes('KIZLAR') || kat.includes('KIZ');
+    const isKadinlar = kat.includes('KADIN') && !isKizlar;
+    const isPGLveyaBAL = kat.includes('PGL') || kat.includes('P.G.L') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('BAL') || kat.includes('BÖLGESEL');
+
+    // 1. P.G.L (Eski BAL) ve PAF -> 4 Hakem + Gözlemci
+    if (isPGLveyaBAL || kat.includes('PAF')) return 'dort_ve_gozlemci';
+
+    // 2. KIZLAR VE KADINLAR LİGLERİ (Öncelikli kontrol: Kızlar U15/U17 gözlemcisiz 3 hakem!)
+    if (isKizlar) return 'uc_hakem';
+    if (isKadinlar) {
+        if (kat.includes('SÜPER')) return 'dort_ve_gozlemci';
+        return 'uc_ve_gozlemci';
+    }
+
+    // 3. ERKEK GELİŞİM LİGLERİ
+    if (isGelisim) {
+        if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
+        if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
+            kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
+            kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
+        if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
+            kat.includes('U18') || kat.includes('U 18') || kat.includes('U-18') ||
+            kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
+    }
+
+    // 4. YEREL LİGLER (Tüm Şubelerle Uyumlu)
+    if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('11 YAŞ') ||
+        kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
+        kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
+        kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') || kat.includes('14 YAŞ')) {
         return 'tek_hakem';
     }
     
-    // 2. 3 HAKEMLİ LİGLER (GÖZLEMCİ YOK)
-    if (kat.includes('İZMİR U15') || kat.includes('İZMİR U 15') || kat.includes('15 YAŞ') || 
-        kat.includes('U14 GELİŞİM') || kat.includes('U 14 GELİŞİM') || 
-        kat.includes('U15 GELİŞİM') || kat.includes('U 15 GELİŞİM') || 
-        kat.includes('U16 GELİŞİM') || kat.includes('U 16 GELİŞİM')) {
+    if (kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') || kat.includes('15 YAŞ') ||
+        kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16') || kat.includes('16 YAŞ')) {
         return 'uc_hakem';
     }
     
-    // 3. 4 HAKEM + 1 GÖZLEMCİ (GELİŞİM U17-U19 VE PAF)
-    if (kat.includes('U17 GELİŞİM') || kat.includes('U 17 GELİŞİM') || 
-        kat.includes('U19 GELİŞİM') || kat.includes('U 19 GELİŞİM') || 
-        kat.includes('PAF') || kat.includes('BAL') || kat.includes('BÖLGESEL')) {
-        return 'dort_ve_gozlemci';
-    }
-    
-    // 4. GERİ KALAN TÜM LİGLER (Süper Amatör, 1.Amatör, 2.Amatör, İzmir U17, İzmir U19 vb.)
     return 'uc_ve_gozlemci';
 };
 
 const formatKategori = (rawKategori: any) => {
     if (!rawKategori) return 'BELİRTİLMEMİŞ LİG';
-    let kat = turkceBuyukHarf(rawKategori).trim();
-    
-    kat = kat.replace(/\s+LİGİ/g, '').replace(/\s+LİG/g, '').trim();
+    let kat = turkceBuyukHarf(rawKategori).trim().replace(/\s+/g, ' ');
 
+    // Play-Off ibaresi varsa koru
+    const playOffVar = /\bPLAY\s*-?\s*OFF\b/.test(kat);
+    const playOffEk = playOffVar ? ' PLAY-OFF' : '';
+    kat = kat.replace(/\bPLAY\s*-?\s*OFF\b/g, '').trim();
+
+    kat = kat.replace(/\s+LİGİ$/g, '').replace(/\s+LİG$/g, '').trim();
+
+    // 1. ÖNCE KIZLAR VE KADINLAR (GELİŞİM kelimesi KIZLAR'ı yutmasın!)
+    if (kat.includes('KIZ')) {
+        const kizYas = kat.match(/(\d{2})/);
+        if (kizYas) return `TFF U${kizYas[1]} KIZLAR GELİŞİM LİGİ${playOffEk}`;
+        return `TFF KIZLAR GELİŞİM LİGİ${playOffEk}`;
+    }
+    if (kat.includes('KADIN')) {
+        if (kat.includes('SÜPER')) return `TFF KADINLAR SÜPER LİGİ${playOffEk}`;
+        if (kat.includes('1.')) return `TFF KADINLAR 1. LİGİ${playOffEk}`;
+        if (kat.includes('2.')) return `TFF KADINLAR 2. LİGİ${playOffEk}`;
+        if (kat.includes('3.')) return `TFF KADINLAR 3. LİGİ${playOffEk}`;
+        return `${kat} LİGİ${playOffEk}`;
+    }
+
+    // 2. P.G.L VE ESKİ BAL -> P.G.L
+    if (kat.includes('PGL') || kat.includes('P.G.L') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('BÖLGESEL') || kat.includes('BAL')) {
+        return `P.G.L${playOffEk}`;
+    }
+
+    // 3. PAF VE ERKEK TFF GELİŞİM LİGLERİ
+    if (kat === 'PAF' || kat.startsWith('PAF ')) return `PAF LİGİ${playOffEk}`;
     if (kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U')) {
         const yasMatch = kat.match(/(\d{2})/);
-        if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ`;
-        return 'TFF GELİŞİM LİGİ';
+        if (yasMatch) return `TFF U${yasMatch[1]} GELİŞİM LİGİ${playOffEk}`;
+        return `TFF GELİŞİM LİGİ${playOffEk}`;
     }
-    if (kat.includes('KADIN') || kat.includes('KIZ')) return kat + ' LİGİ';
-    if (kat.includes('SÜPER AMATÖR')) return 'SÜPER AMATÖR LİG';
-    if (kat.includes('1.') && kat.includes('AMATÖR')) return '1. AMATÖR LİG';
-    if (kat.includes('BÖLGESEL') || kat.includes('BAL')) return 'BÖLGESEL AMATÖR LİG (BAL)';
-    
-    const amatorYasMatch = kat.match(/U\s*(\d{2})/);
-    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('TFF')) return `İZMİR U${amatorYasMatch[1]} YEREL AMATÖR LİG`;
-    
-    return kat + ' LİGİ';
+
+    // 4. BÜYÜKLER AMATÖR VE KUPA
+    if (kat.includes('SÜPER AMATÖR')) return `SÜPER AMATÖR${playOffEk}`;
+    if (kat.includes('1.') && kat.includes('AMATÖR')) return `1. AMATÖR${playOffEk}`;
+    if (kat.includes('2.') && kat.includes('AMATÖR')) return `2. AMATÖR${playOffEk}`;
+    if (kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI') || kat === 'ZTK') return 'ZİRAAT TÜRKİYE KUPASI';
+
+    // 5. YEREL ALTYAPI (İZMİR U14 LİGİ, KOCAELİ U14 LİGİ vb.)
+    const amatorYasMatch = kat.match(/^(?:([A-ZÇĞİÖŞÜ]+)\s+)?U\s*-?\s*(\d{2})/);
+    if (amatorYasMatch && !kat.includes('PROF') && !kat.includes('TFF')) {
+        const ilAdi = amatorYasMatch[1] || 'İZMİR';
+        return `${ilAdi} U${amatorYasMatch[2]} LİGİ${playOffEk}`;
+    }
+
+    return `${kat} LİGİ${playOffEk}`;
 }
 
 const formatMacKodu = (kod: any) => {
@@ -1444,9 +1506,18 @@ const [kucukHeader, setKucukHeader] = useState(false);
 
   const gorevTuruBelirle = (kategori: any, macKodu: any) => {
     const anaKat = getAnaKategori(kategori);
-    const kod = String(macKodu || "").toLocaleUpperCase('tr-TR');
-    const katStr = String(kategori || "").toLocaleUpperCase('tr-TR');
-    if (kod.includes('DENETÇİ') || katStr.includes('BAL') || katStr.includes('BÖLGESEL')) return "BAL LİGİ DENETÇİSİ";
+    const kod = turkceBuyukHarf(macKodu || "");
+    const katStr = turkceBuyukHarf(kategori || "");
+    if (
+        kod.includes('DENETÇİ') ||
+        katStr.includes('P.G.L') ||
+        katStr.includes('PGL') ||
+        katStr.includes('PROFESYONELLİĞE GEÇİŞ') ||
+        katStr.includes('BAL') ||
+        katStr.includes('BÖLGESEL')
+    ) {
+        return "P.G.L DENETÇİSİ";
+    }
     if (kod.includes('STAJ')) return "STAJYER / SAHA KOMİSERİ";
     if (anaKat === 'profesyonel') return "SAHA KOMİSERİ";
     if (anaKat === 'gelisim') {
@@ -2330,19 +2401,27 @@ const [kucukHeader, setKucukHeader] = useState(false);
             if (!mac) return null;
             const statuBul = (katAdi: string) => {
                 if (!katAdi) return null;
-                const macIsmi = turkceBuyukHarf(katAdi);
-                
-                if (getAnaKategori(macIsmi) !== 'amator') return null;
-                
+                const macIsmi = turkceBuyukHarf(katAdi).replace(/\bPLAY\s*-?\s*OFF\b/g, '').trim();
+                const macAnaKat = getAnaKategori(macIsmi);
+                if (macAnaKat === 'profesyonel') return null;
+
                 return tumStatuler.find((st: any) => {
                     if (!st.kategori_anahtar) return false;
-                    const stAnahtar = turkceBuyukHarf(st.kategori_anahtar);
-                    if (getAnaKategori(stAnahtar) !== 'amator') return false;
-                    
-                    const macYas = macIsmi.match(/U\s*(\d{2})/);
-                    const stYas = stAnahtar.match(/U\s*(\d{2})/);
+                    const stAnahtar = turkceBuyukHarf(st.kategori_anahtar).trim();
+                    if (getAnaKategori(stAnahtar) !== macAnaKat) return false;
+
+                    // P.G.L ve eski BAL eşleşmesi
+                    const macPglMi = macIsmi.includes('P.G.L') || macIsmi.includes('PGL') || macIsmi.includes('PROFESYONELLİĞE') || macIsmi.includes('BAL') || macIsmi.includes('BÖLGESEL');
+                    const stPglMi = stAnahtar.includes('P.G.L') || stAnahtar.includes('PGL') || stAnahtar.includes('BAL');
+                    if (macPglMi && stPglMi) return true;
+
+                    // Yaş grubu eşleşmesi (U11-U19 Yerel ve Gelişim kendi grupları içinde eşleşir)
+                    const macYas = macIsmi.match(/U\s*-?\s*(\d{2})/);
+                    const stYas = stAnahtar.match(/U\s*-?\s*(\d{2})/);
                     if (macYas && stYas) return macYas[1] === stYas[1];
-                    
+
+                    if (macAnaKat === 'kadin' && stAnahtar.includes('KADIN')) return true;
+
                     return macIsmi.includes(stAnahtar) || stAnahtar.includes(macIsmi);
                 });
             };
@@ -3373,6 +3452,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
             maclarForBordro.forEach(mac => {
                 if (mac.mac_durumu === 'iptal_edildi') return;
                 if (!isBordroKategori(mac.kategori_adi)) return;
+                if (!isHakedisTamam(mac)) return;
                 const ayYil = getAyYil(mac.tarih);
                 if (ayYil) {
                     if (!bordroGruplari[ayYil]) bordroGruplari[ayYil] = [];
@@ -4415,7 +4495,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                 <div id="bordro-print-area" className="w-full bg-white p-6 relative font-sans text-black mobile-zoom">
                                     <style dangerouslySetInnerHTML={{ __html: `@media (max-width: 768px) { .mobile-zoom { zoom: 0.5; } }` }} />
 
-                                    <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">İZMİR SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
+                                    <h1 className="text-center font-bold text-xl uppercase mb-6 tracking-wide">{turkceBuyukHarf(aktifSehir || 'İZMİR')} SAHA KOMİSERLERİ DERNEK BAŞKANLIĞINA</h1>
 
                                     <table className="w-full text-xs font-bold mb-6 border-collapse border border-black text-left">
                                         <tbody>
@@ -4468,7 +4548,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         </thead>
                                         <tbody>
                                             {(() => {
-                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
+                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m)).sort(siralamaFiltresi);
                                                 const profMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) === 'profesyonel');
 
                                                 if (profMaclar.length === 0) {
@@ -4508,7 +4588,7 @@ const [kucukHeader, setKucukHeader] = useState(false);
                                         </thead>
                                         <tbody>
                                             {(() => {
-                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi)).sort(siralamaFiltresi);
+                                                const seciliMaclar = komiserMaclari.filter(m => getAyYil(m.tarih) === tamEkranBordroAy && m.mac_durumu !== 'iptal_edildi' && isBordroKategori(m.kategori_adi) && isHakedisTamam(m)).sort(siralamaFiltresi);
                                                 const amatorMaclar = seciliMaclar.filter(m => getAnaKategori(m.kategori_adi) !== 'profesyonel');
 
                                                 if (amatorMaclar.length === 0) {
