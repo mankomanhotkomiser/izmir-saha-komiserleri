@@ -82,7 +82,286 @@ const detayliRaporGosterilirMi = (kategori: any) => {
     return true; 
 };
 
-// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ 🔥
+// 🔥 DİNAMİK İL VE PLAKA ÇÖZÜCÜ (İZMİR VARSAYILAN, KOCAELİ / İSTANBUL VB. TAM UYUMLU) 🔥
+const SEHIR_PLAKA_HARITASI: Record<string, { ilAdi: string; plaka: string }> = {
+    izmir: { ilAdi: 'İZMİR', plaka: '35' },
+    kocaeli: { ilAdi: 'KOCAELİ', plaka: '41' },
+    istanbul: { ilAdi: 'İSTANBUL', plaka: '34' },
+    ankara: { ilAdi: 'ANKARA', plaka: '06' },
+    bursa: { ilAdi: 'BURSA', plaka: '16' },
+    antalya: { ilAdi: 'ANTALYA', plaka: '07' },
+    manisa: { ilAdi: 'MANİSA', plaka: '45' },
+    aydin: { ilAdi: 'AYDIN', plaka: '09' },
+    mugla: { ilAdi: 'MUĞLA', plaka: '48' },
+    balikesir: { ilAdi: 'BALIKESİR', plaka: '10' },
+    denizli: { ilAdi: 'DENİZLİ', plaka: '20' },
+    sakarya: { ilAdi: 'SAKARYA', plaka: '54' },
+    trabzon: { ilAdi: 'TRABZON', plaka: '61' },
+    samsun: { ilAdi: 'SAMSUN', plaka: '55' },
+    adana: { ilAdi: 'ADANA', plaka: '01' }
+};
+
+const asciiAnahtarYap = (metin: any): string => {
+    return turkceBuyukHarf(metin || '')
+        .replace(/İ/g, 'I')
+        .replace(/Ğ/g, 'G')
+        .replace(/Ü/g, 'U')
+        .replace(/Ş/g, 'S')
+        .replace(/Ö/g, 'O')
+        .replace(/Ç/g, 'C')
+        .trim();
+};
+
+const sehirBilgisiCoz = (sehirKodu?: any): { ilAdi: string; plaka: string } => {
+    const k = asciiAnahtarYap(sehirKodu || 'izmir').toLowerCase().replace(/\s+/g, '');
+    if (SEHIR_PLAKA_HARITASI[k]) return SEHIR_PLAKA_HARITASI[k];
+    if (!k) return SEHIR_PLAKA_HARITASI.izmir;
+    return { ilAdi: turkceBuyukHarf(sehirKodu).trim(), plaka: '35' };
+};
+
+const resmiLigSablonlariGetir = (sehirKodu: any = 'izmir'): string[] => {
+    const { ilAdi } = sehirBilgisiCoz(sehirKodu);
+    return [
+        'SÜPER AMATÖR',
+        '1. AMATÖR',
+        '2. AMATÖR',
+        'P.G.L',
+        `${ilAdi} U19 LİGİ`,
+        `${ilAdi} U18 LİGİ`,
+        `${ilAdi} U17 LİGİ`,
+        `${ilAdi} U16 LİGİ`,
+        `${ilAdi} U15 LİGİ`,
+        `${ilAdi} U14 LİGİ`,
+        `${ilAdi} U13 LİGİ`,
+        `${ilAdi} U12 LİGİ`,
+        `${ilAdi} U11 LİGİ`,
+        'PAF LİGİ',
+        'TFF U19 GELİŞİM LİGİ',
+        'TFF U17 GELİŞİM LİGİ',
+        'TFF U16 GELİŞİM LİGİ',
+        'TFF U15 GELİŞİM LİGİ',
+        'TFF U14 GELİŞİM LİGİ',
+        'TFF U13 GELİŞİM LİGİ',
+        'TFF KADINLAR SÜPER LİGİ',
+        'TFF KADINLAR 1. LİGİ',
+        'TFF KADINLAR 2. LİGİ',
+        'TFF KADINLAR 3. LİGİ',
+        'TFF U17 KIZLAR GELİŞİM LİGİ',
+        'TFF U15 KIZLAR GELİŞİM LİGİ',
+        'TRENDYOL SÜPER LİG',
+        'TRENDYOL 1. LİG',
+        'NESİNE 2. LİG',
+        'NESİNE 3. LİG',
+        'ZİRAAT TÜRKİYE KUPASI'
+    ];
+};
+
+interface LigGumrukSonucu {
+    durum: 'tam_uyumlu' | 'otomatik_duzeltildi' | 'belirsiz_yas' | 'tanimsiz' | 'manuel_onaylandi';
+    hamDeger: string;
+    kategori: string;
+    secenekYerel?: string;
+    secenekGelisim?: string;
+    playOff: boolean;
+    aciklama: string;
+}
+
+// 🔥 3 KATMANLI AKILLI EXCEL GÜMRÜK VE LİG NEVİSİ MOTORU 🔥
+const akilliLigGumrukMotoru = (hamGirdi: any, sehirKodu: any = 'izmir'): LigGumrukSonucu => {
+    const { ilAdi } = sehirBilgisiCoz(sehirKodu);
+    const ham = turkceBuyukHarf(hamGirdi || '').trim().replace(/\s+/g, ' ');
+
+    if (!ham) {
+        return {
+            durum: 'tanimsiz',
+            hamDeger: '(BOŞ)',
+            kategori: '',
+            playOff: false,
+            aciklama: 'Lig nevisi sütunu boş bırakılmış! Lütfen listeden resmi şablonu seçiniz.'
+        };
+    }
+
+    // Play-Off ibaresini tespit et ve koru
+    const playOffRegex = /\bPLAY\s*-?\s*OFF\b/i;
+    const playOffVar = playOffRegex.test(asciiAnahtarYap(ham));
+    const playOffEk = playOffVar ? ' PLAY-OFF' : '';
+
+    // Çekirdek lig analizi için Play-Off ibaresini geçici olarak ayır
+    const cekirdekTr = ham.replace(/PLAY\s*-?\s*OFF/gi, '').trim().replace(/\s+/g, ' ');
+    const cekirdekAscii = asciiAnahtarYap(cekirdekTr);
+    const bitisikAscii = cekirdekAscii.replace(/[\s.\-_]/g, '');
+
+    if (!cekirdekAscii) {
+        return {
+            durum: 'tanimsiz',
+            hamDeger: ham,
+            kategori: '',
+            playOff: playOffVar,
+            aciklama: `Sadece "${ham}" yazılmış, hangi ligin Play-Off müsabakası olduğu belli değil!`
+        };
+    }
+
+    const sonucUret = (hedefAnaSablon: string): LigGumrukSonucu => {
+        const tamHedef = `${hedefAnaSablon}${playOffEk}`;
+        const birebirAyniMi = ham === tamHedef;
+        return {
+            durum: birebirAyniMi ? 'tam_uyumlu' : 'otomatik_duzeltildi',
+            hamDeger: ham,
+            kategori: tamHedef,
+            playOff: playOffVar,
+            aciklama: birebirAyniMi ? '' : `"${ham}" -> "${tamHedef}" olarak standartlaştırıldı.`
+        };
+    };
+
+    // 1. BAL VE PGL BİRLEŞTİRMESİ (Ne yazarsa yazsın P.G.L olur)
+    if (
+        cekirdekAscii === 'BAL' ||
+        bitisikAscii === 'BAL' ||
+        bitisikAscii.startsWith('BALLIGI') ||
+        bitisikAscii.includes('BOLGESELAMATOR') ||
+        bitisikAscii.includes('BOLGESELLIG') ||
+        bitisikAscii === 'PGL' ||
+        bitisikAscii.startsWith('PGLLIGI') ||
+        bitisikAscii.includes('PROFESYONELLIGEGECIS')
+    ) {
+        return sonucUret('P.G.L');
+    }
+
+    // 2. PAF LİGİ
+    if (bitisikAscii === 'PAF' || bitisikAscii === 'PAFLIGI' || cekirdekAscii.startsWith('PAF ')) {
+        return sonucUret('PAF LİGİ');
+    }
+
+    // 3. TFF KIZLAR VE KADINLAR LİGLERİ
+    if (bitisikAscii.includes('KIZ')) {
+        const kizYasMatch = cekirdekAscii.match(/(?:[UO0]\s*-?\s*)?(1[3-9])/);
+        const kizYas = kizYasMatch ? kizYasMatch[1] : '15';
+        return sonucUret(`TFF U${kizYas} KIZLAR GELİŞİM LİGİ`);
+    }
+    if (bitisikAscii.includes('KADIN')) {
+        if (bitisikAscii.includes('SUPER')) return sonucUret('TFF KADINLAR SÜPER LİGİ');
+        if (bitisikAscii.includes('1') || bitisikAscii.includes('BIRINCI')) return sonucUret('TFF KADINLAR 1. LİGİ');
+        if (bitisikAscii.includes('2') || bitisikAscii.includes('IKINCI')) return sonucUret('TFF KADINLAR 2. LİGİ');
+        if (bitisikAscii.includes('3') || bitisikAscii.includes('UCUNCU')) return sonucUret('TFF KADINLAR 3. LİGİ');
+        return {
+            durum: 'tanimsiz',
+            hamDeger: ham,
+            kategori: '',
+            playOff: playOffVar,
+            aciklama: `"${ham}" için Kadınlar lig kademesi (Süper / 1. / 2. / 3. Lig) belirtilmemiş.`
+        };
+    }
+
+    // 4. BÜYÜKLER YEREL AMATÖR (Sade: SÜPER AMATÖR, 1. AMATÖR, 2. AMATÖR)
+    if (
+        bitisikAscii === 'SAL' ||
+        bitisikAscii.includes('SUPERAMATOR') ||
+        cekirdekAscii === 'S.AMATOR' ||
+        cekirdekAscii === 'S. AMATOR'
+    ) {
+        return sonucUret('SÜPER AMATÖR');
+    }
+    if (
+        bitisikAscii === '1AK' ||
+        bitisikAscii.includes('1AMATOR') ||
+        bitisikAscii.includes('BIRINCIAMATOR')
+    ) {
+        return sonucUret('1. AMATÖR');
+    }
+    if (
+        bitisikAscii === '2AK' ||
+        bitisikAscii.includes('2AMATOR') ||
+        bitisikAscii.includes('IKINCIAMATOR')
+    ) {
+        return sonucUret('2. AMATÖR');
+    }
+
+    // 5. ALTYAPI YAŞ GRUPLARI (U11 - U19, O14, 014, 14 YAŞ VB.)
+    const yasEslesme =
+        cekirdekAscii.match(/(?:^|\s)[UO0]\s*-?\s*(1[1-9])(?:\b|\s|L|$)/) ||
+        cekirdekAscii.match(/\b(1[1-9])\s*YAS\b/);
+
+    if (yasEslesme) {
+        const yas = yasEslesme[1];
+        const gelisimBelirtisiVar =
+            bitisikAscii.includes('GELISIM') ||
+            bitisikAscii.includes('GELSIM') ||
+            bitisikAscii.includes('AKADEMI') ||
+            bitisikAscii.includes('ELIT') ||
+            cekirdekAscii.startsWith('TFF') ||
+            bitisikAscii.includes('TFFU');
+
+        let tespitEdilenIl = '';
+        Object.values(SEHIR_PLAKA_HARITASI).forEach((s) => {
+            if (cekirdekAscii.includes(asciiAnahtarYap(s.ilAdi))) {
+                tespitEdilenIl = s.ilAdi;
+            }
+        });
+        const yerelBelirtisiVar = Boolean(tespitEdilenIl) || bitisikAscii.includes('YEREL') || bitisikAscii.includes('AMATOR');
+
+        // 5A. Açıkça TFF / Gelişim / Akademi / Elit yazılmışsa
+        if (gelisimBelirtisiVar && !yerelBelirtisiVar) {
+            if (yas === '11' || yas === '12') {
+                return sonucUret(`${ilAdi} U${yas} LİGİ`);
+            }
+            return sonucUret(`TFF U${yas} GELİŞİM LİGİ`);
+        }
+
+        // 5B. Açıkça İl adı veya Yerel yazılmışsa
+        if (yerelBelirtisiVar && !gelisimBelirtisiVar) {
+            const kullanilacakIl = tespitEdilenIl || ilAdi;
+            return sonucUret(`${kullanilacakIl} U${yas} LİGİ`);
+        }
+
+        // 5C. U11 ve U12'de TFF Gelişim olmadığı için sormadan direkt [İL] U11/U12 LİGİ yap
+        if (yas === '11' || yas === '12') {
+            return sonucUret(`${ilAdi} U${yas} LİGİ`);
+        }
+
+        // 5D. SARI ALARM: Başında İl veya TFF olmayan düz U13 - U19 yazımları
+        const secenekYerel = `${ilAdi} U${yas} LİGİ${playOffEk}`;
+        const secenekGelisim = `TFF U${yas} GELİŞİM LİGİ${playOffEk}`;
+        return {
+            durum: 'belirsiz_yas',
+            hamDeger: ham,
+            kategori: '',
+            secenekYerel,
+            secenekGelisim,
+            playOff: playOffVar,
+            aciklama: `Excel'de sadece "${ham}" yazıyor! Bu müsabaka "${secenekYerel}" mi yoksa "${secenekGelisim}" mi?`
+        };
+    }
+
+    // 6. PROFESYONEL LİGLER VE TÜRKİYE KUPASI
+    if (!bitisikAscii.includes('AMATOR')) {
+        if (bitisikAscii === 'ZTK' || bitisikAscii.includes('ZIRAAT') || bitisikAscii.includes('TURKIYEKUPASI')) {
+            return sonucUret('ZİRAAT TÜRKİYE KUPASI');
+        }
+        if (bitisikAscii.includes('SUPERLIG') || bitisikAscii === 'TRENDYOLSUPER' || bitisikAscii === 'TFFSUPERLIG') {
+            return sonucUret('TRENDYOL SÜPER LİG');
+        }
+        if (bitisikAscii === '1LIG' || bitisikAscii.includes('TRENDYOL1') || bitisikAscii === 'TFF1LIG') {
+            return sonucUret('TRENDYOL 1. LİG');
+        }
+        if (bitisikAscii === '2LIG' || bitisikAscii.includes('NESINE2') || bitisikAscii === 'TFF2LIG') {
+            return sonucUret('NESİNE 2. LİG');
+        }
+        if (bitisikAscii === '3LIG' || bitisikAscii.includes('NESINE3') || bitisikAscii === 'TFF3LIG') {
+            return sonucUret('NESİNE 3. LİG');
+        }
+    }
+
+    // 7. KIRMIZI ALARM: Hiçbir resmi şablona uymayan yabancı/eksik metin
+    return {
+        durum: 'tanimsiz',
+        hamDeger: ham,
+        kategori: '',
+        playOff: playOffVar,
+        aciklama: `"${ham}" sistemdeki hiçbir resmi lig şablonuyla eşleşmedi! Lütfen listeden doğrusunu seçiniz.`
+    };
+};
+
+// 🔥 HAKEM VE GÖZLEMCİ GÖSTERİM KONTROL MERKEZİ (P.G.L VE U18 TAM UYUMLU) 🔥
 const getHakemGosterimModu = (kategori: any) => {
     if (!kategori) return 'uc_ve_gozlemci'; 
     const kat = turkceBuyukHarf(kategori);
@@ -90,30 +369,28 @@ const getHakemGosterimModu = (kategori: any) => {
     const isGelisim = kat.includes('GELİŞİM') || kat.includes('AKADEMİ') || kat.includes('ELİT') || kat.includes('TFF U');
     const isKizlar = kat.includes('KIZLAR') || kat.includes('KIZ');
     const isKadinlar = kat.includes('KADIN') && !isKizlar;
-    const isBAL = kat.includes('BAL') || kat.includes('BÖLGESEL');
+    const isPGLveyaBAL = kat.includes('PGL') || kat.includes('P.G.L') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('BAL') || kat.includes('BÖLGESEL');
     
-    if (isBAL) return 'dort_ve_gozlemci';
+    if (isPGLveyaBAL || kat.includes('PAF')) return 'dort_ve_gozlemci';
     if (isKadinlar) {
         if (kat.includes('SÜPER')) return 'dort_ve_gozlemci';
         return 'uc_ve_gozlemci';
     }
     if (isKizlar) return 'uc_hakem';
-    if (kat.includes('PGL') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('PAF')) return 'dort_ve_gozlemci';
     
     if (isGelisim) {
-        // Gelişim liglerinde sadece U13 Tek Hakemdir
         if (kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13')) return 'tek_hakem';
         
-        // 🔥 U14, U15, U16 Gelişim Ligleri 3 Hakem (Triyo) çıkar 🔥
         if (kat.includes('U14') || kat.includes('U 14') || kat.includes('U-14') ||
             kat.includes('U15') || kat.includes('U 15') || kat.includes('U-15') ||
             kat.includes('U16') || kat.includes('U 16') || kat.includes('U-16')) return 'uc_hakem';
             
         if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') ||
+            kat.includes('U18') || kat.includes('U 18') || kat.includes('U-18') ||
             kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19')) return 'dort_ve_gozlemci';
     }
     
-    // YEREL İZMİR LİGLERİ KESİN KURALLARI
+    // YEREL LİGLER KESİN KURALLARI
     if (kat.includes('U11') || kat.includes('U 11') || kat.includes('U-11') || kat.includes('11 YAŞ') ||
         kat.includes('U12') || kat.includes('U 12') || kat.includes('U-12') || kat.includes('12 YAŞ') ||
         kat.includes('U13') || kat.includes('U 13') || kat.includes('U-13') || kat.includes('13 YAŞ') ||
@@ -127,6 +404,7 @@ const getHakemGosterimModu = (kategori: any) => {
     }
     
     if (kat.includes('U17') || kat.includes('U 17') || kat.includes('U-17') || kat.includes('17 YAŞ') ||
+        kat.includes('U18') || kat.includes('U 18') || kat.includes('U-18') || kat.includes('18 YAŞ') ||
         kat.includes('U19') || kat.includes('U 19') || kat.includes('U-19') || kat.includes('19 YAŞ') ||
         kat.includes('1. AMATÖR') || kat.includes('1.AMATÖR') || kat.includes('BİRİNCİ AMATÖR') ||
         kat.includes('2. AMATÖR') || kat.includes('2.AMATÖR') || kat.includes('İKİNCİ AMATÖR') ||
@@ -479,25 +757,16 @@ useEffect(() => {
   const [neviTebellugSifirla, setNeviTebellugSifirla] = useState(false)
   const [neviGuncelleniyor, setNeviGuncelleniyor] = useState(false)
 
-  // TFF ve Gelişim liglerine ASLA dokunmadan düz O14, O17, U14, U17, U19 yazımlarını standartlaştırır
+  // TFF ve Gelişim liglerine ASLA dokunmadan yazım hatalarını ve BAL -> P.G.L dönüşümünü standartlaştırır
   const yerelNeviStandartlastir = (hamKategori: any, sehirKodu: string = 'izmir'): string => {
-      const temiz = turkceBuyukHarf(hamKategori || '').trim().replace(/\s+/g, ' ');
-      if (!temiz) return '';
-      if (
-          temiz.includes('TFF') || temiz.includes('GELİŞİM') || temiz.includes('GELISIM') ||
-          temiz.includes('AKADEMİ') || temiz.includes('ELİT') || temiz.includes('KADIN') ||
-          temiz.includes('KIZ') || temiz.includes('BAL') || temiz.includes('BÖLGESEL') ||
-          temiz.includes('PGL') || temiz.includes('P.G.L')
-      ) {
-          return temiz;
+      const analiz = akilliLigGumrukMotoru(hamKategori, sehirKodu);
+      if (analiz.durum === 'tam_uyumlu' || analiz.durum === 'otomatik_duzeltildi') {
+          return analiz.kategori;
       }
-      const ilAdi = String(sehirKodu).toLowerCase() === 'kocaeli' ? 'KOCAELİ' : 'İZMİR';
-      // O14, 014, U14, U-14, O17, U19, U14 LİGİ gibi başında il olmayan U11-U19 yerel liglerini yakalar
-      const duzYasEslesme = temiz.match(/^[UO0]\s*-?\s*(1[1-9])(?:\s*LİGİ?|\s*YEREL\s*LİGİ?)?$/);
-      if (duzYasEslesme) {
-          return `${ilAdi} U${duzYasEslesme[1]} LİGİ`;
+      if (analiz.durum === 'belirsiz_yas' && analiz.secenekYerel) {
+          return analiz.secenekYerel;
       }
-      return temiz;
+      return turkceBuyukHarf(hamKategori || '').trim().replace(/\s+/g, ' ');
   };
 
   const neviHavuzunuGetir = () => {
@@ -1094,20 +1363,20 @@ useEffect(() => {
       } catch (error) {}
       setTalepIslemiYapiliyor(null);
   }
-  // 🔥 ÇELİK KASA KONTROL MOTORU (EVRAK YOKSA PARA YOK) 🔥
+  // 🔥 ÇELİK KASA KONTROL MOTORU (EVRAK YOKSA PARA YOK - P.G.L TAM UYUMLU) 🔥
   const isHakedisTamam = (mac: any) => {
-      if (!mac.skor_girildi) return false; // Hiçbir şekilde skor yoksa reddet
+      if (!mac.skor_girildi) return false;
       
+      const katBuyuk = turkceBuyukHarf(mac.kategori_adi);
       const anaKat = getAnaKategori(mac.kategori_adi);
-      const isBAL = turkceBuyukHarf(mac.kategori_adi).includes('BAL') || turkceBuyukHarf(mac.kategori_adi).includes('BÖLGESEL');
-      const isPGL = turkceBuyukHarf(mac.kategori_adi).includes('PGL') || turkceBuyukHarf(mac.kategori_adi).includes('PROFESYONELLİĞE GEÇİŞ');
+      const isBAL = katBuyuk.includes('BAL') || katBuyuk.includes('BÖLGESEL');
+      const isPGL = katBuyuk.includes('PGL') || katBuyuk.includes('P.G.L') || katBuyuk.includes('PROFESYONELLİĞE GEÇİŞ');
       
-      // Eğer lig Yerel Amatör ise (BAL değilse ve PGL değilse), kesinlikle Detaylı Rapor ŞARTI ara
       if (anaKat === 'amator' && !isBAL && !isPGL) {
           const detay = parseDetay(mac.tff_rapor_detaylari);
           if (!detay.detayli_kaydedildi) return false;
       }
-      return true; // Profesyonel, BAL, PGL veya raporu tam Amatör ise onay ver
+      return true;
   };
 
   const tumAylarSet = new Set<string>();
@@ -1259,57 +1528,29 @@ useEffect(() => {
   }
 
   const kontrolLigNevisi = (kategoriAdi: any, sehir: string = 'izmir'): { gecerli: boolean; onerilen: string; aciklama: string } => {
-      const ham = turkceBuyukHarf(kategoriAdi || '').trim().replace(/\s+/g, ' ');
-      const ilAdi = sehir === 'kocaeli' ? 'KOCAELİ' : 'İZMİR';
-      if (!ham) {
-          return { gecerli: false, onerilen: `${ilAdi} U14 LİGİ`, aciklama: 'Lig nevisi boş bırakılmış.' };
+      const analiz = akilliLigGumrukMotoru(kategoriAdi, sehir);
+      if (analiz.durum === 'tam_uyumlu') {
+          return { gecerli: true, onerilen: analiz.kategori, aciklama: '' };
       }
-
-      const tffGelisimEksik = /^TFF\s*U-?\d{2}\s*LİGİ?$/.test(ham);
-      if (tffGelisimEksik) {
-          const yas = ham.match(/\d{2}/)?.[0] || '15';
+      if (analiz.durum === 'otomatik_duzeltildi') {
           return {
               gecerli: false,
-              onerilen: `TFF U${yas} GELİŞİM LİGİ veya ${ilAdi} U${yas} LİGİ`,
-              aciklama: `"${ham}" standart dışı! Gelişim ligi ise "TFF U${yas} GELİŞİM LİGİ", yerel lig ise "${ilAdi} U${yas} LİGİ" olmalıdır.`
+              onerilen: analiz.kategori,
+              aciklama: `"${analiz.hamDeger}" standart şablon dışı (Önerilen: ${analiz.kategori}).`
           };
       }
-
-      const standartKaliplar = [
-          /^TFF\s+U\d{2}\s+GELİŞİM\s+LİGİ$/,
-          /^(İZMİR|KOCAELİ)\s+U\d{2}\s+LİGİ$/,
-          /^(İZMİR\s+|KOCAELİ\s+)?SÜPER\s+AMATÖR(\s+LİG|\s+LİGİ)?$/,
-          /^(İZMİR\s+|KOCAELİ\s+)?1\.\s*AMATÖR(\s+LİG|\s+LİGİ)?$/,
-          /^(İZMİR\s+|KOCAELİ\s+)?2\.\s*AMATÖR(\s+LİG|\s+LİGİ)?$/,
-          /^BÖLGESEL\s+AMATÖR\s+LİG(\s+\d+\.\s*GRUP)?$/,
-          /^BAL(\s+LİGİ)?(\s+\d+\.\s*GRUP)?$/,
-          /^P\.?G\.?L\.?(\s+LİGİ)?$/,
-          /^PROFESYONELLİĞE\s+GEÇİŞ\s+LİGİ$/,
-          /^TFF\s+KADINLAR\s+(SÜPER|1\.|2\.|3\.)\s*LİGİ$/,
-          /^TFF\s+KIZLAR\s+U\d{2}\s+LİGİ$/,
-          /^(TRENDYOL\s+)?SÜPER\s+LİG$/,
-          /^(TRENDYOL\s+)?1\.\s*LİG$/,
-          /^(NESİNE\s+)?2\.\s*LİG$/,
-          /^(NESİNE\s+)?3\.\s*LİG$/,
-          /^ZİRAAT\s+TÜRKİYE\s+KUPASI$/,
-          /^PAF(\s+LİGİ)?$/
-      ];
-
-      const uygunMu = standartKaliplar.some((rx) => rx.test(ham));
-      if (!uygunMu) {
-          const yasMatch = ham.match(/[UO0]-?(\d{2})/);
-          const yas = yasMatch ? yasMatch[1] : '14';
-          const oneri = ham.includes('GELİŞİM') || ham.includes('TFF')
-              ? `TFF U${yas} GELİŞİM LİGİ`
-              : `${ilAdi} U${yas} LİGİ`;
+      if (analiz.durum === 'belirsiz_yas') {
           return {
               gecerli: false,
-              onerilen: oneri,
-              aciklama: `"${ham}" şablon standartlarına uymuyor (Önerilen: ${oneri}).`
+              onerilen: `${analiz.secenekYerel} veya ${analiz.secenekGelisim}`,
+              aciklama: analiz.aciklama
           };
       }
-
-      return { gecerli: true, onerilen: ham, aciklama: '' };
+      return {
+          gecerli: false,
+          onerilen: sehirBilgisiCoz(sehir).ilAdi + ' U14 LİGİ',
+          aciklama: analiz.aciklama
+      };
   };
 
   const getGunExcelStilCifti = (tarihStr: any): { orta: number; sol: number } => {
@@ -2058,10 +2299,43 @@ const [macSilArama, setMacSilArama] = useState('')
       setYukleniyor(false);
   }
 
+  // 🔥 EXCEL GÜMRÜK SATIR GÜNCELLEME VE TOPLU ONAY FONKSİYONLARI 🔥
+  const excelSatirNeviSec = (satirIndex: number, yeniSecilenKategori: string) => {
+      const temizSecim = turkceBuyukHarf(yeniSecilenKategori || '').trim();
+      setYuklenenExcelVerisi(prev => prev.map((satir, idx) => {
+          if (idx !== satirIndex) return satir;
+          if (!temizSecim) {
+              return { ...satir, kategori_adi: '', gumruk_durumu: 'tanimsiz' };
+          }
+          return {
+              ...satir,
+              kategori_adi: temizSecim,
+              gumruk_durumu: 'manuel_onaylandi',
+              gumruk_aciklama: `Yönetici tarafından "${temizSecim}" olarak onaylandı.`
+          };
+      }));
+  };
+
+  const tumBelirsizleriTopluCoz = (tercih: 'yerel' | 'gelisim') => {
+      setYuklenenExcelVerisi(prev => prev.map(satir => {
+          if (satir.gumruk_durumu !== 'belirsiz_yas') return satir;
+          const secilen = tercih === 'yerel' ? satir.secenek_yerel : satir.secenek_gelisim;
+          return {
+              ...satir,
+              kategori_adi: secilen,
+              gumruk_durumu: 'manuel_onaylandi',
+              gumruk_aciklama: `Toplu işlemle "${secilen}" olarak onaylandı.`
+          };
+      }));
+  };
+
   const processExcelFile = (file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
           try {
+              const aktifSehirKodu = aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir';
+              const { plaka } = sehirBilgisiCoz(aktifSehirKodu);
+
               const data = new Uint8Array(event.target?.result as ArrayBuffer);
               const workbook = XLSX.read(data, { type: 'array' });
               const sheetName = workbook.SheetNames[0];
@@ -2083,12 +2357,12 @@ const [macSilArama, setMacSilArama] = useState('')
                       islenmisTarih = islenmisTarih.trim();
                       if (islenmisTarih.includes('.')) {
                            const parts = islenmisTarih.split('.'); 
-                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1]}-${parts[0]}`;
+                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                       } else if (islenmisTarih.includes('/')) {
                            const parts = islenmisTarih.split('/'); 
-                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1]}-${parts[0]}`;
+                           if(parts.length === 3) islenmisTarih = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                           else if(parts.length === 2) islenmisTarih = `${new Date().getFullYear()}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                       }
                   }
 
@@ -2104,7 +2378,7 @@ const [macSilArama, setMacSilArama] = useState('')
                   const rawName = String(komiserKey ? normRow[komiserKey] : '').trim();
                   
                   const kodKey = Object.keys(normRow).find(k => k.includes('KOD') || k.includes('M.NO'));
-                  const macKodu = String(kodKey ? normRow[kodKey] : '');
+                  const macKodu = String(kodKey ? normRow[kodKey] : '').trim();
 
                   const sahaKey = Object.keys(normRow).find(k => {
                       if (k === 'SAHA' || k === 'STAD' || k === 'STADYUM' || k === 'YER') return true;
@@ -2112,44 +2386,70 @@ const [macSilArama, setMacSilArama] = useState('')
                       if (k.includes('SAHA') && !k.includes('KOM') && !k.includes('GÖREV') && !k.includes('ATAMA')) return true;
                       return false;
                   });
-                  const saha = String(sahaKey ? normRow[sahaKey] : '');
+                  const saha = turkceBuyukHarf(sahaKey ? normRow[sahaKey] : '').trim();
 
-                 const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR') || k.includes('NEVİ') || k.includes('NEVI'));
-                  const hamKategoriAdi = String(ligKey ? normRow[ligKey] : '');
-                  const kategori_adi = yerelNeviStandartlastir(hamKategoriAdi, aktifAdmin?.sehir || 'izmir');
+                  const ligKey = Object.keys(normRow).find(k => k.includes('LİG') || k.includes('LIG') || k.includes('KATEGOR') || k.includes('NEVİ') || k.includes('NEVI'));
+                  const hamKategoriAdi = String(ligKey ? normRow[ligKey] : '').trim();
 
                   const evKey = Object.keys(normRow).find(k => k.includes('EV') || k.includes('SAHİBİ') || k.includes('1.TAKIM') || k.includes('TAKIM 1'));
-                  const ev_sahibi = String(evKey ? normRow[evKey] : '');
+                  const ev_sahibi = turkceBuyukHarf(evKey ? normRow[evKey] : '').trim();
 
                   const misKey = Object.keys(normRow).find(k => k.includes('MİSAFİR') || k.includes('MISAFIR') || k.includes('DEPLASMAN') || k.includes('2.TAKIM') || k.includes('TAKIM 2'));
-                  const misafir_takim = String(misKey ? normRow[misKey] : '');
+                  const misafir_takim = turkceBuyukHarf(misKey ? normRow[misKey] : '').trim();
 
                   let finalKomiserId = rawName; 
-                  if (/^\d{4,10}$/.test(rawName) && !rawName.startsWith('35')) finalKomiserId = '35' + rawName;
-                  
-                  if (rawName && tumKomiserler.length > 0) {
-                      const temizle = (isim: string) => isim.toLocaleUpperCase('tr-TR').replace(/\s+/g, ' ').trim();
-                      const matchedKomiser = tumKomiserler.find(k => k.ad_soyad && temizle(k.ad_soyad) === temizle(rawName));
-                      if (matchedKomiser) finalKomiserId = matchedKomiser.komiser_id;
+                  if (/^\d{4,10}$/.test(rawName) && !rawName.startsWith(plaka)) {
+                      finalKomiserId = plaka + rawName;
                   }
+                  
+                  let komiserGorunenAd = rawName || 'ATANMAMIŞ';
+                  if (tumKomiserler.length > 0) {
+                      const temizle = (isim: string) => isim.toLocaleUpperCase('tr-TR').replace(/\s+/g, ' ').trim();
+                      const isimdenEslesen = rawName ? tumKomiserler.find(k => k.ad_soyad && temizle(k.ad_soyad) === temizle(rawName)) : null;
+                      if (isimdenEslesen) {
+                          finalKomiserId = String(isimdenEslesen.komiser_id);
+                          komiserGorunenAd = isimdenEslesen.ad_soyad;
+                      } else {
+                          const sicildenEslesen = tumKomiserler.find(k => String(k.komiser_id) === String(finalKomiserId) || String(k.komiser_id) === String(rawName));
+                          if (sicildenEslesen) {
+                              finalKomiserId = String(sicildenEslesen.komiser_id);
+                              komiserGorunenAd = sicildenEslesen.ad_soyad;
+                          }
+                      }
+                  }
+
+                  // 🔥 3 KATMANLI GÜMRÜK KONTROLÜ 🔥
+                  const gumrukAnaliz = akilliLigGumrukMotoru(hamKategoriAdi, aktifSehirKodu);
 
                   return {
                       mac_kodu: macKodu, 
                       tarih: islenmisTarih,
                       saat: islenmisSaat, 
                       saha: saha,
-                      kategori_adi: kategori_adi,
+                      ham_kategori_adi: gumrukAnaliz.hamDeger,
+                      kategori_adi: gumrukAnaliz.kategori,
+                      gumruk_durumu: gumrukAnaliz.durum,
+                      secenek_yerel: gumrukAnaliz.secenekYerel || '',
+                      secenek_gelisim: gumrukAnaliz.secenekGelisim || '',
+                      gumruk_playoff: gumrukAnaliz.playOff,
+                      gumruk_aciklama: gumrukAnaliz.aciklama,
                       ev_sahibi: ev_sahibi,
                       misafir_takim: misafir_takim,
                       komiser_id: finalKomiserId, 
-                      raw_komiser_name: rawName 
-                  }
+                      raw_komiser_name: rawName,
+                      komiser_gorunen_ad: komiserGorunenAd
+                  };
               }).filter(m => {
-                  const ev = m.ev_sahibi.trim().toLocaleUpperCase('tr-TR'); const misafir = m.misafir_takim.trim().toLocaleUpperCase('tr-TR');
+                  const ev = m.ev_sahibi.trim().toLocaleUpperCase('tr-TR');
+                  const misafir = m.misafir_takim.trim().toLocaleUpperCase('tr-TR');
                   return ev && misafir && ev !== 'BAY' && misafir !== 'BAY';
               });
-              setYuklenenExcelVerisi(islenmisVeri); setExcelHata(null);
-          } catch (error) { setExcelHata("Dosya okunamadı."); }
+
+              setYuklenenExcelVerisi(islenmisVeri);
+              setExcelHata(null);
+          } catch (error) {
+              setExcelHata("Dosya okunamadı. Lütfen geçerli bir Excel (.xlsx / .xls) dosyası seçin.");
+          }
       };
       reader.readAsArrayBuffer(file);
   }
@@ -2165,13 +2465,29 @@ const [macSilArama, setMacSilArama] = useState('')
 
   const bulteniVeritabaninaKaydet = async () => {
       if (yuklenenExcelVerisi.length === 0) return;
+
+      // ⛔ GÜMRÜK KİLİDİ: Tek bir Sarı veya Kırmızı Alarm kalmışsa veritabanına geçişe izin verme!
+      const cozulemeyenSatirlar = yuklenenExcelVerisi.filter(
+          m => !m.kategori_adi || m.gumruk_durumu === 'belirsiz_yas' || m.gumruk_durumu === 'tanimsiz'
+      );
+      if (cozulemeyenSatirlar.length > 0) {
+          alert(`⛔ GÜMRÜK KİLİDİ AKTİF!\n\nBültende henüz lig nevisi netleşmemiş ${cozulemeyenSatirlar.length} adet müsabaka bulunuyor.\nLütfen yukarıdaki Sarı / Kırmızı alarm kutularından lig seçimlerini onaylayıp tekrar deneyin.`);
+          return;
+      }
+
       setExcelKaydediliyor(true);
       try {
+          const kayitSehri = aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir';
           const dbVerisi = yuklenenExcelVerisi.map(mac => ({
-              mac_kodu: mac.mac_kodu, tarih: mac.tarih || null, saat: mac.saat || null, saha: mac.saha,
-              kategori_adi: mac.kategori_adi, ev_sahibi: mac.ev_sahibi, misafir_takim: mac.misafir_takim,
+              mac_kodu: mac.mac_kodu,
+              tarih: mac.tarih || null,
+              saat: mac.saat || null,
+              saha: mac.saha,
+              kategori_adi: mac.kategori_adi,
+              ev_sahibi: mac.ev_sahibi,
+              misafir_takim: mac.misafir_takim,
               komiser_id: /^\d+$/.test(mac.komiser_id) ? mac.komiser_id : null,
-              sehir: aktifAdmin.sehir
+              sehir: kayitSehri
           }));
 
           const { data: mevcutlar } = await supabase.from('musabakalar').select('mac_kodu, tarih, kategori_adi, ev_sahibi, misafir_takim, komiser_id');
@@ -2187,13 +2503,25 @@ const [macSilArama, setMacSilArama] = useState('')
               return !mevcutAnahtarlar.has(anahtar);
           });
 
-          if (eklenecekler.length === 0) { alert("Tüm maçlar zaten mevcut! (Çift kayıt önlendi)."); setExcelModalAcik(false); setYuklenenExcelVerisi([]); setExcelKaydediliyor(false); return; }
+          if (eklenecekler.length === 0) {
+              alert("Tüm maçlar zaten mevcut! (Çift kayıt önlendi).");
+              setExcelModalAcik(false);
+              setYuklenenExcelVerisi([]);
+              setExcelKaydediliyor(false);
+              return;
+          }
           
           const { error } = await supabase.from('musabakalar').insert(eklenecekler);
           if (error) throw error;
-          alert(`✅ Başarılı! ${eklenecekler.length} adet müsabaka eklendi.`);
-          setExcelModalAcik(false); setYuklenenExcelVerisi([]); veriGetir(false); 
-      } catch (err: any) { alert("Hata: " + err.message); } finally { setExcelKaydediliyor(false); }
+          alert(`✅ Başarılı! ${eklenecekler.length} adet müsabaka resmi lig şablonlarıyla sisteme eklendi.`);
+          setExcelModalAcik(false);
+          setYuklenenExcelVerisi([]);
+          veriGetir(false); 
+      } catch (err: any) {
+          alert("Hata: " + err.message);
+      } finally {
+          setExcelKaydediliyor(false);
+      }
   }
 
   const toggleMac = (id: number) => { setAcikMacId(acikMacId === id ? null : id); }
@@ -3524,7 +3852,7 @@ const [macSilArama, setMacSilArama] = useState('')
                                     <div className="bg-emerald-950/30 border-2 border-emerald-600/60 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                         <div>
                                             <h4 className="text-emerald-400 font-black text-xs md:text-sm uppercase tracking-wider flex items-center gap-2">
-                                                <span className="text-lg">🤖</span> TEK TIKLA AKILLI TAMİR (O14, O17, U14, U17, U19 ➔ {ilOnEk} U... LİGİ)
+                                                <span className="text-lg">🤖</span> TEK TIKLA AKILLI TAMİR (U14, U17, U18, U19 ➔ {ilOnEk} U... LİGİ)
                                             </h4>
                                             <p className="text-slate-300 text-xs mt-1">
                                                 Excel&apos;den düz <b>O14, O17, U14, U17, U19</b> şeklinde girilmiş yerel ligleri otomatik tespit edip başına <b>{ilOnEk}</b> ve sonuna <b>LİGİ</b> ekler. İçinde <b>TFF / GELİŞİM</b> geçen maçlara kesinlikle dokunmaz.
@@ -4025,67 +4353,304 @@ const [macSilArama, setMacSilArama] = useState('')
             </div>
         )}
 
-        {/* 🔥 EXCEL YÜKLEME MODALI 🔥 */}
-        {excelModalAcik && (
-            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm tff-no-print">
-                <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-                    <div className="bg-emerald-900/50 p-4 border-b border-emerald-500/50 flex justify-between items-center">
-                        <h2 className="text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2"><span className="text-2xl">📥</span> YENİ BÜLTEN YÜKLEME MERKEZİ (EXCEL)</h2>
-                        <button onClick={() => { setExcelModalAcik(false); setYuklenenExcelVerisi([]); setExcelHata(null); }} className="text-slate-400 hover:text-white font-bold text-xl">✕</button>
-                    </div>
-                    
-                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                        <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl mb-6">
-                            <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🤖</span> İsim Eşleştirme &amp; Çift Komiser Zekası Aktif!</h3>
-                            <p className="text-xs text-slate-400 mb-3">TFF Excel'ini direkt yükleyebilirsiniz. Aynı maça farklı TC kimlikli iki ayrı komiser eklerseniz (Süper Amatör vb.), sistem bunu <b>mükerrer saymaz</b>, iki komiseri de maça ayrı ayrı kaydeder.</p>
-                        </div>
+        {/* 🔥 EXCEL YÜKLEME VE 3 KATMANLI LİG GÜMRÜK MODALI 🔥 */}
+        {excelModalAcik && (() => {
+            const aktifSehirKodu = aktifAdmin?.sehir || (typeof window !== 'undefined' ? localStorage.getItem('aktifSehir') : '') || 'izmir';
+            const { ilAdi: aktifIlAdi } = sehirBilgisiCoz(aktifSehirKodu);
+            const resmiSablonlar = resmiLigSablonlariGetir(aktifSehirKodu);
 
-                        <div className="flex items-center justify-center w-full mb-6">
-                            <label onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-900/30 scale-105' : 'border-slate-600 bg-slate-800 hover:bg-slate-700'}`}>
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
-                                    <span className="text-4xl mb-3">{isDragging ? '📥' : '📊'}</span><p className="mb-2 text-sm text-slate-300">{isDragging ? <span className="font-bold text-emerald-400">Bırak!</span> : <><span className="font-bold text-emerald-400">Tıkla</span> veya Sürükle</>}</p>
+            const tamUyumluList = yuklenenExcelVerisi.filter(m => m.gumruk_durumu === 'tam_uyumlu' || m.gumruk_durumu === 'manuel_onaylandi');
+            const otoDuzeltilenList = yuklenenExcelVerisi.filter(m => m.gumruk_durumu === 'otomatik_duzeltildi');
+            const sariAlarmList = yuklenenExcelVerisi
+                .map((m, idx) => ({ ...m, _satirIdx: idx }))
+                .filter(m => m.gumruk_durumu === 'belirsiz_yas');
+            const kirmiziAlarmList = yuklenenExcelVerisi
+                .map((m, idx) => ({ ...m, _satirIdx: idx }))
+                .filter(m => m.gumruk_durumu === 'tanimsiz');
+
+            const toplamEngelSayisi = sariAlarmList.length + kirmiziAlarmList.length;
+
+            return (
+                <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-3 md:p-4 backdrop-blur-sm tff-no-print">
+                    <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-6xl max-h-[94vh] overflow-hidden flex flex-col shadow-2xl">
+                        <div className="bg-emerald-900/50 p-4 border-b border-emerald-500/50 flex justify-between items-center shrink-0">
+                            <h2 className="text-base md:text-xl font-black text-emerald-400 tracking-widest uppercase flex items-center gap-2">
+                                <span className="text-2xl">📥</span> YENİ BÜLTEN YÜKLEME VE LİG GÜMRÜK MERKEZİ ({aktifIlAdi})
+                            </h2>
+                            <button onClick={() => { setExcelModalAcik(false); setYuklenenExcelVerisi([]); setExcelHata(null); }} className="text-slate-400 hover:text-white font-bold text-2xl leading-none">✕</button>
+                        </div>
+                        
+                        <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar space-y-5">
+                            <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
+                                <h3 className="text-emerald-400 font-bold mb-1.5 flex items-center gap-2">
+                                    <span className="text-xl">🛡️</span> 3 Katmanlı Akıllı Lig Gümrüğü &amp; Çift Komiser Zekası Aktif!
+                                </h3>
+                                <p className="text-xs text-slate-300 leading-relaxed">
+                                    Harf hataları ve <b>BAL ➔ P.G.L</b> dönüşümleri otomatik ütülenir; <b>PLAY-OFF</b> ibareleri korunur. Düz <b>U13–U19</b> (veya <b>O14</b>) gibi belirsiz yaş gruplarında sistem sormadan kayıt yapmaz; <b>{aktifIlAdi} Yerel</b> mi yoksa <b>TFF Gelişim</b> mi olduğunu size onaylatır.
+                                </p>
+                            </div>
+
+                            {yuklenenExcelVerisi.length === 0 && (
+                                <div className="flex items-center justify-center w-full">
+                                    <label onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-900/30 scale-[1.02]' : 'border-slate-600 bg-slate-800 hover:bg-slate-700'}`}>
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
+                                            <span className="text-4xl mb-3">{isDragging ? '📥' : '📊'}</span>
+                                            <p className="mb-1 text-sm text-slate-300">{isDragging ? <span className="font-bold text-emerald-400">Dosyayı Bırakın!</span> : <><span className="font-bold text-emerald-400">Excel Seçmek İçin Tıklayın</span> veya Sürükleyin</>}</p>
+                                            <p className="text-[11px] text-slate-500 font-mono">.xlsx, .xls, .csv desteklenir</p>
+                                        </div>
+                                        <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={(e) => { if(e.target.files && e.target.files.length > 0) processExcelFile(e.target.files[0]) }} />
+                                    </label>
                                 </div>
-                                <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={(e) => { if(e.target.files && e.target.files.length > 0) processExcelFile(e.target.files[0]) }} />
-                            </label>
-                        </div>
+                            )}
 
-                        {excelHata && <div className="bg-red-900/50 border border-red-500 text-red-400 p-4 rounded-lg mb-6 font-bold text-center">{excelHata}</div>}
+                            {excelHata && <div className="bg-red-900/50 border border-red-500 text-red-400 p-4 rounded-lg font-bold text-center">{excelHata}</div>}
+
+                            {yuklenenExcelVerisi.length > 0 && (
+                                <div className="space-y-5 animate-fade-in-up">
+                                    {/* GÜMRÜK ÖZET SAYAÇLARI */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="bg-slate-800 border-l-4 border-emerald-500 p-3 rounded-lg">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Hazır / Onaylı</div>
+                                            <div className="text-2xl font-black text-emerald-400">{tamUyumluList.length}</div>
+                                        </div>
+                                        <div className="bg-slate-800 border-l-4 border-cyan-500 p-3 rounded-lg">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Otomatik Ütülenen</div>
+                                            <div className="text-2xl font-black text-cyan-400">{otoDuzeltilenList.length}</div>
+                                        </div>
+                                        <div className={`bg-slate-800 border-l-4 border-amber-500 p-3 rounded-lg ${sariAlarmList.length > 0 ? 'ring-2 ring-amber-500/50' : ''}`}>
+                                            <div className="text-[10px] font-bold text-amber-400 uppercase">Sarı Alarm (Hangi Lig?)</div>
+                                            <div className="text-2xl font-black text-amber-400">{sariAlarmList.length}</div>
+                                        </div>
+                                        <div className={`bg-slate-800 border-l-4 border-red-500 p-3 rounded-lg ${kirmiziAlarmList.length > 0 ? 'ring-2 ring-red-500/50' : ''}`}>
+                                            <div className="text-[10px] font-bold text-red-400 uppercase">Kırmızı Alarm (Tanımsız)</div>
+                                            <div className="text-2xl font-black text-red-500">{kirmiziAlarmList.length}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* ⚠️ SARI ALARM KUTUSU: DÜZ U13-U19 BELİRSİZ YAŞ GRUPLARI */}
+                                    {sariAlarmList.length > 0 && (
+                                        <div className="bg-amber-950/40 border-2 border-amber-500 rounded-xl p-4 space-y-4 shadow-xl">
+                                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b border-amber-700/50 pb-3">
+                                                <div>
+                                                    <h4 className="text-amber-400 font-black text-sm md:text-base uppercase tracking-wider flex items-center gap-2">
+                                                        <span className="text-xl animate-bounce">⚠️</span> DİKKAT: BELİRSİZ YAŞ GRUBU YAKALANDI ({sariAlarmList.length} MAÇ)
+                                                    </h4>
+                                                    <p className="text-amber-100/80 text-xs mt-1">
+                                                        Aşağıdaki müsabakalarda başında <b>{aktifIlAdi}</b> veya <b>TFF Gelişim</b> yazmıyor. Hakem triyosu, rapor şablonu ve bordronun şaşmaması için lütfen seçiminizi yapın:
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 w-full lg:w-auto shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => tumBelirsizleriTopluCoz('yerel')}
+                                                        className="flex-1 lg:flex-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] px-3.5 py-2.5 rounded-lg uppercase tracking-wider shadow-md transition-transform active:scale-95"
+                                                    >
+                                                        ⚡ TÜMÜNÜ {aktifIlAdi} YEREL YAP ({sariAlarmList.length})
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => tumBelirsizleriTopluCoz('gelisim')}
+                                                        className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-500 text-white font-black text-[11px] px-3.5 py-2.5 rounded-lg uppercase tracking-wider shadow-md transition-transform active:scale-95"
+                                                    >
+                                                        ⚡ TÜMÜNÜ TFF GELİŞİM YAP ({sariAlarmList.length})
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                                                {sariAlarmList.map((m) => (
+                                                    <div key={`sari-${m._satirIdx}`} className="bg-slate-900/95 border border-amber-600/50 rounded-lg p-3 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                                                        <div className="text-xs space-y-1">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="bg-amber-600 text-slate-950 font-black px-2 py-0.5 rounded text-[10px]">KOD: {m.mac_kodu || '-'}</span>
+                                                                <span className="text-emerald-400 font-black uppercase">👨‍✈️ {m.komiser_gorunen_ad}</span>
+                                                                <span className="text-slate-400 font-mono text-[11px]">{guvenliTarih(m.tarih)} {m.saat}</span>
+                                                            </div>
+                                                            <div className="text-white font-bold uppercase">
+                                                                {m.ev_sahibi} <span className="text-slate-500">vs</span> {m.misafir_takim}
+                                                            </div>
+                                                            <div className="text-amber-300 text-[11px]">
+                                                                Excel&apos;de <b>&quot;{m.ham_kategori_adi}&quot;</b> yazılmış — Hangi {m.ham_kategori_adi}?
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2 w-full lg:w-auto shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => excelSatirNeviSec(m._satirIdx, m.secenek_yerel)}
+                                                                className="flex-1 lg:flex-none bg-emerald-700 hover:bg-emerald-600 text-white font-black text-[11px] px-3 py-2 rounded-lg border border-emerald-500 transition-colors"
+                                                            >
+                                                                📍 {m.secenek_yerel}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => excelSatirNeviSec(m._satirIdx, m.secenek_gelisim)}
+                                                                className="flex-1 lg:flex-none bg-indigo-700 hover:bg-indigo-600 text-white font-black text-[11px] px-3 py-2 rounded-lg border border-indigo-400 transition-colors"
+                                                            >
+                                                                🇹🇷 {m.secenek_gelisim}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 🚨 KIRMIZI ALARM KUTUSU: TANIMSIZ VEYA BOŞ LİG METİNLERİ */}
+                                    {kirmiziAlarmList.length > 0 && (
+                                        <div className="bg-red-950/40 border-2 border-red-500 rounded-xl p-4 space-y-3 shadow-xl">
+                                            <div>
+                                                <h4 className="text-red-400 font-black text-sm md:text-base uppercase tracking-wider flex items-center gap-2">
+                                                    <span className="text-xl animate-pulse">🚨</span> KIRMIZI ALARM: TANIMSIZ LİG NEVİSİ ({kirmiziAlarmList.length} MAÇ)
+                                                </h4>
+                                                <p className="text-red-200/80 text-xs mt-1">
+                                                    Bu satırlardaki lig adı hiçbir resmi şablona uymuyor veya boş bırakılmış. Kayıt kilidini açmak için listeden resmi şablonu seçin:
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2.5 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
+                                                {kirmiziAlarmList.map((m) => (
+                                                    <div key={`kirmizi-${m._satirIdx}`} className="bg-slate-900 border border-red-700/60 rounded-lg p-3 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                                                        <div className="text-xs space-y-1">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="bg-red-600 text-white font-black px-2 py-0.5 rounded text-[10px]">KOD: {m.mac_kodu || '-'}</span>
+                                                                <span className="text-emerald-400 font-black uppercase">👨‍✈️ {m.komiser_gorunen_ad}</span>
+                                                                <span className="text-red-400 font-bold">Excel&apos;de Yazan: &quot;{m.ham_kategori_adi}&quot;</span>
+                                                            </div>
+                                                            <div className="text-white font-bold uppercase">{m.ev_sahibi} <span className="text-slate-500">vs</span> {m.misafir_takim}</div>
+                                                        </div>
+                                                        <select
+                                                            value=""
+                                                            onChange={(e) => {
+                                                                if (!e.target.value) return;
+                                                                const nihaiDeger = m.gumruk_playoff ? `${e.target.value} PLAY-OFF` : e.target.value;
+                                                                excelSatirNeviSec(m._satirIdx, nihaiDeger);
+                                                            }}
+                                                            className="w-full lg:w-72 bg-slate-950 border-2 border-red-500 text-white font-bold text-xs px-3 py-2.5 rounded-lg cursor-pointer focus:outline-none"
+                                                        >
+                                                            <option value="">-- Resmi Lig Şablonunu Seçin --</option>
+                                                            {resmiSablonlar.map((sablon, sIdx) => (
+                                                                <option key={`kirmizi-opt-${sIdx}`} value={sablon}>
+                                                                    {m.gumruk_playoff ? `${sablon} PLAY-OFF` : sablon}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* TÜM MAÇLAR ÖNİZLEME VE MANUEL MÜDAHALE TABLOSU */}
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="text-white font-bold text-sm">🔍 Bülten Gümrük Önizlemesi ({yuklenenExcelVerisi.length} Maç)</h3>
+                                            <button onClick={() => setYuklenenExcelVerisi([])} className="text-xs font-bold text-amber-400 hover:text-amber-300 underline">Farklı Excel Dosyası Seç</button>
+                                        </div>
+                                        <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-x-auto max-h-[340px] custom-scrollbar">
+                                            <table className="w-full text-left text-xs text-slate-300 whitespace-nowrap">
+                                                <thead className="bg-slate-950 text-slate-400 uppercase sticky top-0 z-10">
+                                                    <tr>
+                                                        <th className="px-3 py-3">Kod</th>
+                                                        <th className="px-3 py-3">Tarih / Saat</th>
+                                                        <th className="px-3 py-3">Lig Nevisi (Gümrük Kararı)</th>
+                                                        <th className="px-3 py-3">Takımlar</th>
+                                                        <th className="px-3 py-3">Komiser Eşleşmesi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {yuklenenExcelVerisi.map((mac, i) => {
+                                                        const islesmeBasarili = /^\d+$/.test(mac.komiser_id);
+                                                        const alarmVar = mac.gumruk_durumu === 'belirsiz_yas' || mac.gumruk_durumu === 'tanimsiz';
+                                                        return (
+                                                            <tr key={i} className={`border-b border-slate-700/80 ${alarmVar ? 'bg-amber-950/20' : 'hover:bg-slate-700/40'}`}>
+                                                                <td className="px-3 py-2 font-mono text-emerald-400 font-bold">{mac.mac_kodu || '-'}</td>
+                                                                <td className="px-3 py-2 font-mono text-[11px]">{guvenliTarih(mac.tarih)} - {mac.saat}</td>
+                                                                <td className="px-3 py-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <select
+                                                                            value={mac.kategori_adi || ''}
+                                                                            onChange={(e) => excelSatirNeviSec(i, e.target.value)}
+                                                                            className={`bg-slate-900 border rounded px-2 py-1 text-[11px] font-black uppercase cursor-pointer focus:outline-none ${
+                                                                                mac.gumruk_durumu === 'belirsiz_yas'
+                                                                                    ? 'border-amber-500 text-amber-400'
+                                                                                    : mac.gumruk_durumu === 'tanimsiz'
+                                                                                    ? 'border-red-500 text-red-400'
+                                                                                    : mac.gumruk_durumu === 'otomatik_duzeltildi'
+                                                                                    ? 'border-cyan-500/70 text-cyan-300'
+                                                                                    : 'border-slate-600 text-emerald-300'
+                                                                            }`}
+                                                                        >
+                                                                            {!mac.kategori_adi && <option value="">⚠️ SEÇİM BEKLİYOR ({mac.ham_kategori_adi})</option>}
+                                                                            {mac.kategori_adi && !resmiSablonlar.includes(mac.kategori_adi) && (
+                                                                                <option value={mac.kategori_adi}>{mac.kategori_adi}</option>
+                                                                            )}
+                                                                            {resmiSablonlar.map((s, idx) => (
+                                                                                <option key={`tbl-opt-${idx}`} value={mac.gumruk_playoff && !s.includes('PLAY-OFF') ? `${s} PLAY-OFF` : s}>
+                                                                                    {mac.gumruk_playoff && !s.includes('PLAY-OFF') ? `${s} PLAY-OFF` : s}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                        {mac.gumruk_durumu === 'otomatik_duzeltildi' && (
+                                                                            <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-700 px-1.5 py-0.5 rounded font-bold" title={`Excel'de "${mac.ham_kategori_adi}" yazıyordu`}>
+                                                                                🛠️ {mac.ham_kategori_adi}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-3 py-2 font-bold text-white">{mac.ev_sahibi} <span className="text-slate-500">vs</span> {mac.misafir_takim}</td>
+                                                                <td className="px-3 py-2">
+                                                                    <span className={`px-2 py-1 rounded text-[11px] font-bold ${islesmeBasarili ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700' : 'bg-amber-900/50 text-amber-400 border border-amber-700'}`}>
+                                                                        {islesmeBasarili ? `✓ ${mac.komiser_gorunen_ad} (${mac.komiser_id})` : `⚠️ ATANMADI (${mac.raw_komiser_name || 'Boş'})`}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {yuklenenExcelVerisi.length > 0 && (
-                            <div className="animate-fade-in-up">
-                                <h3 className="text-white font-bold mb-3">🔍 Önizleme ({yuklenenExcelVerisi.length} Maç)</h3>
-                                <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-x-auto">
-                                    <table className="w-full text-left text-xs text-slate-300 whitespace-nowrap">
-                                        <thead className="bg-slate-900 text-slate-400 uppercase"><tr><th className="px-4 py-3">Kod</th><th className="px-4 py-3">Zaman</th><th className="px-4 py-3">Takımlar</th><th className="px-4 py-3">Eşleşme</th></tr></thead>
-                                        <tbody>
-                                            {yuklenenExcelVerisi.slice(0, 50).map((mac, i) => {
-                                                const islesmeBasarili = /^\d+$/.test(mac.komiser_id);
-                                                return (
-                                                    <tr key={i} className="border-b border-slate-700 hover:bg-slate-700/50">
-                                                        <td className="px-4 py-2 text-emerald-400">{mac.mac_kodu}</td>
-                                                        <td className="px-4 py-2">{mac.tarih} - {mac.saat}</td>
-                                                        <td className="px-4 py-2 font-bold text-white">{mac.ev_sahibi} vs {mac.misafir_takim}</td>
-                                                        <td className="px-4 py-2">
-                                                            <span className={`px-2 py-1 rounded font-bold ${islesmeBasarili ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700' : 'bg-amber-900/50 text-amber-400 border border-amber-700'}`}>
-                                                                {islesmeBasarili ? `✓ ID: ${mac.komiser_id}` : `⚠️ BULUNAMADI`}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                    {yuklenenExcelVerisi.length > 50 && <div className="text-center p-3 text-slate-500 italic">... ve {yuklenenExcelVerisi.length - 50} maç daha.</div>}
+                            <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+                                <div className="text-xs font-bold">
+                                    {toplamEngelSayisi > 0 ? (
+                                        <span className="text-amber-400 flex items-center gap-1.5">
+                                            🔒 Kayıt kilidini açmak için kalan <b>{toplamEngelSayisi}</b> lig uyarısını onaylayın.
+                                        </span>
+                                    ) : (
+                                        <span className="text-emerald-400 flex items-center gap-1.5">
+                                            ✅ Tüm müsabakalar ({yuklenenExcelVerisi.length} adet) resmi şablon kontrolünden geçti!
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex gap-3 w-full sm:w-auto justify-end">
+                                    <button onClick={() => setYuklenenExcelVerisi([])} className="px-5 py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors text-xs uppercase">İptal Et</button>
+                                    <button
+                                        onClick={bulteniVeritabaninaKaydet}
+                                        disabled={excelKaydediliyor || toplamEngelSayisi > 0}
+                                        className={`font-black px-6 py-3 rounded-lg shadow-lg uppercase tracking-widest text-xs flex items-center gap-2 transition-all ${
+                                            toplamEngelSayisi > 0
+                                                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                        }`}
+                                    >
+                                        {excelKaydediliyor
+                                            ? '⚙️ İŞLENİYOR...'
+                                            : toplamEngelSayisi > 0
+                                            ? `🔒 ÖNCE ${toplamEngelSayisi} UYARIYI ÇÖZÜN`
+                                            : '🚀 BÜLTENİ SİSTEME KAYDET'}
+                                    </button>
                                 </div>
                             </div>
                         )}
                     </div>
-                    {yuklenenExcelVerisi.length > 0 && (
-                        <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-4"><button onClick={() => setYuklenenExcelVerisi([])} className="px-6 py-3 rounded-lg font-bold text-slate-400 hover:text-white transition-colors">İptal Et</button><button onClick={bulteniVeritabaninaKaydet} disabled={excelKaydediliyor} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-3 rounded-lg shadow-lg uppercase tracking-widest disabled:opacity-50 flex items-center gap-2">{excelKaydediliyor ? '⚙️ İŞLENİYOR...' : '🚀 BÜLTENİ SİSTEME KAYDET'}</button></div>
-                    )}
                 </div>
-            </div>
-        )}
+            );
+        })()}
 
         {/* 🔥 ANA İÇERİK EKRANI (ZAMAN MAKİNESİ VE LİSTELER) 🔥 */}
         {yukleniyor ? (
