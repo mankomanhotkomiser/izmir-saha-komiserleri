@@ -44,6 +44,9 @@ const getAnaKategori = (kategori: any) => {
       if (!kategori) return 'amator';
       const temizKat = turkceBuyukHarf(kategori).replace(/\s+/g, '');
       
+      // TFF P.G.L her zaman Amatör/Geçiş kutusunda ve bordrosunda kalır
+      if (temizKat.includes('P.G.L') || temizKat.includes('PGL') || temizKat.includes('PROFESYONELLİĞEGEÇİŞ') || temizKat.includes('BÖLGESEL') || temizKat === 'BAL') return 'amator';
+
       // Önce Kadın ve Gelişim liglerini süz
       if (temizKat.includes('KADIN') || temizKat.includes('KIZ')) return 'kadin';
       if (temizKat.includes('GELİŞİM') || temizKat.includes('AKADEMİ') || temizKat.includes('ELİT') || temizKat.includes('PAF') || temizKat.includes('TFFU')) return 'gelisim';
@@ -169,9 +172,9 @@ const formatKategori = (rawKategori: any) => {
         return `${kat} LİGİ${playOffEk}`;
     }
 
-    // 2. P.G.L VE ESKİ BAL -> P.G.L
+    // 2. TFF P.G.L VE ESKİ BAL -> TFF P.G.L
     if (kat.includes('PGL') || kat.includes('P.G.L') || kat.includes('PROFESYONELLİĞE GEÇİŞ') || kat.includes('BÖLGESEL') || kat.includes('BAL')) {
-        return `P.G.L${playOffEk}`;
+        return `TFF P.G.L${playOffEk}`;
     }
 
     // 3. PAF VE ERKEK TFF GELİŞİM LİGLERİ
@@ -182,10 +185,16 @@ const formatKategori = (rawKategori: any) => {
         return `TFF GELİŞİM LİGİ${playOffEk}`;
     }
 
-    // 4. BÜYÜKLER AMATÖR VE KUPA
-    if (kat.includes('SÜPER AMATÖR')) return `SÜPER AMATÖR${playOffEk}`;
-    if (kat.includes('1.') && kat.includes('AMATÖR')) return `1. AMATÖR${playOffEk}`;
-    if (kat.includes('2.') && kat.includes('AMATÖR')) return `2. AMATÖR${playOffEk}`;
+    // 4. BÜYÜKLER YEREL AMATÖR (Şehrine göre: İZMİR SÜPER AMATÖR, KOCAELİ SÜPER AMATÖR vb.)
+    const buyukAmatorIlMatch = kat.match(/^(İZMİR|KOCAELİ|İSTANBUL|ANKARA|BURSA|ANTALYA|MANİSA|AYDIN|MUĞLA|BALIKESİR|DENİZLİ|SAKARYA|TRABZON|SAMSUN|ADANA)\s+/);
+    const varsayilanIl = typeof window !== 'undefined' && localStorage.getItem('aktifSehir')
+        ? turkceBuyukHarf(localStorage.getItem('aktifSehir'))
+        : 'İZMİR';
+    const amatorIl = buyukAmatorIlMatch ? buyukAmatorIlMatch[1] : (varsayilanIl === 'GENELMERKEZ' ? 'İZMİR' : varsayilanIl);
+
+    if (kat.includes('SÜPER AMATÖR')) return `${amatorIl} SÜPER AMATÖR${playOffEk}`;
+    if (kat.includes('1.') && kat.includes('AMATÖR')) return `${amatorIl} 1. AMATÖR${playOffEk}`;
+    if (kat.includes('2.') && kat.includes('AMATÖR')) return `${amatorIl} 2. AMATÖR${playOffEk}`;
     if (kat.includes('ZİRAAT') || kat.includes('TÜRKİYE KUPASI') || kat === 'ZTK') return 'ZİRAAT TÜRKİYE KUPASI';
 
     // 5. YEREL ALTYAPI (İZMİR U14 LİGİ, KOCAELİ U14 LİGİ vb.)
@@ -1504,20 +1513,46 @@ const [kucukHeader, setKucukHeader] = useState(false);
     setMacYukleniyor(false)
   }
 
-  const gorevTuruBelirle = (kategori: any, macKodu: any) => {
+  const PGL_DENETCI_LISTESI = [
+    'SERVET KAYA',
+    'SELÇUK SEZER',
+    'VOLKAN KARACA AKDOĞAN',
+    'ALİ DAĞÇEVİREN',
+    'FIRAT GAZİLER',
+    'SERHAT ÇÖLGEÇEN'
+  ];
+
+  const gorevTuruBelirle = (kategori: any, macKodu: any, macKomiserId?: any) => {
     const anaKat = getAnaKategori(kategori);
     const kod = turkceBuyukHarf(macKodu || "");
     const katStr = turkceBuyukHarf(kategori || "");
-    if (
-        kod.includes('DENETÇİ') ||
+
+    const isPglMaci =
         katStr.includes('P.G.L') ||
         katStr.includes('PGL') ||
         katStr.includes('PROFESYONELLİĞE GEÇİŞ') ||
         katStr.includes('BAL') ||
-        katStr.includes('BÖLGESEL')
-    ) {
-        return "P.G.L DENETÇİSİ";
+        katStr.includes('BÖLGESEL');
+
+    if (isPglMaci) {
+        // Maçın komiserini bul (kendi ekranıysa seciliKomiser, bülten aramaysa tumKomiserler içinden)
+        const hedefId = macKomiserId ?? seciliKomiser?.komiser_id;
+        let komiserKaydi: any = null;
+        if (seciliKomiser && String(seciliKomiser.komiser_id) === String(hedefId)) {
+            komiserKaydi = seciliKomiser;
+        } else if (Array.isArray(tumKomiserler)) {
+            komiserKaydi = tumKomiserler.find((k: any) => String(k.komiser_id) === String(hedefId));
+        }
+
+        const isimBuyuk = turkceBuyukHarf(komiserKaydi?.ad_soyad || '').replace(/\s+/g, ' ').trim();
+        const denetciMi =
+            komiserKaydi?.pgl_denetcisi === true ||
+            kod.includes('DENETÇİ') ||
+            PGL_DENETCI_LISTESI.some((d) => isimBuyuk.includes(d));
+
+        return denetciMi ? "P.G.L DENETÇİSİ" : "P.G.L SAHA KOMİSERİ";
     }
+
     if (kod.includes('STAJ')) return "STAJYER / SAHA KOMİSERİ";
     if (anaKat === 'profesyonel') return "SAHA KOMİSERİ";
     if (anaKat === 'gelisim') {

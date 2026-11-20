@@ -36,6 +36,9 @@ const getAnaKategori = (kategori: any) => {
     // Tüm boşlukları yok edip birleşik kelime gibi arıyoruz
     const temizKat = turkceBuyukHarf(kategori).replace(/\s+/g, '');
     
+    // TFF P.G.L her zaman Amatör/Geçiş kategorisindedir
+    if (temizKat.includes('P.G.L') || temizKat.includes('PGL') || temizKat.includes('PROFESYONELLİĞEGEÇİŞ') || temizKat.includes('BÖLGESEL') || temizKat === 'BAL') return 'amator';
+
     // Önce Kadın ve Gelişim liglerini süz
     if (temizKat.includes('KADIN') || temizKat.includes('KIZ')) return 'kadin';
     if (temizKat.includes('GELİŞİM') || temizKat.includes('AKADEMİ') || temizKat.includes('ELİT') || temizKat.includes('PAF') || temizKat.includes('TFFU')) return 'gelisim';
@@ -213,7 +216,7 @@ const akilliLigGumrukMotoru = (hamGirdi: any, sehirKodu: any = 'izmir'): LigGumr
         };
     };
 
-    // 1. BAL VE PGL BİRLEŞTİRMESİ (Ne yazarsa yazsın P.G.L olur)
+    // 1. BAL VE PGL BİRLEŞTİRMESİ (Ne yazarsa yazsın TFF P.G.L olur)
     if (
         cekirdekAscii === 'BAL' ||
         bitisikAscii === 'BAL' ||
@@ -221,10 +224,11 @@ const akilliLigGumrukMotoru = (hamGirdi: any, sehirKodu: any = 'izmir'): LigGumr
         bitisikAscii.includes('BOLGESELAMATOR') ||
         bitisikAscii.includes('BOLGESELLIG') ||
         bitisikAscii === 'PGL' ||
+        bitisikAscii === 'TFFPGL' ||
         bitisikAscii.startsWith('PGLLIGI') ||
         bitisikAscii.includes('PROFESYONELLIGEGECIS')
     ) {
-        return sonucUret('P.G.L');
+        return sonucUret('TFF P.G.L');
     }
 
     // 2. PAF LİGİ
@@ -252,28 +256,34 @@ const akilliLigGumrukMotoru = (hamGirdi: any, sehirKodu: any = 'izmir'): LigGumr
         };
     }
 
-    // 4. BÜYÜKLER YEREL AMATÖR (Sade: SÜPER AMATÖR, 1. AMATÖR, 2. AMATÖR)
+    // 4. BÜYÜKLER YEREL AMATÖR (Şehrine göre: İZMİR SÜPER AMATÖR, KOCAELİ SÜPER AMATÖR vb.)
+    let buyukAmatorIl = ilAdi;
+    Object.values(SEHIR_PLAKA_HARITASI).forEach((s) => {
+        if (cekirdekAscii.includes(asciiAnahtarYap(s.ilAdi))) {
+            buyukAmatorIl = s.ilAdi;
+        }
+    });
     if (
         bitisikAscii === 'SAL' ||
         bitisikAscii.includes('SUPERAMATOR') ||
         cekirdekAscii === 'S.AMATOR' ||
         cekirdekAscii === 'S. AMATOR'
     ) {
-        return sonucUret('SÜPER AMATÖR');
+        return sonucUret(`${buyukAmatorIl} SÜPER AMATÖR`);
     }
     if (
         bitisikAscii === '1AK' ||
         bitisikAscii.includes('1AMATOR') ||
         bitisikAscii.includes('BIRINCIAMATOR')
     ) {
-        return sonucUret('1. AMATÖR');
+        return sonucUret(`${buyukAmatorIl} 1. AMATÖR`);
     }
     if (
         bitisikAscii === '2AK' ||
         bitisikAscii.includes('2AMATOR') ||
         bitisikAscii.includes('IKINCIAMATOR')
     ) {
-        return sonucUret('2. AMATÖR');
+        return sonucUret(`${buyukAmatorIl} 2. AMATÖR`);
     }
 
     // 5. ALTYAPI YAŞ GRUPLARI (U11 - U19, O14, 014, 14 YAŞ VB.)
